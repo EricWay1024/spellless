@@ -31,3 +31,14 @@ i've	I've
 
 eg	e.g.
 ie	i.e.
+
+# Shorthand: the key is in data/vocab/shorthand.txt, the text is here.
+im	I'm
+sth	something
+smth	something
+tmr	tomorrow
+tmrw	tomorrow
+pls	please
+thx	thanks
+msg	message
+idk	I don't know

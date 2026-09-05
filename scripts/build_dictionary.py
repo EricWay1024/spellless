@@ -66,27 +66,49 @@ def accept(word: str) -> bool:
     return bool(m and m.group(1) in CONTRACTION_TAILS)
 
 
-def parse_vocab_file(path: Path, default_freq: int) -> tuple[dict[str, int], dict[str, str]]:
+def parse_vocab_file(
+    path: Path, default_freq: int, ranked: list[tuple[str, int]] | None = None
+) -> tuple[dict[str, int], dict[str, str]]:
     """Read a supplemental plain-text vocabulary file.
 
     An entry written with capitals -- "Grothendieck", "TQFT" -- is indexed
     under its lowercase form and remembers the capitals as a surface form, so
     typing "grthndck" gives back "Grothendieck" rather than "grothendieck".
+
+    The same rule carries multi-word entries.  The lookup key is the letters
+    alone, so "Hong Kong" is typed as "hongkong" and "in front of" as
+    "infrontof", and what lands in the document is the entry as written.  Rime
+    commits a candidate whole, so a phrase costs exactly one selection -- and
+    it goes through the same fuzzy matching as any other word, which is the
+    point: "hongkong" is a thing you can misspell.
     """
     freqs: dict[str, int] = {}
     forms: dict[str, str] = {}
+    file_freq = default_freq
     with path.open(encoding="utf-8") as fh:
         for line in fh:
+            # `#!rank N` says how common this file's words are, as a rank in the
+            # base corpus.  Without it every supplemental word arrives at rank
+            # 20,000, which is far too prominent for a list of place names: they
+            # then outrank the ordinary words they are competing with, and the
+            # cost lands on everything else being corrected.
+            directive = re.match(r"^#!\s*rank\s+(\d+)\s*$", line.strip())
+            if directive and ranked:
+                index = min(int(directive.group(1)), len(ranked)) - 1
+                file_freq = ranked[index][1]
+                continue
             line = line.split("#", 1)[0].strip()
             if not line:
                 continue
             parts = line.split("\t")
             written = parts[0].strip()
-            word = written.lower()
+            # The key is what you type: letters and apostrophes only, so spaces
+            # and dots in the written form simply close up.
+            word = re.sub(r"[^a-z']", "", written.lower())
             if not accept(word):
                 print(f"    skipping unsupported entry {written!r} in {path.name}")
                 continue
-            freq = int(parts[1]) if len(parts) > 1 and parts[1].strip() else default_freq
+            freq = int(parts[1]) if len(parts) > 1 and parts[1].strip() else file_freq
             freqs[word] = max(freqs.get(word, 0), freq)
             if written != word:
                 forms[word] = written
@@ -154,7 +176,7 @@ def main() -> int:
     added, promoted = 0, 0
     vocab_forms: dict[str, str] = {}
     for path in vocab_files:
-        extra, extra_forms = parse_vocab_file(path, default_freq)
+        extra, extra_forms = parse_vocab_file(path, default_freq, ranked)
         vocab_forms.update(extra_forms)
         for word, freq in extra.items():
             if word in freqs:

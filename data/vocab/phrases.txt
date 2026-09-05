@@ -1,0 +1,123 @@
+#!rank 55000
+# Word groups that behave as one word when you type them.
+#
+# "in front of" is three words to the dictionary and one thing to the writer.
+# Typing it as "infrontof" and picking it once is fewer keystrokes and fewer
+# decisions than typing three words and choosing three times -- and, because
+# these go through the same matching as everything else, "infrntof" still
+# finds it.
+#
+# The lookup key is the letters alone; what lands in the document is the entry
+# as written here, spaces and all.  Typing the words separately still works
+# exactly as before -- this is an addition, not a replacement.
+#
+# Keep the key unambiguous: it must not be a word in its own right, and it
+# should not be so short that it collides with ordinary typing.
+
+# phrases that carry a lot of academic prose
+in front of
+each other
+one another
+as well as
+such that
+so that
+in order to
+in order that
+at least
+at most
+if and only if
+on the other hand
+for example
+for instance
+in particular
+in general
+in fact
+in addition
+in contrast
+in practice
+in principle
+as a result
+as a whole
+as follows
+it follows that
+note that
+recall that
+suppose that
+with respect to
+due to
+owing to
+in terms of
+according to
+by means of
+in the sense that
+up to
+more than
+less than
+rather than
+instead of
+because of
+in spite of
+despite the fact that
+thanks to
+as far as
+as soon as
+as long as
+even though
+even if
+provided that
+so far
+at the same time
+at first
+at last
+no longer
+once again
+of course
+a lot of
+a number of
+a great deal of
+the number of
+kind of
+sort of
+by the way
+on average
+in other words
+that is to say
+needless to say
+all of them
+both of them
+none of them
+each of which
+all of which
+some of which
+most of which
+
+# places written as two words
+Hong Kong
+New York
+New Jersey
+New Mexico
+New Zealand
+New Delhi
+New Orleans
+United States
+United Kingdom
+South Africa
+South Korea
+North Korea
+Saudi Arabia
+Sri Lanka
+Costa Rica
+Puerto Rico
+Czech Republic
+Los Angeles
+San Francisco
+San Diego
+Las Vegas
+Buenos Aires
+Cape Town
+Tel Aviv
+Sao Paulo
+Rio de Janeiro
+Mexico City
+Kuala Lumpur
+St Petersburg

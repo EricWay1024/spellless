@@ -1,0 +1,21 @@
+#!rank 55000
+# Shorthand you type instead of the word.
+#
+# The lookup key goes here so it exists in the dictionary at all; what it
+# commits as lives in ../forms.txt, because the key and the text share no
+# letters and nothing can derive one from the other.
+#
+# The bar is that the shorthand must not be something you would ever want
+# typed literally.  That rules out "asap" and "fyi", which people write as
+# they stand, and "def", "prob" and "min", which are ordinary words in
+# mathematics.  Personal habits belong in your own
+# <rime user dir>/spellless_shortcuts.txt, not here.
+im
+sth
+smth
+tmr
+tmrw
+pls
+thx
+msg
+idk
