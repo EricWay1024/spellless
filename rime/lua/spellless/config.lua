@@ -35,13 +35,11 @@ M.defaults = {
   split_word_penalty = 0.8,
   -- How good an ordinary explanation has to be before splitting is abandoned.
   split_max_rival_cost = 1.6,
-  -- Below this a concatenation is as likely to be an identifier or a coined
-  -- word as it is two words run together -- "argmax", "librime", "spellless"
-  -- all split perfectly well and all of them are meant literally -- and there
-  -- is no way to tell them apart by looking at the pieces, because the pieces
-  -- are ordinary words either way.  Above it, prose is the better bet.  The
-  -- cost is that "goodday" and "nextweek" are not split; type the space.
-  min_split_len     = 10,
+  -- Below this there is not enough string for two words worth having.  It can
+  -- afford to be short because a split never competes: it sits one above the
+  -- literal, so a short identifier that happens to segment costs a slot near
+  -- the bottom of the list and nothing else.
+  min_split_len     = 5,
   -- Above this the search is quadratic and the input is not prose anyway.
   max_split_len     = 28,
 
@@ -92,7 +90,7 @@ M.defaults = {
   -- Below an exact match, above a typo: it is only offered when the whole
   -- string is not a word, so there is rarely much competition, but a close
   -- misspelling of a real word is still the better guess.
-  base_split        = 92,
+  base_split        = 70,
 
   form_bonus        = 70,   -- exact match on an entry with a written form
   freq_weight       = 34,   -- x normalised corpus log-frequency, in [0,1]

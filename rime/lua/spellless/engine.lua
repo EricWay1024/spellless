@@ -209,32 +209,19 @@ end
 --- not her", and "together" into "to get her".  A string that is already in
 --- the dictionary is not a run of words that need separating -- it is a word,
 --- and this project does not second-guess those.
-local function generate_split(self, query, items)
+local function find_split(self, query)
   local cfg = self.cfg
-  if not cfg.split_words then return end
+  if not cfg.split_words then return nil end
   -- The dictionary only.  A word committed once is not the language saying
   -- this is a word -- it is a record of something typed, quite possibly the
   -- very run-together this would fix.  "exactlyright" got committed while
   -- there was no other option, and that alone stopped it being split ever
   -- after.
-  if self.corpus:lookup(query) then return end
+  if self.corpus:lookup(query) then return nil end
 
-  -- A last resort, and only that.  Nearly any long string can be cut into
-  -- words somehow -- "recieve" is "rec i eve", "mathe" is "mat he" -- and no
-  -- amount of scoring separates those from real splits, because the pieces are
-  -- ordinary words with ordinary frequencies.  What separates them is that
-  -- "recieve" and "mathe" already have a good explanation: one is a
-  -- misspelling of a word and the other the start of one.  So if anything
-  -- cheap already explains the input, there is nothing here to solve.
-  for i = 1, #items do
-    local item = items[i]
-    if (item.cost or 0) <= cfg.split_max_rival_cost then
-      return
-    end
-  end
 
   local found = split.best(self.corpus, query, cfg)
-  if not found then return end
+  if not found then return nil end
 
   -- Each part carries its own spelling, so "iamgoingtoschool" comes back as
   -- "I am going to school" rather than with a lowercase pronoun.
@@ -245,16 +232,11 @@ local function generate_split(self, query, items)
     if w < weakest then weakest = w end
   end
 
-  items[#items + 1] = {
-    word = table.concat(words, " "),
+  return {
+    text = table.concat(words, " "),
     source = "split",
     cost = 0,
-    extra = 0,
-    -- The rarest part decides, not the average.  A split is a conjunction --
-    -- every piece has to be a word someone would write -- so one obscure piece
-    -- condemns the whole reading.  Averaging hid exactly that: "rec i eve"
-    -- scored respectably on the strength of "i", and led over "receive".
-    freq = weakest,
+    score = weakest,
   }
 end
 
@@ -302,7 +284,6 @@ function Engine:suggest(raw, limit, opts)
       item.has_form = self.corpus.forms[item.word] ~= nil
     end
     generate_personal(self, search, items)
-    generate_split(self, search, items)
     if stem then
       -- A stem that already carries an apostrophe cannot take another: "it'd",
       -- "it's" and "mother's" would come back as "it'd's".  Plain trailing "s"
@@ -377,6 +358,29 @@ function Engine:suggest(raw, limit, opts)
   local trusted = expansions ~= nil and expansions ~= false
   trusted = trusted or (not (opts and opts.literal_first)
       and self:trustworthy(ranked[1], query, has_exact, typed_style))
+  -- The split goes last among the real answers, and the literal is placed
+  -- after that as usual.
+  --
+  -- Ranking it against the others was wrong twice over.  Scored high it
+  -- displaced real corrections; scored low, or suppressed whenever anything
+  -- else fitted at all, it vanished exactly when it was wanted -- "thisday"
+  -- offered Thursday and Tuesday and no way at all to say "this day".  There
+  -- is no score that means "worth having, never worth preferring".  A fixed
+  -- place does.
+  --
+  -- Last, rather than above the literal, because the literal has to stay where
+  -- it is: it leads when nothing else is trustworthy, and putting the split
+  -- above it there would hand first place to "spell less" over "spellless".
+  local found = find_split(self, search)
+  if found and #out < limit then
+    out[#out + 1] = {
+      text = self:surface(found.text, style) .. (suffix or ""),
+      source = found.source,
+      score = found.score,
+      cost = found.cost,
+    }
+  end
+
   self:insert_raw(out, raw, limit, trusted)
   stats.candidates = #out
   return out, stats
@@ -398,13 +402,6 @@ end
 --- themselves.
 function Engine:trustworthy(best, query, has_exact, typed_style)
   if not best then return false end
-  -- A split never takes first place.  "argmax", "librime" and "spellless" cut
-  -- into words as neatly as "exactlyright" does, and nothing about the pieces
-  -- says which was meant -- they are ordinary words either way.  So the thing
-  -- you typed keeps the first slot and the split takes the second, one key
-  -- away.  Getting this wrong costs a deliberate identifier; getting it right
-  -- costs one keystroke.
-  if best.source == "split" then return false end
   if best.cost > self.cfg.confidence_cost then return false end
   if best.score < self.cfg.confidence_floor then return false end
   if has_exact then return true end

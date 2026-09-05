@@ -284,19 +284,22 @@ way to cut a string into dictionary words is a word-break dynamic program, so
 any number of words falls out of it. Each part keeps its own spelling, which is
 why the pronoun comes back capitalised.
 
-Three rules keep it from running wild, because almost any long string can be
-cut up somehow:
+Two rules keep it from running wild, because almost any long string can be cut
+up somehow:
 
 * **A word is never split.** `another` segments perfectly into `a not her`, and
   `together` into `to get her`. If the dictionary has the string, it is a word.
-* **It is a last resort.** If anything ordinary already explains the input, no
-  split is offered — `recieve` is a misspelling of `receive`, not `rec i eve`,
-  and `mathe` is the start of `mathematics`, not `mat he`.
-* **It never takes first place.** `argmax`, `librime` and `spellless` cut into
-  words exactly as neatly as a real run-together, and nothing about the pieces
-  says which was meant. So what you typed keeps the first slot and the split
-  takes the second. Getting this wrong would cost you a deliberate identifier;
-  getting it right costs one keystroke.
+  Only the dictionary counts, not your own history: a word committed once is a
+  record of something typed, quite possibly the very run-together this fixes.
+* **A split is placed, not ranked.** It goes last among the real candidates,
+  with the literal after it as usual. It is worth having and never worth
+  preferring, and no score says that: scored high it displaced real
+  corrections, and suppressed whenever anything else fitted it vanished exactly
+  when it was wanted — `thisday` offered `Thursday`, `Tuesday`, and no way at
+  all to say `this day`.
+
+So `spellless` and `argmax` keep the first slot, `receive` still leads for
+`recieve`, and `this day` is there when you want it.
 
 Not done: matching a run-together that is *also* misspelled, so `exctlyrght`
 would find `exactly right`. Each part would need the full fuzzy search, at

@@ -328,6 +328,27 @@ do
          ("%q keeps the first slot"):format(q))
   end
 
+  -- And never above an ordinary candidate.  A split is worth having and never
+  -- worth preferring, which no score can say, so it is placed rather than
+  -- ranked: last among the real answers.
+  for _, q in ipairs({ "thisday", "recieve", "mathe", "maintainance" }) do
+    local seen_split
+    for i, c in ipairs(engine:suggest(q, 8)) do
+      if c.source == "split" then seen_split = i end
+      H.ok(not (seen_split and i > seen_split and not c.raw and c.source ~= "split"),
+           ("%q: nothing real comes after the split"):format(q))
+    end
+  end
+
+  -- It must still be there when something else fits.  Suppressing it whenever
+  -- the dictionary had any explanation made "thisday" offer Thursday, Tuesday
+  -- and no way at all to say "this day".
+  local found
+  for _, c in ipairs(engine:suggest("thisday", 8)) do
+    if c.text == "this day" then found = true end
+  end
+  H.ok(found, "a split survives alongside better-scoring rivals")
+
   -- A word is never split, however well it segments.
   for _, q in ipairs({ "another", "together", "carpet", "atone", "mathematics" }) do
     local o = engine:suggest(q, 8)
@@ -337,13 +358,10 @@ do
     end
   end
 
-  -- And it is a last resort: anything the dictionary can already explain wins.
-  -- "recieve" is "rec i eve" and "mathe" is "mat he", and both are nonsense.
+  -- Anything the dictionary can explain still leads: "recieve" is a misspelling
+  -- of "receive", not "rec i eve".
   H.eq(engine:suggest("recieve", 6)[1].text, "receive")
   H.eq(engine:suggest("mathe", 6)[1].text, "mathematics")
-  for _, q in ipairs({ "recieve", "mathe", "maintainance", "publically" }) do
-    for _, c in ipairs(engine:suggest(q, 8)) do
-      H.ok(c.source ~= "split", ("%q has a better explanation than a split"):format(q))
-    end
-  end
+  H.eq(engine:suggest("maintainance", 6)[2].text, "maintenance",
+       "and a real correction keeps the slot the split used to take")
 end
