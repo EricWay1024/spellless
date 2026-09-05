@@ -1,38 +1,85 @@
 # Spellless
 
-A fuzzy English input method for [Rime](https://rime.im/) / Weasel on Windows.
+**Stop spelling. Start writing.**
 
-You type an approximate spelling — or just the consonants — and pick the word
-you meant from the candidate list, the way a Chinese IME works. Nothing is ever
-corrected behind your back, and `Enter` always commits exactly what you typed.
+![Typing "cmplctd" and being offered "complicated"](docs/spellless.jpg)
+
+You know the word. You have always known the word. What you cannot reliably do
+at the speed you think is get its letters into the right order — and English
+charges you for that, hour after hour, and gives you nothing back.
+
+Spellless takes your approximate spelling and offers you the word you meant.
+Drop the vowels. Get the letters out of order. Run two words together. Then
+glance, pick, and keep going.
+
+```
+recieve          →  receive              teh            →  the
+recommnedation   →  recommendation       cmplctd        →  complicated
+mthmtcs          →  mathematics          dffmrphsm      →  diffeomorphism
+strtfctn         →  stratification       grthndck       →  Grothendieck
+exactlyright     →  exactly right        thisday        →  this day
+mther's          →  mother's             mthers'        →  mothers'
+bc               →  because              im             →  I'm
+```
+
+**Nothing is ever corrected behind your back.** The list appears, you choose,
+and `Enter` always commits exactly what you typed. It never quietly decides you
+meant something else — because the one thing worse than mistyping a word is a
+machine mistyping it for you, confidently, while you look away.
+
+## Why this should exist
+
+Chinese input methods solved a version of this decades ago. You type an
+approximation, the IME shows you candidates, you pick one. Hundreds of millions
+of people write that way every day and nobody finds it remarkable.
+
+English never got the same treatment, because typing English assumes you can
+spell it. So spelling stays a tax on thinking — a hundred small stumbles an
+hour, each one pulling your attention off the sentence and onto the keyboard.
+Autocorrect is not the answer to this. Autocorrect is a machine guessing
+silently and being wrong in ways you find out about later.
+
+Spellless treats what you typed as **a noisy encoding of a word you already
+know**, and decodes it:
+
+* **A transposition is nearly free.** `teh` is `the`. Your fingers arrived out
+  of order, which says almost nothing about what you meant.
+* **Vowels are cheap. Consonants carry the word.** `mthmtcs` is `mathematics`
+  and `dffmrphsm` is `diffeomorphism`, because English spelling is largely
+  redundant and the consonant skeleton is where the information lives.
+* **Everything competes on one score** — frequency, edit cost, how much a
+  completion adds, what you have chosen before — so a common word reached by a
+  cheap slip can legitimately beat a rare exact prefix.
+
+Look again at the screenshot. `complicated` is first, and `completed`,
+`complicate`, `compacted`, `complicity` are the words a reasonable reader might
+have suspected. That is a ranking, not a lookup: nothing under `rime/lua/`
+knows any of those words. They fall out of a weighted edit distance, a
+consonant-skeleton index and one ranking function. See [DESIGN.md](DESIGN.md).
+
+## What it feels like
+
+You stop proofreading mid-sentence. You stop backspacing four characters to fix
+a transposition. Spaces appear between words and never in front of a comma; the
+first word of a sentence arrives capitalised; `eg` becomes `e.g.`, `english`
+becomes `English`, `i` becomes `I`. You type a colleague's name once and it is
+remembered. You get a word wrong that Spellless has never seen, and the space
+bar *declines to commit it* until you press it a second time — because the one
+moment worth interrupting you is the moment you were about to be wrong.
+
+And when it does get something wrong, one key makes it forget.
 
 ```
 mathe            →  mathematics · mathematical · mathematician …
-recommnedation   →  recommendation
-recommned        →  recommend · recommended · recommending …
-recieve          →  receive
-teh              →  the
-mthmtcs          →  mathematics
-rcmmndtn         →  recommendation
-strtfctn         →  stratification
-dffmrphsm        →  diffeomorphism
-brdsm            →  bordism
-trngltn          →  triangulation
-
-dont             →  don't          i     →  I
-youre            →  you're         ive   →  I've
-its              →  its · it's     id    →  id · I'd
-eg               →  e.g.           ie    →  i.e.
-chmlgcl          →  cohomological  grthndck →  Grothendieck
-noether's        →  Noether's      psdfnctr →  pseudofunctor
+dont             →  don't          its       →  its · it's
+youre            →  you're         id        →  id · I'd
+noether's        →  Noether's      psdfnctr  →  pseudofunctor
 ```
 
-Spaces between words are inserted for you, never in front of a comma, and the
-first word of a sentence is offered with a capital.
-
-Those are not a lookup table. Nothing under `rime/lua/` knows any of those
-words; they fall out of a weighted edit distance, a consonant-skeleton index
-and one ranking function. See [DESIGN.md](DESIGN.md).
+**The word you meant is first 88.3% of the time, and on the first page 98.4%.**
+About 2 ms per keystroke over 83,095 words. 1844 assertions say it still
+behaves. [EVALUATION.md](EVALUATION.md) has the numbers, including the cases it
+gets wrong and why.
 
 ---
 
@@ -417,6 +464,7 @@ modules Rime loads — the matching core is plain Lua with no Rime dependency.
 spellless/
 ├── DESIGN.md              architecture, and why each decision went that way
 ├── EVALUATION.md          accuracy and latency, and how to reproduce them
+├── docs/spellless.jpg     the screenshot at the top
 ├── rime/
 │   ├── spellless.schema.yaml
 │   └── lua/
