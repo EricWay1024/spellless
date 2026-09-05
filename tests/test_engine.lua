@@ -240,3 +240,34 @@ do
        "and different files do not")
   H.ok(Corpus.fingerprint(DATA):find("^%d+:%d+"), "the fingerprint is the sizes")
 end
+
+H.suite("engine: familiarity never outranks an exact match")
+-- "the", "that" and "this" get typed hundreds of times, and the personal bonus
+-- used to be worth more than the gap between an exact match and a skeleton
+-- one: typing "sth" offered "the" ahead of "something".
+do
+  local path = os.tmpname()
+  local fh = assert(io.open(path, "wb"))
+  for _, w in ipairs({ "the", "that", "this", "with", "from" }) do
+    fh:write(w, "\t500\n")
+  end
+  fh:close()
+
+  local e = assert(Engine.new{ data_dir = DATA, personal_path = path })
+  local function top(q) local o = e:suggest(q, 1); return o[1] and o[1].text end
+
+  H.eq(top("sth"), "something", "an exact key leads however familiar the rivals")
+  H.eq(top("the"), "the", "and a familiar word still leads when it is the exact one")
+  H.eq(top("form"), "form", "a real word is never corrected to a commoner one")
+  H.eq(top("from"), "from")
+
+  -- The bound the score table relies on: nothing inexact can reach base_exact.
+  local cfg = require("spellless.config").defaults
+  local ceiling = math.max(cfg.base_typo, cfg.base_prefix,
+                           cfg.base_skeleton + cfg.skeleton_vowel_bonus)
+                  + cfg.freq_weight + cfg.user_weight
+  H.ok(cfg.base_exact > ceiling,
+       ("base_exact %d must exceed every other source's ceiling %d")
+         :format(cfg.base_exact, ceiling))
+  os.remove(path)
+end

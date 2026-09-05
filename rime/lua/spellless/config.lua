@@ -55,7 +55,19 @@ M.defaults = {
   -------------------------------------------------------------------- ranking
   -- Base score per source.  The gaps encode the intended broad priority:
   -- exact > plausible completion > close typo > skeleton reconstruction.
-  base_exact        = 100,
+  --
+  -- base_exact is deliberately out of reach of the others rather than merely
+  -- above them.  Every other source can be lifted by frequency and by personal
+  -- use -- at most freq_weight + user_weight = 60 -- so the best a skeleton
+  -- match can reach is 66 + 14 + 60 = 140, and a typo 75 + 60 = 135.  At 160
+  -- no amount of familiarity can put a guess above a word you actually typed.
+  --
+  -- It was 100, and the failure was quiet: typing "sth" offered "the" first,
+  -- because "the" had been committed hundreds of times and the personal bonus
+  -- was worth more than the 34-point gap.  A word in the dictionary, spelled
+  -- exactly, is not a thing to be second-guessed -- and the whole design rests
+  -- on never correcting silently.
+  base_exact        = 160,
   base_prefix       = 74,
   base_typo         = 75,
   base_skeleton     = 66,
