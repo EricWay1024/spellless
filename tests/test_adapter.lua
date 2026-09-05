@@ -333,6 +333,38 @@ env.spellless.cfg.word_backspace = false
 ctxA:set_property("surrounding_text", "")
 mock.history:clear()
 
+H.suite("adapter: the space bar asks before committing a misspelling")
+-- The space bar picks the word and separates it from the next, and the second
+-- job is so automatic that the first happens unnoticed.  Fine over a real
+-- word; exactly wrong over one the dictionary does not have.
+local ctxS = env.engine.context
+env.spellless.cfg.confirm_literal = true
+ctxS.input = "qwertyx"
+ctxS:set_property("spellless_literal", "")
+mock.selected = { text = "qwertyx ", type = "raw" }
+local n0 = #mock.committed
+H.eq(spellless.processor.func(mock.key(0x20), env), 1, "the first space is swallowed")
+H.eq(#mock.committed, n0, "nothing committed")
+H.eq(ctxS.input, "qwertyx", "and the word is still there to be corrected")
+H.eq(spellless.processor.func(mock.key(0x20), env), 2,
+     "the second space goes through to Rime, which commits as usual")
+
+-- A real word is never held up.
+ctxS:set_property("spellless_literal", "")
+mock.selected = { text = "mathematics ", type = "exact" }
+H.eq(spellless.processor.func(mock.key(0x20), env), 2,
+     "a dictionary word commits on the first space")
+
+-- Typing something else cancels it: the reason to pause was that it was wrong.
+ctxS:set_property("spellless_literal", "")
+mock.selected = { text = "qwertyx ", type = "raw" }
+spellless.processor.func(mock.key(0x20), env)
+spellless.absorb.func(mock.key(string.byte("a")), env)
+H.eq(ctxS:get_property("spellless_literal"), "", "a letter cancels the pending ask")
+env.spellless.cfg.confirm_literal = false
+ctxS.input = ""
+mock.selected = nil
+
 H.suite("adapter: Control+Shift+D forgets what was learned by accident")
 local XK_D_ = string.byte("d")
 env.spellless.user:set("wrold", 5, "wrold")
@@ -343,6 +375,17 @@ env.engine.context.input = "wrold"
 H.eq(spellless.processor.func(mock.key(XK_D_, { ctrl = true, shift = true }), env), 1,
      "the key is handled")
 H.eq(env.spellless.user:count("wrold"), 0, "and the highlighted candidate is gone")
+H.ok((env.engine.context.refreshed or 0) > 0,
+     "the menu is re-queried, so the reordering shows immediately")
+
+-- Shift+Delete and Control+Delete do the same thing: Rime's own convention for
+-- dropping a candidate, and reachable when an application eats Control+Shift+D.
+env.spellless.user:set("teh2", 4)
+mock.selected = { text = "teh2 " }
+env.engine.context.input = "teh2"
+H.eq(spellless.processor.func(mock.key(0xffff, { shift = true }), env), 1,
+     "Shift+Delete is handled")
+H.eq(env.spellless.user:count("teh2"), 0, "and forgets too")
 H.ok(env.spellless.user:surface("wrold") == nil, "spelling and all")
 
 -- With nothing composing it forgets the last commit, for when you notice one

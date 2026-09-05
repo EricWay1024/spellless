@@ -120,8 +120,8 @@ spellless:
   # <rime user dir>/spellless_shortcuts.txt.  An exact match leads the list.
   shortcuts_file: "spellless_shortcuts.txt"
   # Learn from what you select, into <rime user dir>/spellless_user.txt.
-  # Control+Shift+D forgets the highlighted candidate again -- or, with nothing
-  # composing, the word just committed -- so a typo learned by accident does
+  # Control+Shift+D (or Shift+Delete) forgets the highlighted candidate again
+  # -- or, with nothing composing, the word just committed -- so a typo learned by accident does
   # not lead the list for ever.  It only removes your own entry; a real English
   # word stays in the dictionary.
   learn: true
@@ -192,6 +192,8 @@ key_binder:
   # lua_processor@*spellless*processor, which needs to commit before it acts:
   #   Control+Shift+A  leave Spellless mid-word, committing what you typed
   #   Control+Shift+D  forget the highlighted candidate (see `learn` below)
+  #   Shift+Delete     the same thing, and Control+Delete too -- Rime's own
+  #                    convention, for when an application eats the first one
 
 recognizer:
   import_preset: default

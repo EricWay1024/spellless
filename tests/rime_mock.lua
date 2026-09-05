@@ -104,6 +104,9 @@ function M.install(opts)
         get_selected_candidate = function(self) return M.selected end,
         -- librime-lua exposes Context::PushInput; the absorb processor uses it
         -- to put a word taken back out of the document into the composition.
+        refresh_non_confirmed_composition = function(self)
+          self.refreshed = (self.refreshed or 0) + 1
+        end,
         push_input = function(self, text)
           self.input = (self.input or "") .. text
           return true

@@ -22,6 +22,8 @@ local XK_Return, XK_KP_Enter, XK_BackSpace = 0xff0d, 0xff8d, 0xff08
 local XK_Shift_L, XK_Shift_R = 0xffe1, 0xffe2
 local XK_a, XK_A = 0x61, 0x41
 local XK_d, XK_D = 0x64, 0x44
+local XK_Delete = 0xffff
+local XK_space = 0x20
 
 --- Does a single segment cover the whole input?
 ---
@@ -58,6 +60,8 @@ end
 local SENTENCE = "spellless_sentence"
 -- Set while the last key was a Backspace with nothing composing.
 local BACKSPACE = "spellless_backspace"
+-- Set once the space bar has been offered a literal candidate and declined it.
+local LITERAL = "spellless_literal"
 local SENTENCE_YES, SENTENCE_NO = "1", "0"
 
 local function write_note(context, value)
@@ -444,6 +448,9 @@ function M.absorb.func(key, env)
   if key.keycode ~= XK_BackSpace then
     context:set_property(BACKSPACE, "")
   end
+  if key.keycode ~= XK_space then
+    context:set_property(LITERAL, "")
+  end
 
   if not engine or not engine.cfg.absorb_fragment then return kNoop end
   if key:ctrl() or key:alt() or key:super() then return kNoop end
@@ -524,17 +531,30 @@ function M.processor.func(key, env)
   -- ordinary English word, it merely stops being *yours*.  With nothing
   -- composing it forgets the word last committed, which is the case where you
   -- notice the mistake one keystroke too late.
-  if key:ctrl() and key:shift() and (code == XK_d or code == XK_D) then
+  local forget_key = (key:ctrl() and key:shift() and (code == XK_d or code == XK_D))
+      or (code == XK_Delete and (key:ctrl() or key:shift()))
+  if forget_key then
     local engine = env.spellless
     if not engine then return kNoop end
+    local composing = context:is_composing()
     local word
-    if context:is_composing() then
+    if composing then
       local chosen = context:get_selected_candidate()
       word = chosen and chosen.text
     else
       word = context.commit_history:latest_text()
     end
-    if word then engine:forget(word) end
+    local gone = word and engine:forget(word)
+    -- Say so.  Without this the whole thing was invisible: the key was
+    -- swallowed, the menu was never re-queried, and the list looked exactly as
+    -- it had a moment earlier -- indistinguishable from a shortcut that had
+    -- never arrived.
+    log.info(("spellless: forget %q -> %s"):format(tostring(word),
+             gone and "removed" or "was not in the personal store"))
+    if composing then
+      -- Re-run the translation so the reordering is on screen at once.
+      context:refresh_non_confirmed_composition()
+    end
     return kAccepted
   end
 
@@ -590,6 +610,24 @@ function M.processor.func(key, env)
     local behind = commit_tail(context.commit_history)
     if behind:match("%d[%.,:] $") then
       env.engine:commit_text("\8" .. string.char(code))
+      return kAccepted
+    end
+  end
+
+  -- The space bar over a literal candidate: ask once.
+  --
+  -- Reaching here means nothing in the dictionary was worth putting under the
+  -- space bar, so the candidate is the raw input -- a word the dictionary does
+  -- not have, which is usually a misspelling rather than a decision.  The
+  -- first space is swallowed and the composition stays on screen; the second
+  -- commits.  Anything else typed in between cancels it, because the reason to
+  -- pause was that the word was wrong.
+  if composing and engine and engine.cfg.confirm_literal and code == XK_space
+     and not key:ctrl() and not key:alt() and not key:super() then
+    local chosen = context:get_selected_candidate()
+    if chosen and chosen.type == "raw"
+       and context:get_property(LITERAL) ~= "1" then
+      context:set_property(LITERAL, "1")
       return kAccepted
     end
   end

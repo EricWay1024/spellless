@@ -142,6 +142,17 @@ M.defaults = {
   -- Offer a capital on the first word of a sentence.  Only when you typed the
   -- word in lower case: an explicit capital of your own is never overridden.
   auto_capitalize   = true,
+  -- When nothing in the dictionary fits and the only thing on offer is what
+  -- you typed, the space bar asks before it commits: the first press is
+  -- ignored, the second commits.
+  --
+  -- The space bar is doing two jobs -- pick this word, and separate it from
+  -- the next -- and the second is so automatic that the first happens without
+  -- being noticed.  That is fine when the candidate is a real word.  It is
+  -- exactly wrong when the candidate is a misspelling, which is the one case
+  -- where a moment's attention is worth having.  Return still commits
+  -- immediately, and always did.
+  confirm_literal   = true,
   limit             = 20,   -- candidates handed to Rime
   -- 1-based slot for the "commit exactly what I typed" candidate.  Defaults to
   -- the last slot of the first page so it is one keystroke away without ever
