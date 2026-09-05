@@ -36,8 +36,34 @@ of people write that way every day and nobody finds it remarkable.
 English never got the same treatment, because typing English assumes you can
 spell it. So spelling stays a tax on thinking — a hundred small stumbles an
 hour, each one pulling your attention off the sentence and onto the keyboard.
-Autocorrect is not the answer to this. Autocorrect is a machine guessing
-silently and being wrong in ways you find out about later.
+
+### Why not autocorrect?
+
+Autocorrect has to choose. It gets one guess, it has no way to say *I am not
+sure*, and it applies its guess to text you have already written. When it is
+right you never notice; when it is wrong you often do not notice either, which
+is the entire problem. You find out when a reader does. The keystroke it saved
+was never the expensive part — the expensive part is that you can no longer
+trust the sentence without re-reading it.
+
+A candidate list moves the decision to the only party who knows which word was
+meant. That is not a smaller version of autocorrect. It is the opposite
+arrangement: the machine proposes, you dispose, and nothing lands that you did
+not choose.
+
+It also makes far more ambition affordable. Autocorrect can only risk a
+near-miss of an edit or two, because every guess is applied unseen. Spellless
+can offer `mathematics` for `mthmtcs`, because a consonant skeleton is not a
+typo of anything — it is an abbreviation, and accepting it means allowing a
+distance so large that half the dictionary becomes reachable. That is
+unthinkable if a machine must pick, and perfectly safe when a human is looking
+at seven options.
+
+And it never fights you. Autocorrect's whole job is to overrule what you typed,
+so it overrules `kubectl`, `argmax`, `Grothendieck` and every name it has not
+met. Here what you typed is always on the list, `Enter` always commits it
+verbatim, and a word Spellless does not know will not go in at all until you
+press space a second time.
 
 Spellless treats what you typed as **a noisy encoding of a word you already
 know**, and decodes it:
