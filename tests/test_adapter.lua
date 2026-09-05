@@ -271,6 +271,68 @@ mock.commit_text = "!"
 mock.commit_handler(env.engine.context)
 H.eq(env.spellless.user:count("!"), 0, "punctuation is not vocabulary")
 
+H.suite("adapter: picking up a word already in the document")
+-- Delete the space after "so", type "oner", and the candidates should be for
+-- "sooner".  Only ever from the document: absorbing means deleting, and Rime's
+-- own history is cleared by the very Backspace that creates this situation.
+spellless.absorb.init(env)
+local ctxA = env.engine.context
+env.spellless.cfg.absorb_fragment = true
+
+ctxA.input = ""
+ctxA:set_property("surrounding_text", "I think so")
+local before_absorb = #mock.committed
+H.eq(spellless.absorb.func(mock.key(string.byte("o")), env), 2,
+     "the letter still goes on to the speller")
+H.eq(mock.committed[#mock.committed], "\8\8", "the fragment is taken out of the document")
+H.eq(ctxA.input, "so", "and pushed into the composition")
+
+-- Nothing to pick up.
+ctxA.input = ""
+ctxA:set_property("surrounding_text", "I think so ")
+local n = #mock.committed
+H.eq(spellless.absorb.func(mock.key(string.byte("o")), env), 2, "passed through")
+H.eq(#mock.committed, n, "a space behind means a new word, nothing to absorb")
+H.eq(ctxA.input, "", "and nothing pushed")
+
+-- Without the document there is nothing to absorb from, however tempting the
+-- commit history looks.
+ctxA:set_property("surrounding_text", "")
+mock.history:clear(); mock.history:push("exact", "so")
+n = #mock.committed
+H.eq(spellless.absorb.func(mock.key(string.byte("o")), env), 2, "passed through")
+H.eq(#mock.committed, n, "the commit history is not good enough to delete on")
+env.spellless.cfg.absorb_fragment = false
+ctxA:set_property("surrounding_text", "")
+mock.history:clear()
+
+H.suite("adapter: Backspace twice deletes the whole word")
+env.spellless.cfg.word_backspace = true
+ctxA.input = ""
+ctxA:set_property("surrounding_text", "I think sooner")
+n = #mock.committed
+spellless.absorb.func(mock.key(XK_BackSpace), env)
+H.eq(spellless.processor.func(mock.key(XK_BackSpace), env), 2, "the first one is ordinary")
+H.eq(#mock.committed, n, "nothing committed")
+spellless.absorb.func(mock.key(XK_BackSpace), env)
+H.eq(spellless.processor.func(mock.key(XK_BackSpace), env), 1, "the second is handled")
+H.eq(mock.committed[#mock.committed], string.rep("\8", 6), "and takes the whole word")
+
+-- A key in between makes the next Backspace ordinary again.
+ctxA:set_property("surrounding_text", "I think sooner")
+spellless.absorb.func(mock.key(XK_BackSpace), env)
+spellless.processor.func(mock.key(XK_BackSpace), env)
+spellless.absorb.func(mock.key(string.byte("h")), env)   -- a letter, which the
+spellless.processor.func(mock.key(string.byte("!")), env) -- speller would eat
+n = #mock.committed
+spellless.absorb.func(mock.key(XK_BackSpace), env)
+H.eq(spellless.processor.func(mock.key(XK_BackSpace), env), 2,
+     "not a repeat, so ordinary")
+H.eq(#mock.committed, n, "nothing deleted")
+env.spellless.cfg.word_backspace = false
+ctxA:set_property("surrounding_text", "")
+mock.history:clear()
+
 H.suite("adapter: Control+Shift+D forgets what was learned by accident")
 local XK_D_ = string.byte("d")
 env.spellless.user:set("wrold", 5, "wrold")

@@ -96,6 +96,17 @@ M.defaults = {
   -- checks) while stock Weasel would insert it literally.  Nothing else about
   -- Spellless needs the fork.
   reclaim_space     = false,
+  -- Pick up a word you are part-way through re-typing.  Delete the space after
+  -- "so", start typing again, and the "so" is taken back out of the document
+  -- and into the composition, so the candidates are for "sooner" rather than
+  -- for "oner".  Needs the same frontend as reclaim_space, and for the same
+  -- reason: it has to remove characters that are already in the document, and
+  -- it only ever acts on text the frontend has actually read back.
+  absorb_fragment   = false,
+  -- Backspace twice in a row, with nothing composing, to delete the whole word
+  -- in front of the caret rather than one more character of it -- for when a
+  -- word is wrong enough to start again.  Same frontend requirement.
+  word_backspace    = false,
   -- Offer a capital on the first word of a sentence.  Only when you typed the
   -- word in lower case: an explicit capital of your own is never overridden.
   auto_capitalize   = true,
@@ -109,6 +120,9 @@ M.defaults = {
 
   ------------------------------------------------------------------- learning
   personal_file     = "spellless_user.txt",
+  -- Abbreviations you define yourself, one "short<TAB>expansion" per line,
+  -- in the Rime user directory.  See spellless/shortcuts.lua.
+  shortcuts_file    = "spellless_shortcuts.txt",
   learn             = true,
   -- A word selected this many times reaches the top of the personal scale.
   user_saturation   = 12,

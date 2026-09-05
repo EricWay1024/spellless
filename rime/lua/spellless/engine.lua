@@ -6,6 +6,7 @@
 
 local Corpus = require("spellless.corpus")
 local UserDB = require("spellless.userdb")
+local Shortcuts = require("spellless.shortcuts")
 local config = require("spellless.config")
 local generate = require("spellless.generate")
 local rank = require("spellless.rank")
@@ -41,6 +42,12 @@ function Engine.new(opts)
   self.user.path = personal
   self.last_flush = 0
   self:repair_personal()
+
+  -- Abbreviations the user defined.  Read once: it is a handful of lines that
+  -- someone edits deliberately, and a redeploy picks up changes.
+  self.shortcuts = Shortcuts.load(
+      opts.shortcuts_path
+      or (opts.user_dir and util.join(opts.user_dir, cfg.shortcuts_file)))
   return self
 end
 
@@ -203,15 +210,50 @@ function Engine:suggest(raw, limit, opts)
   local query = raw:lower()
   limit = limit or cfg.limit
 
+  -- A trailing "'s" is a statement of intent, and the only one available.
+  -- "teachers", "students", "mothers" are ordinary plurals far more often than
+  -- they are possessives, so guessing from a bare "s" would put a wrong
+  -- candidate under every plural.  An apostrophe you actually typed cannot be
+  -- anything else -- so the stem is matched on its own, and *every* candidate
+  -- comes back possessive.  "mther's" is then "mother's", which is the whole
+  -- point: the stem is what you might misspell.
+  --
+  -- Both endings, and the one you typed is the one you get back: "mther's" is
+  -- "mother's" and "mthers'" is "mothers'".  Which is right depends on whether
+  -- the noun is plural, and the apostrophe you placed already says so -- there
+  -- is nothing here for the matcher to work out, and it should not try.
+  --
+  -- Contractions come out right for free: "it's" is stem "it" plus "'s".
+  local stem, suffix
+  if query:sub(-2) == "'s" then
+    stem, suffix = query:sub(1, -3), "'s"
+  elseif query:sub(-1) == "'" then
+    stem, suffix = query:sub(1, -2), "'"
+  end
+  if stem and not stem:find("^[a-z][a-z']*$") then stem, suffix = nil, nil end
+  local search = stem or query
+
   local typed_style = case_style(raw)
   local items, has_exact = {}, false
-  if #query <= cfg.max_query_len and query:find("^[a-z][a-z']*$") then
+  if #search <= cfg.max_query_len and search:find("^[a-z][a-z']*$") then
     has_exact = self.corpus:lookup(query) ~= nil or self.user:count(query) > 0
         or self:possessive_stem(query) ~= nil
-    items = generate.generate(self.corpus, query, cfg, stats)
+    items = generate.generate(self.corpus, search, cfg, stats)
     for i = 1, #items do items[i].word = self.corpus.words[items[i].id] end
-    generate_personal(self, query, items)
-    generate_possessive(self, query, items)
+    generate_personal(self, search, items)
+    if stem then
+      -- A stem that already carries an apostrophe cannot take another: "it'd",
+      -- "it's" and "mother's" would come back as "it'd's".  Plain trailing "s"
+      -- is left alone, because "boss's" and "class's" are perfectly good, and
+      -- so is "mothers'" once the apostrophe says which was meant.
+      local kept = {}
+      for i = 1, #items do
+        if not items[i].word:find("'") then kept[#kept + 1] = items[i] end
+      end
+      items = kept
+    else
+      generate_possessive(self, query, items)
+    end
   end
 
   local corpus, user = self.corpus, self.user
@@ -225,23 +267,53 @@ function Engine:suggest(raw, limit, opts)
     user = function(item) return user:score(item.word, cfg.user_saturation) end,
     tiebreak = function(item) return item.id or (corpus.n + 1) end,
   }
-  local ranked = rank.rank(items, query, cfg, ctx)
+  local ranked = rank.rank(items, search, cfg, ctx)
 
-  local out = {}
-  for i = 1, math.min(#ranked, limit) do
+  -- Two dictionary entries can commit the same text -- "tmrw" and "tomorrow"
+  -- both show "tomorrow" -- and a list that offers the same word twice wastes
+  -- a slot and makes the user read it twice to see they are the same.
+  local out, already = {}, {}
+  for i = 1, #ranked do
+    if #out >= limit then break end
     local item = ranked[i]
-    out[i] = {
-      text = self:surface(item.word, style),
+    local entry = {
+      text = self:surface(item.word, style) .. (suffix or ""),
       source = item.source,
       score = item.score,
       cost = item.cost,
     }
+    if not already[entry.text] then
+      already[entry.text] = true
+      out[#out + 1] = entry
+    end
+  end
+
+  -- An abbreviation the user wrote down beats anything inferred, and goes to
+  -- the very top.  It is the one place in the whole matcher where there is no
+  -- guessing to do: they said what they meant.
+  local expansions = not (opts and opts.literal_first) and self.shortcuts:get(query)
+  if expansions then
+    for i = #expansions, 1, -1 do
+      local text = apply_case(expansions[i], style)
+      -- Drop the same word further down rather than offering it twice.
+      for j = #out, 1, -1 do
+        if out[j].text == text then table.remove(out, j) end
+      end
+      table.insert(out, 1, {
+        text = text,
+        source = "shortcut",
+        score = cfg.base_exact + 100,
+        cost = 0,
+      })
+    end
+    while #out > limit do table.remove(out) end
   end
 
   -- The literal candidate stays exactly literal: "commit what I typed" must
   -- not quietly capitalise "kubectl".
-  local trusted = not (opts and opts.literal_first)
-      and self:trustworthy(ranked[1], query, has_exact, typed_style)
+  local trusted = expansions ~= nil and expansions ~= false
+  trusted = trusted or (not (opts and opts.literal_first)
+      and self:trustworthy(ranked[1], query, has_exact, typed_style))
   self:insert_raw(out, raw, limit, trusted)
   stats.candidates = #out
   return out, stats

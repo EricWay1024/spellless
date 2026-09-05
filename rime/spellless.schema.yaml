@@ -9,7 +9,7 @@
 schema:
   schema_id: spellless
   name: Spellless
-  version: "0.1.0"
+  version: "0.2.0"
   author:
     - Spellless
   description: |
@@ -32,6 +32,11 @@ engine:
     - ascii_composer
     - recognizer
     - key_binder
+    # Before the speller, which consumes letters and returns kAccepted -- a
+    # processor after it never sees them.  This one picks up a word already in
+    # front of the caret when you start typing into it again; see
+    # `absorb_fragment`.
+    - lua_processor@*spellless*absorb
     - speller
     # After the speller (so it never sees a letter) and before the punctuator
     # (so it can end the word before the punctuation is written).
@@ -102,10 +107,18 @@ spellless:
   # (and only ever a space -- it checks what it is taking) while stock Weasel
   # would type it in literally.  Leave it false on a stock install.
   reclaim_space: false
+  # Start re-typing a word and pick up what is already there: delete the space
+  # after "so", type "oner", and the candidates are for "sooner".
+  absorb_fragment: false
+  # Backspace twice with nothing composing to delete the whole word.
+  word_backspace: false
   # Offer a capital on the first word of a sentence -- after . ! ? and on a new
   # line.  Only when you typed the word in lower case; an explicit capital of
   # your own is never overridden.
   auto_capitalize: true
+  # Your own abbreviations, one "short<TAB>expansion" per line, from
+  # <rime user dir>/spellless_shortcuts.txt.  An exact match leads the list.
+  shortcuts_file: "spellless_shortcuts.txt"
   # Learn from what you select, into <rime user dir>/spellless_user.txt.
   # Control+Shift+D forgets the highlighted candidate again -- or, with nothing
   # composing, the word just committed -- so a typo learned by accident does

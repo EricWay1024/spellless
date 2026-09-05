@@ -249,6 +249,74 @@ def _looks_empty(text: str) -> bool:
                for line in text.splitlines())
 
 
+TIMESTAMP_LINE = re.compile(r"^(\s+[A-Za-z0-9_.]+:\s*)([0-9]+)\s*$")
+
+
+def invalidate_build(user_dir: Path, dry_run: bool) -> int:
+    """Mark the compiled config stale so the next deploy rebuilds it.
+
+    Rime skips rebuilding a schema whose recorded source timestamps still match,
+    and it records them inside the built file itself.  Editing a source is
+    therefore not always enough -- a deploy can report success and rebuild
+    nothing.
+
+    The obvious workaround, deleting `build/`, is a trap: while it is missing a
+    running Rime falls back to the *shared* default.yaml, finds every schema
+    that ships with Weasel, and asks the user to pick one.  Zeroing the recorded
+    timestamps instead means the tree is never without a schema list.
+    """
+    build = user_dir / "build"
+    if not build.is_dir():
+        return 0
+    touched = 0
+    for path in sorted(build.glob("*.yaml")):
+        text = path.read_text(encoding="utf-8", errors="replace")
+        out, inside, changed = [], False, False
+        for line in text.splitlines():
+            if line.strip() == "timestamps:":
+                inside = True
+            elif inside and not line.startswith(" "):
+                inside = False
+            if inside:
+                m = TIMESTAMP_LINE.match(line)
+                if m and m.group(2) != "0":
+                    line = m.group(1) + "0"
+                    changed = True
+            out.append(line)
+        if changed:
+            touched += 1
+            print(f"  marking stale: {path.name}")
+            if not dry_run:
+                _write(path, "\n".join(out) + "\n")
+    return touched
+
+
+def pin_schema(user_dir: Path, dry_run: bool) -> None:
+    """Record Spellless as the chosen schema.
+
+    Without this the choice is only made the first time, and any moment when
+    the schema list looks different -- a half-finished deploy, a stale build --
+    puts the schema menu in front of the user again.
+    """
+    path = user_dir / "user.yaml"
+    text = path.read_text(encoding="utf-8", errors="replace") if path.exists() else ""
+    if re.search(r"^\s*previously_selected_schema:\s*spellless\s*$", text, re.M):
+        return
+    print(f"  pinning spellless in {path.name}")
+    if dry_run:
+        return
+    if re.search(r"^\s*previously_selected_schema:", text, re.M):
+        text = re.sub(r"^(\s*previously_selected_schema:).*$",
+                      r"\1 spellless", text, flags=re.M)
+    elif re.search(r"^var:\s*$", text, re.M):
+        text = re.sub(r"^var:\s*$", "var:\n  previously_selected_schema: spellless",
+                      text, count=1, flags=re.M)
+    else:
+        text = (text.rstrip("\n") + "\n" if text.strip() else "")
+        text += "var:\n  previously_selected_schema: spellless\n"
+    _write(path, text)
+
+
 def enable_schema(user_dir: Path, dry_run: bool) -> None:
     """Add the schema to default.custom.yaml without disturbing anything else.
 
@@ -430,11 +498,20 @@ def main() -> int:
         print("\nEnabling the schema:")
         enable_schema(user_dir, args.dry_run)
 
+    print("\nPreparing the next deploy:")
+    pin_schema(user_dir, args.dry_run)
+    if not invalidate_build(user_dir, args.dry_run):
+        print("  nothing built yet, so nothing to mark stale")
+
     print("""
 Next:
   1. Right-click the Weasel tray icon and choose the redeploy entry
      (Chinese builds: 「重新部署」), or run WeaselDeployer.exe /deploy.
   2. Press F4 (or Control+grave) and pick "Spellless".
+
+Do not delete the `build` directory to force a rebuild: while it is gone,
+Rime falls back to the schema list that ships with Weasel and asks you to
+choose one.  This script marks the build stale instead.
 
 If no candidates appear, open %APPDATA%\\Rime\\rime.log (or the newest
 rime.*.log next to it) and look for lines mentioning "spellless".""")

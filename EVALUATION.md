@@ -62,20 +62,20 @@ information for one answer.
 file                          cases   top-1   top-5 in-rank
 ------------------------------------------------------------
 ambiguity.tsv                    16   50.0%  100.0%  100.0%
-common_typos.tsv                 63   96.8%  100.0%  100.0%
-forms.tsv                        32   65.6%  100.0%  100.0%
-literal.tsv                      20  100.0%  100.0%  100.0%
+common_typos.tsv                 68   97.1%  100.0%  100.0%
+forms.tsv                        42   76.2%  100.0%  100.0%
 generated_skeletons.tsv         400   87.5%   98.5%   98.5%
 generated_typos.tsv             500   89.8%   98.4%   98.4%
+literal.tsv                      24  100.0%  100.0%  100.0%
 prefix.tsv                       16   93.8%  100.0%  100.0%
 raw.tsv                          14   71.4%   85.7%  100.0%
 skeletons.tsv                    31   96.8%  100.0%  100.0%
 spec_examples.tsv                16   68.8%   87.5%  100.0%
 ------------------------------------------------------------
-TOTAL                          1108   88.0%   98.4%   98.7%
+TOTAL                          1127   88.3%   98.4%   98.8%
 ```
 
-**Top-1 88.0%, top-5 98.4%, every case within its budget 98.7%** — and every
+**Top-1 88.3%, top-5 98.4%, every case within its budget 98.8%** — and every
 one of the 208 hand-written cases passes.
 
 Three files deserve a footnote, because their low top-1 is the *intended*

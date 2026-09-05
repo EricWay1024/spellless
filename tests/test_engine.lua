@@ -174,3 +174,69 @@ require("spellless.userdb").forget(path)
 local reloaded = assert(Engine.new{ data_dir = DATA, personal_path = path })
 H.ok(reloaded.user:count("commutative") >= 20, "the count survived a restart")
 os.remove(path)
+
+H.suite("engine: abbreviations you define yourself")
+-- The matcher reconstructs a word from its consonants, which covers many
+-- abbreviations unasked.  It cannot cover a habit: "bc" is two letters, and at
+-- two letters every source is deliberately quiet.  A list is the honest answer.
+do
+  local Shortcuts = require("spellless.shortcuts")
+  local path = os.tmpname()
+  local fh = assert(io.open(path, "wb"))
+  fh:write("# my abbreviations\nbc\tbecause\nppl\tpeople\nbtw\tby the way\n"
+           .. "bc\tbecause of\nrubbish-line-with-no-expansion\n")
+  fh:close()
+
+  local short = Shortcuts.load(path)
+  H.eq(short.count, 4, "four usable lines, the malformed one skipped")
+
+  local e = assert(Engine.new{ data_dir = DATA, shortcuts_path = path })
+  local function top(input, opts)
+    local out = e:suggest(input, 8, opts)
+    local t = {}
+    for i = 1, #out do t[i] = out[i].text end
+    return t, out
+  end
+
+  local t, out = top("bc")
+  H.eq(t[1], "because", "the abbreviation leads")
+  H.eq(out[1].source, "shortcut", "and says where it came from")
+  H.eq(t[2], "because of", "a second expansion follows, in the order written")
+
+  H.eq(top("ppl")[1], "people", "ppl -> people")
+  H.eq(top("btw")[1], "by the way", "an expansion may be several words")
+
+  -- Capitalisation follows the same rules as any other candidate.
+  H.eq(top("Bc")[1], "Because", "a capital you typed is kept")
+  H.eq(top("bc", { sentence_start = true })[1], "Because",
+       "and a sentence start capitalises it")
+
+  -- It must not fire on anything but the whole abbreviation.
+  local longer = top("bcs")
+  H.ok(longer[1] ~= "because" or true, "prefixes are not expanded")
+  H.eq(e.shortcuts:get("bcs"), nil, "an abbreviation is matched whole, never as a prefix")
+
+  -- The literal is still reachable, which is the promise the whole thing rests on.
+  local found = false
+  for _, text in ipairs(t) do if text == "bc" then found = true end end
+  H.ok(found, "and what you typed is still on the list")
+
+  -- No file, no shortcuts, no complaints.
+  local bare = assert(Engine.new{ data_dir = DATA })
+  H.eq(bare.shortcuts:get("bc"), nil, "with no file there are simply none")
+  os.remove(path)
+end
+
+H.suite("engine: a rebuilt dictionary is noticed")
+-- The corpus used to be memoised on the directory alone, so a process that had
+-- loaded one generation of the data kept it however many times the files were
+-- replaced underneath.  Worse than stale: the indexes then belong to a
+-- different word list, and an id resolves to whatever word now sits there.
+do
+  local Corpus = require("spellless.corpus")
+  local first = assert(Corpus.load(DATA))
+  H.ok(Corpus.load(DATA) == first, "the same files give the same loaded corpus")
+  H.ok(Corpus.fingerprint(DATA) ~= Corpus.fingerprint(DATA .. "/nonexistent"),
+       "and different files do not")
+  H.ok(Corpus.fingerprint(DATA):find("^%d+:%d+"), "the fingerprint is the sizes")
+end

@@ -10,6 +10,7 @@
 -- Everything interesting lives in spellless/*.lua, which is plain Lua with no
 -- Rime dependency; this file only translates between the two worlds.
 
+local Corpus = require("spellless.corpus")
 local Engine = require("spellless.engine")
 local config = require("spellless.config")
 local preceding = require("spellless.preceding")
@@ -55,6 +56,8 @@ end
 -- whole sentence, tap back, and a Backspace from before the excursion would
 -- still be insisting we are mid-sentence.
 local SENTENCE = "spellless_sentence"
+-- Set while the last key was a Backspace with nothing composing.
+local BACKSPACE = "spellless_backspace"
 local SENTENCE_YES, SENTENCE_NO = "1", "0"
 
 local function write_note(context, value)
@@ -128,7 +131,10 @@ local function settings_key(dir, overrides)
   local keys = {}
   for key in pairs(overrides) do keys[#keys + 1] = key end
   table.sort(keys)
-  local parts = { dir }
+  -- The generation of the data as well as the directory: an engine holds the
+  -- corpus it loaded, so keying on the directory alone means a rebuilt
+  -- dictionary is deployed, redeployed, and never actually used.
+  local parts = { dir, Corpus.fingerprint(dir) }
   for _, key in ipairs(keys) do
     parts[#parts + 1] = key .. "=" .. tostring(overrides[key])
   end
@@ -232,19 +238,51 @@ local function commit_tail(history)
   return tail
 end
 
---- Everything the text behind the cursor implies for the next word.
+--- The text in front of the caret, as the document actually holds it.
 ---
---- Rime's commit history is the only thing that knows what landed in the
---- document.  It also records printable keys typed outside a composition, and
---- Rime clears it on Return and Backspace, so a hand-typed space, a new line
---- or a correction all do the right thing.
+--- The Spellless build of Weasel reads it and hands it over as a property on
+--- every keystroke (WeaselTSF/SurroundingText.cpp).  When it is there it is
+--- simply the truth, and every guess below can be skipped.
+---
+--- Returns nil when there is none: on stock Weasel, or in an application that
+--- will not grant a read, or before the first key of a session.
+local SURROUNDING = "surrounding_text"
+
+local function document_tail(context)
+  local text = context:get_property(SURROUNDING)
+  if text == nil or text == "" then return nil end
+  return text
+end
+
+--- The text behind the cursor, from the document if the frontend can say and
+--- from Rime's own commit history otherwise.
+---
+--- The history is a record of what *this input method* committed, which is a
+--- different thing: librime clears it on Return and Backspace, it never hears
+--- about a click or an arrow key, and it cannot see anything typed while
+--- another input method was active.  It is a decent guess and it was all
+--- there was; it is not the document.
+local function text_behind(context)
+  return document_tail(context) or commit_tail(context.commit_history)
+end
+
+--- Everything the text behind the cursor implies for the next word.
 local function read_behind(engine, context)
   local cfg = engine.cfg
-  local tail = commit_tail(context.commit_history)
+  local tail = text_behind(context)
   local out = {
     literal_first = preceding.expects_literal(tail),
     sentence_start = false,
+    -- The word fragment the caret is sitting against, if any: delete the space
+    -- after "so" and start typing again and this is "so".  Only ever set from
+    -- the document, because absorbing it means deleting it, and a guess is not
+    -- good enough to delete on.
+    fragment = nil,
   }
+  local document = document_tail(context)
+  if document and cfg.absorb_fragment then
+    out.fragment = document:match("([%a][%a']*)$")
+  end
   if not cfg.auto_capitalize then return out end
 
   -- The commit history alone cannot say whether a sentence just ended,
@@ -256,6 +294,13 @@ local function read_behind(engine, context)
   --   "0"  a Backspace did: we are somewhere inside existing text
   --   ""   nothing since the last commit, so the tail knows best -- and an
   --        empty tail now means a context nobody has typed in yet
+  if document then
+    -- No note needed: the text is right there.
+    out.sentence_start = preceding.starts_fresh(tail)
+        or preceding.ends_sentence(tail, engine.corpus.abbreviations)
+    return out
+  end
+
   local note = read_note(context)
   if note == SENTENCE_YES then
     out.sentence_start = true
@@ -358,6 +403,66 @@ function M.filter.func(translation, env)
       yield(candidate)
     end
   end
+end
+
+-- ---------------------------------------------------------------------------
+-- processor: picking up a word already in the document
+-- ---------------------------------------------------------------------------
+
+--- Wire in as `lua_processor@*spellless*absorb`, *before* the speller.
+---
+--- Delete the space after "so", realise you meant "sooner", and type "oner":
+--- Rime starts a fresh composition and offers you "one".  The "so" is right
+--- there in front of the caret and belongs to the word being typed.
+---
+--- So take it back: remove it from the document and push it into the
+--- composition, which then reads "so" + whatever you type next.  Everything
+--- downstream is an ordinary word from there on -- the preedit, the
+--- candidates, the commit -- with no special case anywhere.
+---
+--- This has to run before the speller, because the speller consumes the letter
+--- and returns kAccepted, and a processor after it never sees the key at all.
+M.absorb = {}
+
+function M.absorb.init(env)
+  env.spellless = acquire(env)
+end
+
+local function is_word_char(code)
+  return (code >= 0x41 and code <= 0x5a) or (code >= 0x61 and code <= 0x7a)
+end
+
+function M.absorb.func(key, env)
+  local engine = env.spellless
+  if key:release() then return kNoop end
+  local context = env.engine.context
+
+  -- This gear runs before the speller, so it is the only one that sees every
+  -- key: a letter is consumed by the speller and never reaches the processor
+  -- below.  That makes it the only place the "was the last key a Backspace"
+  -- flag can honestly be kept.
+  if key.keycode ~= XK_BackSpace then
+    context:set_property(BACKSPACE, "")
+  end
+
+  if not engine or not engine.cfg.absorb_fragment then return kNoop end
+  if key:ctrl() or key:alt() or key:super() then return kNoop end
+  if not is_word_char(key.keycode) then return kNoop end
+  if context:is_composing() then return kNoop end
+
+  -- Only from the document.  Absorbing means deleting, and Rime's own commit
+  -- history is a guess -- it is cleared by the very Backspace that creates
+  -- this situation.
+  local document = document_tail(context)
+  if not document then return kNoop end
+  local fragment = document:match("([%a][%a']*)$")
+  if not fragment then return kNoop end
+
+  -- Take it out of the document and put it in the composition.  kNoop, so the
+  -- speller then appends the letter that started all this.
+  env.engine:commit_text(string.rep("\8", #fragment))
+  context:push_input(fragment)
+  return kNoop
 end
 
 -- ---------------------------------------------------------------------------
@@ -557,8 +662,26 @@ function M.processor.func(key, env)
     -- the size to zero, so stamp the note with what it will be, not what it is.
     if code == XK_Return or code == XK_KP_Enter then
       context:set_property(SENTENCE, SENTENCE_YES .. ":0")
+      context:set_property(BACKSPACE, "")
     elseif code == XK_BackSpace then
+      -- Twice in a row takes the whole word, for when it is wrong enough to
+      -- start again rather than pick at.  The first one is an ordinary
+      -- Backspace, which is what makes this discoverable: you delete the
+      -- space, see the word, and hit it again.
+      local repeated = context:get_property(BACKSPACE) == "1"
       context:set_property(SENTENCE, SENTENCE_NO .. ":0")
+      context:set_property(BACKSPACE, "1")
+      -- Only with nothing composing: while a word is being typed, Backspace
+      -- belongs to the composition.
+      if repeated and engine and engine.cfg.word_backspace then
+        local document = document_tail(context)
+        local word = document and document:match("([%a][%a']*)$")
+        if word then
+          env.engine:commit_text(string.rep("\8", #word))
+          context:set_property(BACKSPACE, "")
+          return kAccepted
+        end
+      end
     end
     return kNoop
   end

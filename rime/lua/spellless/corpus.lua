@@ -41,9 +41,36 @@ local function bucket_key(len, first_byte)
 end
 Corpus.bucket_key = bucket_key
 
---- Load the corpus from `dir`, memoised per directory.
+--- A cheap stand-in for "are these the same files as last time": the sizes of
+--- everything the corpus is built from.
+---
+--- The alternative is to trust the directory name, and that is how a rebuilt
+--- dictionary used to go unnoticed: the process had already loaded the old one
+--- and simply kept it.  The failure is quiet and confusing, because the word
+--- list and the indexes are then a matched pair of the *wrong* generation --
+--- ids resolve to whatever word now sits at that position, so a query lands on
+--- an unrelated word rather than on nothing at all.
+function Corpus.fingerprint(dir)
+  local parts = {}
+  for _, name in ipairs({ "spellless.words", "spellless.weights",
+                          "spellless.alpha", "spellless.skel",
+                          "spellless.forms" }) do
+    local fh = io.open(util.join(dir, name), "rb")
+    local size = -1
+    if fh then
+      size = fh:seek("end") or -1
+      fh:close()
+    end
+    parts[#parts + 1] = tostring(size)
+  end
+  return table.concat(parts, ":")
+end
+
+--- Load the corpus from `dir`, memoised per directory *and* generation of the
+--- files in it, so a redeploy takes effect without restarting anything.
 function Corpus.load(dir)
-  if cache[dir] then return cache[dir] end
+  local key = dir .. "\0" .. Corpus.fingerprint(dir)
+  if cache[key] then return cache[key] end
 
   local words_blob, err = util.slurp(util.join(dir, "spellless.words"))
   if not words_blob then
@@ -134,7 +161,7 @@ function Corpus.load(dir)
   self.wbuckets, self.sbuckets = wbuckets, sbuckets
   self.skel_cache, self.skel_cached = {}, 0
 
-  cache[dir] = self
+  cache[key] = self
   return self
 end
 

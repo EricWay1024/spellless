@@ -102,6 +102,12 @@ function M.install(opts)
         set_option = function(self, key, value) self.options[key] = value end,
         -- the highlighted candidate of the current segment
         get_selected_candidate = function(self) return M.selected end,
+        -- librime-lua exposes Context::PushInput; the absorb processor uses it
+        -- to put a word taken back out of the document into the composition.
+        push_input = function(self, text)
+          self.input = (self.input or "") .. text
+          return true
+        end,
         -- One segment covering the whole input unless a test says otherwise.
         composition = {
           empty = function() return M.segments == 0 end,

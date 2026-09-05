@@ -48,7 +48,7 @@ and one ranking function. See [DESIGN.md](DESIGN.md).
 
 ### What has and has not been verified
 
-The matcher, the ranking and the Rime adapter are exercised by 1699 assertions
+The matcher, the ranking and the Rime adapter are exercised by 1763 assertions
 under a real Lua 5.4 (`make test`), including `tests/test_adapter.lua`, which
 drives `rime/lua/spellless.lua` against a stand-in for librime-lua built from
 its actual API (`tests/rime_mock.lua`). The schema and the librime behaviour it
@@ -240,6 +240,79 @@ working vocabulary; it is a sample, not something the matcher knows about.
 
 ---
 
+## Capitals, place names and phrases
+
+Words that are only ever written with a capital — `English`, `Mexico`,
+`Thursday`, `Oxford` — live in `data/vocab/proper_nouns.txt` and commit that way
+however you type them. The bar for adding one is that the lowercase spelling is
+wrong in *every* context, which is why `March`, `May`, `Polish` and `Turkey` are
+deliberately absent: each is an ordinary word too, and listing it would put the
+ordinary word out of reach.
+
+`data/vocab/phrases.txt` holds word groups that behave as one word when typed:
+
+```
+in front of      ->  type "infrontof"
+each other       ->  type "eachother"
+Hong Kong        ->  type "hongkong"
+with respect to  ->  type "withrespectto"
+```
+
+The lookup key is the letters alone and the entry commits as written, spaces
+included. They are ordinary dictionary entries, so fuzzy matching applies —
+`hngkng` finds `Hong Kong`. Typing the words separately still works exactly as
+before; this is an addition, not a replacement.
+
+Both files rebuild the dictionary (`make`). A file may open with `#!rank N` to
+say how common its words are; without it every supplemental word arrives at
+rank 20,000, which is far too prominent for a list of place names.
+
+---
+
+## Possessives
+
+Type the apostrophe and the whole list comes back possessive:
+
+```
+mther's   ->  mother's      milnor's   ->  Milnor's
+mthers'   ->  mothers'      students'  ->  students'
+```
+
+The stem is matched fuzzily — that is the part you might misspell — and the
+ending you typed is put back untouched. Which ending is right depends on
+whether the noun is plural, and the apostrophe you placed already says so, so
+the matcher does not guess at it.
+
+Nothing guesses a possessive from a bare `s`: `teachers`, `students` and
+`mothers` are ordinary plurals far more often, and offering `teacher's` under
+every plural would be wrong nearly every time.
+
+---
+
+## Your own abbreviations
+
+`spellless_shortcuts.txt`, in the same directory:
+
+```
+bc      because
+ppl     people
+btw     by the way
+```
+
+An exact match on the left puts the text on the right at the top, ahead of
+everything the matcher inferred; the expansion is free text, so several words
+are fine, and `#` starts a comment. Redeploy after editing.
+
+You will need fewer of these than you expect. The matcher already rebuilds a
+word from its consonants, so `mthmtcs` finds `mathematics` and `ppl` would find
+`people` unaided. What a list is for is the cases where the information is not
+in the input at all: `bc` is two letters, and at two letters almost every word
+in the language is a plausible completion, which is why the skeleton sources
+stay quiet there (`min_skeleton_completion_len`). No tuning fixes that. It is a
+habit, and a habit has to be written down.
+
+---
+
 ## Configuration
 
 Anything in `rime/lua/spellless/config.lua` can be overridden per schema. Edit
@@ -273,7 +346,7 @@ Redeploy afterwards.
 
 ```bash
 make            # dictionary + indexes + test set
-make test       # 1699 assertions
+make test       # 1763 assertions
 make bench      # accuracy and latency over tests/cases/
 make install
 ```
@@ -324,7 +397,7 @@ spellless/
 ├── scripts/               dictionary build, index build, test-set build, installer
 ├── data/                  vendored corpus, supplemental vocabulary, surface forms
 ├── generated/             build output (1.3 MB) — what gets deployed
-├── tests/                 1699 assertions + the evaluation cases
+├── tests/                 1763 assertions + the evaluation cases
 └── bench/                 evaluate.lua, tune.lua, naive.lua
 ```
 
