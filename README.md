@@ -67,6 +67,17 @@ are the two places to look.
 
 ## Install
 
+Everything below works on a stock [Weasel](https://github.com/rime/weasel), and
+installs into your Rime user directory without touching anything else.
+
+One optional feature needs a patched frontend. `reclaim_space` lets punctuation
+take back the space after a word you already committed, so pressing space and
+then `.` gives `you. ` rather than `you . `. That needs
+[spellless-weasel](https://github.com/EricWay1024/spellless-weasel) — a build
+of Weasel that installs *beside* your existing one, with its own GUIDs, pipe,
+registry key and user directory, so a Chinese input method already installed
+carries on untouched. It is GPL-3.0, like Weasel; this repository is MIT.
+
 From Windows:
 
 ```powershell
@@ -344,8 +355,10 @@ Found while building this, not guessed at.
 
    The frontend is not bound by this, and the Spellless build of Weasel lifts
    it: set `spellless/reclaim_space: true` and punctuation takes that space
-   back. See DESIGN §5.6. It stays off on a stock install, where the request
-   would be typed in literally.
+   back. See DESIGN §5.6 and
+   [EricWay1024/spellless-weasel](https://github.com/EricWay1024/spellless-weasel).
+   It stays off on a stock install, where the request would be typed in
+   literally.
 3. **No space goes in front of opening punctuation**, so `Let $X$` needs the
    space after `Let` typed by hand. Adding one before `(`, `[` and `$` would
    turn `f(x)` into `f (x)`; the two are indistinguishable from inside the IME,
