@@ -7,6 +7,7 @@
 local Corpus = require("spellless.corpus")
 local UserDB = require("spellless.userdb")
 local Shortcuts = require("spellless.shortcuts")
+local split = require("spellless.split")
 local config = require("spellless.config")
 local generate = require("spellless.generate")
 local rank = require("spellless.rank")
@@ -202,6 +203,61 @@ end
 --- Rime.
 ---
 --- Returns a list of { text, source, score, cost, raw } and a stats table.
+--- Offer the query cut back into words, when it is not a word itself.
+---
+--- The guard is the whole feature: "another" segments perfectly well into "a
+--- not her", and "together" into "to get her".  A string that is already in
+--- the dictionary is not a run of words that need separating -- it is a word,
+--- and this project does not second-guess those.
+local function generate_split(self, query, items)
+  local cfg = self.cfg
+  if not cfg.split_words then return end
+  -- The dictionary only.  A word committed once is not the language saying
+  -- this is a word -- it is a record of something typed, quite possibly the
+  -- very run-together this would fix.  "exactlyright" got committed while
+  -- there was no other option, and that alone stopped it being split ever
+  -- after.
+  if self.corpus:lookup(query) then return end
+
+  -- A last resort, and only that.  Nearly any long string can be cut into
+  -- words somehow -- "recieve" is "rec i eve", "mathe" is "mat he" -- and no
+  -- amount of scoring separates those from real splits, because the pieces are
+  -- ordinary words with ordinary frequencies.  What separates them is that
+  -- "recieve" and "mathe" already have a good explanation: one is a
+  -- misspelling of a word and the other the start of one.  So if anything
+  -- cheap already explains the input, there is nothing here to solve.
+  for i = 1, #items do
+    local item = items[i]
+    if (item.cost or 0) <= cfg.split_max_rival_cost then
+      return
+    end
+  end
+
+  local found = split.best(self.corpus, query, cfg)
+  if not found then return end
+
+  -- Each part carries its own spelling, so "iamgoingtoschool" comes back as
+  -- "I am going to school" rather than with a lowercase pronoun.
+  local words, weakest = {}, 1
+  for i, part in ipairs(found.parts) do
+    words[i] = self:surface(part, "lower")
+    local w = self.corpus:weight(found.ids[i])
+    if w < weakest then weakest = w end
+  end
+
+  items[#items + 1] = {
+    word = table.concat(words, " "),
+    source = "split",
+    cost = 0,
+    extra = 0,
+    -- The rarest part decides, not the average.  A split is a conjunction --
+    -- every piece has to be a word someone would write -- so one obscure piece
+    -- condemns the whole reading.  Averaging hid exactly that: "rec i eve"
+    -- scored respectably on the strength of "i", and led over "receive".
+    freq = weakest,
+  }
+end
+
 function Engine:suggest(raw, limit, opts)
   local cfg = self.cfg
   local stats = {}
@@ -246,6 +302,7 @@ function Engine:suggest(raw, limit, opts)
       item.has_form = self.corpus.forms[item.word] ~= nil
     end
     generate_personal(self, search, items)
+    generate_split(self, search, items)
     if stem then
       -- A stem that already carries an apostrophe cannot take another: "it'd",
       -- "it's" and "mother's" would come back as "it'd's".  Plain trailing "s"
@@ -341,6 +398,13 @@ end
 --- themselves.
 function Engine:trustworthy(best, query, has_exact, typed_style)
   if not best then return false end
+  -- A split never takes first place.  "argmax", "librime" and "spellless" cut
+  -- into words as neatly as "exactlyright" does, and nothing about the pieces
+  -- says which was meant -- they are ordinary words either way.  So the thing
+  -- you typed keeps the first slot and the split takes the second, one key
+  -- away.  Getting this wrong costs a deliberate identifier; getting it right
+  -- costs one keystroke.
+  if best.source == "split" then return false end
   if best.cost > self.cfg.confidence_cost then return false end
   if best.score < self.cfg.confidence_floor then return false end
   if has_exact then return true end

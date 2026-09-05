@@ -15,6 +15,7 @@ local BASE_KEY = {
   prefix   = "base_prefix",
   typo     = "base_typo",
   skeleton = "base_skeleton",
+  split    = "base_split",
 }
 
 --- How much longer the candidate is than what was typed, normalised to [0,1].
@@ -36,8 +37,9 @@ function M.score(item, cfg, ctx)
       + cfg.user_weight * ctx.user(item)
       - cfg.cost_weight * item.cost
       - cfg.extra_weight * extra_penalty(item.extra)
-  -- No corpus id means the dictionary does not have this word at all.
-  if not item.id then
+  -- No corpus id means the dictionary does not have this word at all -- but a
+  -- split is made entirely of words that are in it.
+  if not item.id and item.source ~= "split" then
     s = s - cfg.unknown_word_penalty
   end
   if item.has_form and item.source == "exact" then

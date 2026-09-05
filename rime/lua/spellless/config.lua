@@ -27,6 +27,24 @@ M.defaults = {
   skeleton_budget   = 1.30,   -- query skeleton vs word skeleton
   elastic_budget    = 1.70,   -- query vs a prefix of the word, vowels cheap
 
+  -- Splitting a run of letters back into words.  Charged per word beyond the
+  -- first, so a string is not shredded into the many short words English is
+  -- full of: at 1.4 "as a matter of fact" starts losing to "asa matter of
+  -- fact", and at 0 everything shatters.
+  split_words       = true,
+  split_word_penalty = 0.8,
+  -- How good an ordinary explanation has to be before splitting is abandoned.
+  split_max_rival_cost = 1.6,
+  -- Below this a concatenation is as likely to be an identifier or a coined
+  -- word as it is two words run together -- "argmax", "librime", "spellless"
+  -- all split perfectly well and all of them are meant literally -- and there
+  -- is no way to tell them apart by looking at the pieces, because the pieces
+  -- are ordinary words either way.  Above it, prose is the better bet.  The
+  -- cost is that "goodday" and "nextweek" are not split; type the space.
+  min_split_len     = 10,
+  -- Above this the search is quadratic and the input is not prose anyway.
+  max_split_len     = 28,
+
   -- Shortest query for which each fuzzy source runs at all.  Below these
   -- lengths almost every dictionary word is "close", so the sources only add
   -- noise and cost.
@@ -70,6 +88,11 @@ M.defaults = {
   base_prefix       = 74,
   base_typo         = 75,
   base_skeleton     = 66,
+  -- A run of letters cut back into words: "exactlyright" -> "exactly right".
+  -- Below an exact match, above a typo: it is only offered when the whole
+  -- string is not a word, so there is rarely much competition, but a close
+  -- misspelling of a real word is still the better guess.
+  base_split        = 92,
 
   form_bonus        = 70,   -- exact match on an entry with a written form
   freq_weight       = 34,   -- x normalised corpus log-frequency, in [0,1]

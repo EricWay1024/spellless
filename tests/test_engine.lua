@@ -305,3 +305,45 @@ do
          :format(tostring(lifted)))
   os.remove(path)
 end
+
+H.suite("engine: a run of letters cut back into words")
+-- Two words is the case that gets asked for, but it is the special case: the
+-- best way to cut a string into dictionary words is a word-break dynamic
+-- program, and any number of words comes out of it for free.
+do
+  local function second(q)
+    local o = engine:suggest(q, 6)
+    return o[2] and o[2].text
+  end
+  H.eq(second("exactlyright"), "exactly right")
+  H.eq(second("helloworld"), "hello world")
+  H.eq(second("iamgoingtoschool"), "I am going to school",
+       "any number of words, and each keeps its own spelling")
+  H.eq(second("asamatteroffact"), "as a matter of fact")
+
+  -- Never first.  "argmax", "librime" and "spellless" cut into words exactly
+  -- as neatly, and nothing about the pieces says which reading was meant.
+  for _, q in ipairs({ "exactlyright", "spellless", "librime", "argmax" }) do
+    H.eq(engine:suggest(q, 6)[1].text, q,
+         ("%q keeps the first slot"):format(q))
+  end
+
+  -- A word is never split, however well it segments.
+  for _, q in ipairs({ "another", "together", "carpet", "atone", "mathematics" }) do
+    local o = engine:suggest(q, 8)
+    for i = 1, #o do
+      H.ok(not o[i].text:find(" "),
+           ("%q is a word, so it is not cut up (%q)"):format(q, o[i].text))
+    end
+  end
+
+  -- And it is a last resort: anything the dictionary can already explain wins.
+  -- "recieve" is "rec i eve" and "mathe" is "mat he", and both are nonsense.
+  H.eq(engine:suggest("recieve", 6)[1].text, "receive")
+  H.eq(engine:suggest("mathe", 6)[1].text, "mathematics")
+  for _, q in ipairs({ "recieve", "mathe", "maintainance", "publically" }) do
+    for _, c in ipairs(engine:suggest(q, 8)) do
+      H.ok(c.source ~= "split", ("%q has a better explanation than a split"):format(q))
+    end
+  end
+end
