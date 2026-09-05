@@ -48,7 +48,7 @@ and one ranking function. See [DESIGN.md](DESIGN.md).
 
 ### What has and has not been verified
 
-The matcher, the ranking and the Rime adapter are exercised by 1763 assertions
+The matcher, the ranking and the Rime adapter are exercised by 1774 assertions
 under a real Lua 5.4 (`make test`), including `tests/test_adapter.lua`, which
 drives `rime/lua/spellless.lua` against a stand-in for librime-lua built from
 its actual API (`tests/rime_mock.lua`). The schema and the librime behaviour it
@@ -243,7 +243,8 @@ working vocabulary; it is a sample, not something the matcher knows about.
 ## Capitals, place names and phrases
 
 Words that are only ever written with a capital — `English`, `Mexico`,
-`Thursday`, `Oxford` — live in `data/vocab/proper_nouns.txt` and commit that way
+`Thursday`, `Oxford`, and given names like `Eric` — live in
+`data/vocab/proper_nouns.txt` and `data/vocab/given_names.txt` and commit that way
 however you type them. The bar for adding one is that the lowercase spelling is
 wrong in *every* context, which is why `March`, `May`, `Polish` and `Turkey` are
 deliberately absent: each is an ordinary word too, and listing it would put the
@@ -346,7 +347,7 @@ Redeploy afterwards.
 
 ```bash
 make            # dictionary + indexes + test set
-make test       # 1763 assertions
+make test       # 1774 assertions
 make bench      # accuracy and latency over tests/cases/
 make install
 ```
@@ -397,7 +398,7 @@ spellless/
 ├── scripts/               dictionary build, index build, test-set build, installer
 ├── data/                  vendored corpus, supplemental vocabulary, surface forms
 ├── generated/             build output (1.3 MB) — what gets deployed
-├── tests/                 1763 assertions + the evaluation cases
+├── tests/                 1774 assertions + the evaluation cases
 └── bench/                 evaluate.lua, tune.lua, naive.lua
 ```
 

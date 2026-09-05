@@ -36,6 +36,13 @@ function M.score(item, cfg, ctx)
       + cfg.user_weight * ctx.user(item)
       - cfg.cost_weight * item.cost
       - cfg.extra_weight * extra_penalty(item.extra)
+  -- No corpus id means the dictionary does not have this word at all.
+  if not item.id then
+    s = s - cfg.unknown_word_penalty
+  end
+  if item.has_form and item.source == "exact" then
+    s = s + cfg.form_bonus
+  end
   if item.source == "skeleton" then
     -- Signed: a consonant-only input is strong evidence for the abbreviation
     -- reading, a vowel-rich one is evidence against it.

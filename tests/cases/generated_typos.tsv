@@ -3,7 +3,7 @@
 # input <TAB> expected <TAB> max_rank <TAB> group
 wdth	width	5	delete
 siemes	siemens	5	delete
-jontahan	jonathan	5	transpose
+jontahan	Jonathan	5	transpose
 dovr	dover	5	delete
 catttle	cattle	5	insert
 arrnged	arranged	5	delete
@@ -165,7 +165,7 @@ smokee	smoke	5	insert
 jeny	jenny	5	delete
 inivtation	invitation	5	transpose
 spevtral	spectral	5	substitute
-jeffre	jeffrey	5	delete
+jeffre	Jeffrey	5	delete
 importt	import	5	insert
 ulltimate	ultimate	5	insert
 scholqr	scholar	5	substitute
@@ -315,7 +315,7 @@ maanor	manor	5	insert
 losinng	losing	5	insert
 wealthh	wealth	5	insert
 nippoe	nipple	5	substitute
-bernardd	bernard	5	insert
+bernardd	Bernard	5	insert
 concernsd	concerned	5	substitute
 toufing	touring	5	substitute
 cutains	curtains	5	delete
@@ -420,7 +420,7 @@ etxensively	extensively	5	transpose
 facult	faculty	5	delete
 rabd	rand	5	substitute
 csam	scam	5	transpose
-dejnis	dennis	5	substitute
+dejnis	Dennis	5	substitute
 ordnary	ordinary	5	delete
 haabit	habit	5	insert
 nickeo	nickel	5	substitute
@@ -489,7 +489,7 @@ instiitutes	institutes	5	insert
 neecklaces	necklaces	5	insert
 stklen	stolen	5	substitute
 usperior	superior	5	transpose
-geoge	george	5	delete
+geoge	George	5	delete
 bcakpack	backpack	5	transpose
 ukdainian	Ukrainian	5	substitute
 accelerato	accelerator	5	delete

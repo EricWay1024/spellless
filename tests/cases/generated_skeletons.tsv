@@ -9,7 +9,7 @@ jrnls	journals	5	len5
 nwprt	newport	5	len5
 objct	object	5	len5
 scntfc	scientific	5	len6
-alxndr	alexander	5	len6
+alxndr	Alexander	5	len6
 chrstms	christmas	5	len7
 orgnztn	organization	5	len7
 ntnls	nationals	5	len5
@@ -219,7 +219,7 @@ lbrts	liberties	5	len5
 sddm	saddam	5	len4
 rngtns	ringtones	5	len6
 cllctns	collections	5	len7
-thms	thomas	5	len4
+thms	Thomas	5	len4
 dmcrtc	democratic	5	len6
 wrkr	worker	5	len4
 rynlds	reynolds	5	len6
@@ -362,7 +362,7 @@ nrvn	nirvana	5	len4
 gnrs	genres	5	len4
 vlkswgn	volkswagen	5	len7
 mngr	manager	5	len4
-stvn	steven	5	len4
+stvn	Steven	5	len4
 wtnsss	witnesses	5	len6
 pntr	painter	5	len4
 allrgs	allergies	5	len6

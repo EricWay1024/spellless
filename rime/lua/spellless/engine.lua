@@ -239,7 +239,12 @@ function Engine:suggest(raw, limit, opts)
     has_exact = self.corpus:lookup(query) ~= nil or self.user:count(query) > 0
         or self:possessive_stem(query) ~= nil
     items = generate.generate(self.corpus, search, cfg, stats)
-    for i = 1, #items do items[i].word = self.corpus.words[items[i].id] end
+    for i = 1, #items do
+      local item = items[i]
+      item.word = self.corpus.words[item.id]
+      -- A written form means somebody decided what this key stands for.
+      item.has_form = self.corpus.forms[item.word] ~= nil
+    end
     generate_personal(self, search, items)
     if stem then
       -- A stem that already carries an apostrophe cannot take another: "it'd",
@@ -262,7 +267,8 @@ function Engine:suggest(raw, limit, opts)
     -- A personal word absent from the corpus has no measured frequency; treat
     -- it as middling so its personal count, not a guess, does the ranking.
     freq = function(item)
-      return item.freq or (item.id and corpus:weight(item.id)) or 0.5
+      return item.freq or (item.id and corpus:weight(item.id))
+          or cfg.unknown_word_freq
     end,
     user = function(item) return user:score(item.word, cfg.user_saturation) end,
     tiebreak = function(item) return item.id or (corpus.n + 1) end,

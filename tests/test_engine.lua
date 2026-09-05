@@ -261,13 +261,47 @@ do
   H.eq(top("form"), "form", "a real word is never corrected to a commoner one")
   H.eq(top("from"), "from")
 
-  -- The bound the score table relies on: nothing inexact can reach base_exact.
+  -- An entry someone wrote a form for must be out of reach of the rest: that
+  -- is what makes "sth" mean "something" however often "the" has been typed.
+  -- Not base_exact on its own -- lifting that made every rare word unbeatable,
+  -- so "tat" led over "that".
   local cfg = require("spellless.config").defaults
   local ceiling = math.max(cfg.base_typo, cfg.base_prefix,
                            cfg.base_skeleton + cfg.skeleton_vowel_bonus)
                   + cfg.freq_weight + cfg.user_weight
-  H.ok(cfg.base_exact > ceiling,
-       ("base_exact %d must exceed every other source's ceiling %d")
-         :format(cfg.base_exact, ceiling))
+  H.ok(cfg.base_exact + cfg.form_bonus > ceiling,
+       ("an exact match with a form (%d) must exceed every other ceiling (%d)")
+         :format(cfg.base_exact + cfg.form_bonus, ceiling))
+  os.remove(path)
+end
+
+H.suite("engine: the dictionary outranks what you happened to commit")
+-- A word that exists only because it was committed once is not the same
+-- evidence as a word in the dictionary, even typed exactly.  "eys" was
+-- committed three times while something else was broken, and led over "eyes"
+-- for good afterwards.
+do
+  local path = os.tmpname()
+  local fh = assert(io.open(path, "wb"))
+  fh:write("eys\t3\n")           -- not a word: a mistake that got learned
+  fh:write("commutative\t20\n")  -- a real word, genuinely adopted
+  fh:close()
+
+  local e = assert(Engine.new{ data_dir = DATA, personal_path = path })
+  local function top(q) local o = e:suggest(q, 1); return o[1] and o[1].text end
+
+  H.eq(top("eys"), "eyes", "the dictionary word leads")
+  local found
+  for i, c in ipairs(e:suggest("eys", 8)) do if c.text == "eys" then found = i end end
+  H.ok(found ~= nil, "and what was typed is still on the list")
+
+  -- Learning still has to work, or the personal store is pointless.
+  local lifted
+  for i, c in ipairs(e:suggest("comm", 8)) do
+    if c.text == "commutative" then lifted = i end
+  end
+  H.ok(lifted ~= nil and lifted <= 7,
+       ("a word chosen twenty times reaches the first page (rank %s)")
+         :format(tostring(lifted)))
   os.remove(path)
 end

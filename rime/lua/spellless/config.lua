@@ -56,24 +56,44 @@ M.defaults = {
   -- Base score per source.  The gaps encode the intended broad priority:
   -- exact > plausible completion > close typo > skeleton reconstruction.
   --
-  -- base_exact is deliberately out of reach of the others rather than merely
-  -- above them.  Every other source can be lifted by frequency and by personal
-  -- use -- at most freq_weight + user_weight = 60 -- so the best a skeleton
-  -- match can reach is 66 + 14 + 60 = 140, and a typo 75 + 60 = 135.  At 160
-  -- no amount of familiarity can put a guess above a word you actually typed.
+  base_exact        = 100,
+  -- An exact match on a key that carries a *written form* is different in kind
+  -- from an exact match on an ordinary word.  Someone put "sth -> something"
+  -- and "im -> I'm" in a file on purpose; there is nothing to second-guess, and
+  -- without this "sth" offered "the" first because "the" had been committed
+  -- hundreds of times and familiarity was worth more than the gap.
   --
-  -- It was 100, and the failure was quiet: typing "sth" offered "the" first,
-  -- because "the" had been committed hundreds of times and the personal bonus
-  -- was worth more than the 34-point gap.  A word in the dictionary, spelled
-  -- exactly, is not a thing to be second-guessed -- and the whole design rests
-  -- on never correcting silently.
-  base_exact        = 160,
+  -- Deliberately not a blanket lift of base_exact: that was tried, and it made
+  -- every rare word unbeatable.  "tat" and "eys" then led over "that" and
+  -- "eyes", which is the opposite failure and a worse one, because those are
+  -- words you meant to have corrected.
   base_prefix       = 74,
   base_typo         = 75,
   base_skeleton     = 66,
 
+  form_bonus        = 70,   -- exact match on an entry with a written form
   freq_weight       = 34,   -- x normalised corpus log-frequency, in [0,1]
-  user_weight       = 26,   -- x normalised personal frequency, in [0,1]
+  -- Personal history nudges, it does not decide.  The dictionary is measured
+  -- English; the personal store is a handful of counts from whatever happened
+  -- to be typed lately, including the mistakes committed while something was
+  -- broken.  At 26 it was worth three quarters of the entire frequency range,
+  -- so a word committed three times could lead over the word it was a
+  -- misspelling of.  18 is the lowest value at which twenty selections still
+  -- lift a word onto the first page, which is what learning is for.
+  user_weight       = 18,   -- x normalised personal frequency, in [0,1]
+  -- What a personal word absent from the dictionary is assumed to be worth.
+  -- It has no measured frequency, and "middling" was too generous: it put an
+  -- unknown three-letter string ahead of an ordinary English word.  Low enough
+  -- to lose a close contest, high enough that a name you have committed still
+  -- beats the noise.
+  unknown_word_freq = 0.2,
+  -- Charged to a candidate the dictionary has never heard of -- something that
+  -- exists only because it was committed once.  Being typed exactly is not the
+  -- same evidence from a word nobody has measured as it is from a word in the
+  -- dictionary, and without this a mistake committed three times ("eys") led
+  -- over the word it was a misspelling of ("eyes") for good.  Small enough
+  -- that a name you have actually adopted still wins when nothing else fits.
+  unknown_word_penalty = 25,
   cost_weight       = 19,   -- x weighted edit distance
   extra_weight      = 12,   -- x how much longer the completion is than the input
 
