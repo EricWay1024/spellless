@@ -1,0 +1,49 @@
+# Things a lowercase, letters-only dictionary cannot spell on its own: dropped
+# apostrophes, the pronoun "I", and abbreviations whose dots would end the
+# composition if you typed them.
+#
+# A dropped apostrophe is a typographic shortcut, not a spelling mistake, so
+# the contraction has to be right there.  Where the input is *also* a real word
+# ("its", "were", "ill", "cant", "lets") that word rightly comes first and the
+# contraction sits immediately behind it.
+#
+# "i" is different again: it has no valid lowercase form, so the corpus entry
+# is displayed through generated/spellless.forms.
+i	I	1
+dont	don't	1
+isnt	isn't	1
+didnt	didn't	1
+couldnt	couldn't	1
+wouldnt	wouldn't	1
+doesnt	doesn't	1
+havent	haven't	1
+youre	you're	1
+theyre	they're	1
+thats	that's	1
+theres	there's	1
+ive	I've	1
+ill	I'll	2
+its	it's	2
+were	we're	2
+wont	won't	2
+cant	can't	2
+whats	what's	2
+lets	let's	2
+hes	he's	2
+shes	she's	2
+im	I'm	4
+id	I'd	3
+# Two-letter input that is not itself a word leads with the literal, because
+# "cm", "ms" and "CW" are units and acronyms far more often than abbreviations
+# -- so "im" costs one extra slot here.  See tests/cases/literal.tsv.
+
+# abbreviations whose dots cannot be typed into a composition
+eg	e.g.	1
+ie	i.e.	1
+egg	egg	1
+# and the ordinary word still wins when the input is one
+its	its	1
+were	were	1
+cant	cant	1
+ill	ill	1
+lets	lets	1

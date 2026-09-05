@@ -1,0 +1,9 @@
+# The generated data is parsed byte-for-byte by the Lua runtime and shipped to
+# Windows, where a checkout with core.autocrlf on would otherwise turn every
+# line ending into CRLF.  The loader tolerates that now, but the files are data
+# rather than source and should arrive exactly as built.
+generated/* -text
+data/sources/* -text
+*.lua text eol=lf
+*.py text eol=lf
+*.yaml text eol=lf

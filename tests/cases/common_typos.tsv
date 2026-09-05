@@ -1,0 +1,79 @@
+# Well-known English misspellings.  These are ordinary facts about English
+# spelling, not a hard-coded lookup table: nothing in rime/lua/ knows about them.
+accomodate	accommodate	1
+acheive	achieve	1
+adress	address	1
+arguement	argument	1
+becuase	because	1
+begining	beginning	1
+beleive	believe	1
+calender	calendar	2
+commited	committed	1
+concious	conscious	1
+definately	definitely	1
+dissapoint	disappoint	2
+embarass	embarrass	1
+enviroment	environment	1
+existance	existence	1
+familar	familiar	1
+foriegn	foreign	1
+goverment	government	1
+grammer	grammar	2
+harrass	harass	1
+independant	independent	1
+knowlege	knowledge	1
+liason	liaison	1
+maintainance	maintenance	2
+neccessary	necessary	1
+noticable	noticeable	1
+occassion	occasion	1
+occurence	occurrence	1
+paralel	parallel	1
+persistant	persistent	1
+posession	possession	1
+prefered	preferred	1
+priviledge	privilege	1
+publically	publicly	2
+recomend	recommend	1
+refered	referred	1
+relevent	relevant	1
+religous	religious	1
+remeber	remember	1
+seperate	separate	1
+succesful	successful	1
+suprise	surprise	1
+tommorrow	tomorrow	1
+truely	truly	1
+untill	until	1
+wierd	weird	1
+writting	writing	1
+occured	occurred	1
+seige	siege	1
+thier	their	1
+freind	friend	1
+# Repairs this expensive (two edits, or one edit onto an uncommon word) keep
+# the literal input in first place on purpose -- see tests/cases/raw.tsv -- so
+# the correction lands at rank 2 rather than under the space bar.
+
+# Two transpositions in one long word.  These were being discarded outright:
+# the banded DP aborted on the first over-budget row, and a transposition
+# recovers from the row two back.
+ifnomration	information	1
+recommnedaiton	recommendation	1
+mathemtacis	mathematics	1
+diffemorpihsm	diffeomorphism	1
+stratifciaiton	stratification	1
+
+# adjacent transpositions, the error class the brief singles out
+taht	that	1
+hte	the	1
+adn	and	1
+waht	what	1
+jsut	just	1
+tihs	this	1
+becuase	because	1
+recieved	received	1
+beleive	believe	1
+freindly	friendly	1
+thoery	theory	1
+manaul	manual	1

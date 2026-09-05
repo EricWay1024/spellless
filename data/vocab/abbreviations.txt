@@ -1,0 +1,8 @@
+# Abbreviations you would rather type without the dots.
+#
+# The lookup key goes here so the word exists in the dictionary at all; the
+# dotted spelling it commits as lives in ../forms.txt.  Rime's speller has no
+# '.' in its alphabet, so typing the dots directly would end the composition --
+# which is exactly the problem this avoids.
+eg
+ie

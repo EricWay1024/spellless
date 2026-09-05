@@ -1,0 +1,33 @@
+# What to actually commit for a given lookup key.
+#
+# The key is what you type; the form is what lands in the document.  It exists
+# because a few things cannot be spelled by a lowercase, letters-only
+# dictionary:
+#
+#   1. Words with NO valid lowercase form.  Capitalisation is otherwise
+#      recovered from how you typed ("Mathe" -> "Mathematics"), which cannot
+#      work for the pronoun "i".  The bar is exactly that -- the lowercase
+#      spelling must be wrong in every context -- so "march"/"March" and
+#      "may"/"May" must NOT be added, or the verb becomes unreachable.
+#
+#   2. Abbreviations with dots.  '.' is not in the speller's alphabet, so
+#      typing it ends the composition; "eg" -> "e.g." lets you type the letters
+#      and pick the dotted form.
+#
+# A form ending in '.' is also treated as an abbreviation for the purpose of
+# capitalisation: committing it does NOT start a new sentence.  That is right
+# for "e.g." and wrong for something like "etc.", which genuinely does end
+# sentences about half the time -- so weigh that before adding one.
+#
+# Format:  lookup key <TAB> what to show and commit
+# The key must already be in the dictionary; the build warns if it is not.
+# Add plain keys to data/vocab/ if they are not there already.
+
+i	I
+i'd	I'd
+i'll	I'll
+i'm	I'm
+i've	I've
+
+eg	e.g.
+ie	i.e.

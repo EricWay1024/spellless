@@ -1,0 +1,36 @@
+# Short and capitalised input is variables, units and acronyms far more often
+# than it is the start of a longer word.  Completing it buries the thing that
+# was actually typed under a plausible-looking wrong word, which is the one
+# failure mode that corrupts a document silently.
+#
+# Single letters: every one of these appears in "$x$", "let f be", "n > 0".
+x	=raw	1
+f	=raw	1
+n	=raw	1
+k	=raw	1
+# Units and two-letter abbreviations
+cm	=raw	1
+ms	=raw	1
+mm	=raw	1
+pp	=raw	1
+# Acronyms typed in capitals are deliberate, whatever their length -- including
+# two letters, where a one-letter completion would otherwise be trusted and
+# turn "QF" (quadratic form) into "QFT" (a different object entirely).
+QF	=raw	1
+DP	=raw	1
+GH	=raw	1
+TH	=raw	1
+CW	=raw	1
+PDE	=raw	1
+ODE	=raw	1
+TQFT	=raw	1
+DOI	=raw	1
+ISBN	=raw	1
+# ... but a real word still means itself
+i	I	1
+a	a	1
+an	an	1
+is	is	1
+eg	e.g.	1
+# ... and a one-letter, no-repair completion of a short stem is still trusted
+th	the	1

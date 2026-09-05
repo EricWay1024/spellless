@@ -1,0 +1,238 @@
+#!/usr/bin/env python3
+"""Build the Spellless word list from the vendored frequency corpus.
+
+Outputs (all under generated/):
+    spellless.words     newline-separated words, most frequent first.
+                        The 1-based line number is the word id used everywhere else.
+    spellless.weights   one byte per word: log-frequency quantised into 0..255.
+    spellless.forms     `word <TAB> surface form` for the handful of words the
+                        lowercase corpus cannot spell (the pronoun "I").
+    spellless.build.json  provenance: sources, hashes, counts, parameters.
+
+Usage:
+    python3 scripts/build_dictionary.py [--limit N] [--vocab-rank R]
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import math
+import os
+import re
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _common import REPO, sha256_file, write_bytes, write_text  # noqa: E402
+
+SOURCE = REPO / "data" / "sources" / "frequency_dictionary_en_82_765.txt"
+VOCAB_DIR = REPO / "data" / "vocab"
+FORMS = REPO / "data" / "forms.txt"
+OUT = REPO / "generated"
+
+WORD_RE = re.compile(r"^[a-z]+$")
+CONTRACTION_RE = re.compile(r"^[a-z]+'([a-z]+)$")
+# Suffixes that make a real English contraction.  The corpus contains a couple
+# of truncated artefacts ("you'v") that this rejects.
+CONTRACTION_TAILS = {"t", "s", "d", "ll", "re", "ve", "m", "clock"}
+
+
+def parse_frequency_list(path: Path) -> dict[str, int]:
+    """Read `word <space> count` lines, keeping only plausible English tokens."""
+    freqs: dict[str, int] = {}
+    rejected = 0
+    # utf-8-sig: the upstream file starts with a BOM.
+    with path.open(encoding="utf-8-sig") as fh:
+        for line in fh:
+            parts = line.split()
+            if len(parts) != 2:
+                continue
+            word, count = parts[0], int(parts[1])
+            if not accept(word):
+                rejected += 1
+                continue
+            freqs[word] = max(freqs.get(word, 0), count)
+    print(f"  {path.name}: {len(freqs):,} accepted, {rejected} rejected")
+    return freqs
+
+
+def accept(word: str) -> bool:
+    if WORD_RE.match(word):
+        # Single letters other than the two real English ones are noise.
+        return len(word) > 1 or word in ("a", "i")
+    m = CONTRACTION_RE.match(word)
+    return bool(m and m.group(1) in CONTRACTION_TAILS)
+
+
+def parse_vocab_file(path: Path, default_freq: int) -> tuple[dict[str, int], dict[str, str]]:
+    """Read a supplemental plain-text vocabulary file.
+
+    An entry written with capitals -- "Grothendieck", "TQFT" -- is indexed
+    under its lowercase form and remembers the capitals as a surface form, so
+    typing "grthndck" gives back "Grothendieck" rather than "grothendieck".
+    """
+    freqs: dict[str, int] = {}
+    forms: dict[str, str] = {}
+    with path.open(encoding="utf-8") as fh:
+        for line in fh:
+            line = line.split("#", 1)[0].strip()
+            if not line:
+                continue
+            parts = line.split("\t")
+            written = parts[0].strip()
+            word = written.lower()
+            if not accept(word):
+                print(f"    skipping unsupported entry {written!r} in {path.name}")
+                continue
+            freq = int(parts[1]) if len(parts) > 1 and parts[1].strip() else default_freq
+            freqs[word] = max(freqs.get(word, 0), freq)
+            if written != word:
+                forms[word] = written
+    return freqs, forms
+
+
+def _build_time() -> datetime:
+    stamp = os.environ.get("SOURCE_DATE_EPOCH")
+    if stamp and stamp.isdigit():
+        return datetime.fromtimestamp(int(stamp), timezone.utc)
+    return datetime.now(timezone.utc)
+
+
+def parse_forms(path: Path) -> list[tuple[str, str]]:
+    """Read `lookup key <TAB> surface form` lines."""
+    if not path.exists():
+        return []
+    out = []
+    with path.open(encoding="utf-8") as fh:
+        for line in fh:
+            line = line.split("#", 1)[0].strip()
+            if not line:
+                continue
+            key, _, display = line.partition("\t")
+            key, display = key.strip().lower(), display.strip()
+            if key and display:
+                out.append((key, display))
+    return out
+
+
+def quantise_weights(freqs: list[int]) -> bytes:
+    """Map log-frequency onto 0..255 so the Lua side needs no scaling constants."""
+    logs = [math.log(f) for f in freqs]
+    lo, hi = min(logs), max(logs)
+    span = (hi - lo) or 1.0
+    return bytes(min(255, max(0, round(255 * (v - lo) / span))) for v in logs)
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--limit", type=int, default=0,
+                    help="keep only the N most frequent words (0 = keep all)")
+    ap.add_argument("--vocab-rank", type=int, default=20000,
+                    help="supplemental words with no explicit frequency are given the "
+                         "frequency of the base corpus word at this rank (default 20000)")
+    ap.add_argument("--contraction-rank", type=int, default=500,
+                    help="floor the frequency of apostrophe contractions at the frequency "
+                         "of the base corpus word at this rank (default 2000); the corpus "
+                         "under-counts them badly, see data/README.md")
+    args = ap.parse_args()
+
+    if not SOURCE.exists():
+        print(f"missing {SOURCE}; run scripts/fetch_sources.py first", file=sys.stderr)
+        return 1
+
+    print("reading base corpus")
+    freqs = parse_frequency_list(SOURCE)
+
+    ranked = sorted(freqs.items(), key=lambda kv: (-kv[1], kv[0]))
+    default_freq = ranked[min(args.vocab_rank, len(ranked)) - 1][1]
+    print(f"  supplemental default frequency = {default_freq:,} (rank {args.vocab_rank})")
+
+    print("reading supplemental vocabulary")
+    vocab_files = sorted(VOCAB_DIR.glob("*.txt"))
+    added, promoted = 0, 0
+    vocab_forms: dict[str, str] = {}
+    for path in vocab_files:
+        extra, extra_forms = parse_vocab_file(path, default_freq)
+        vocab_forms.update(extra_forms)
+        for word, freq in extra.items():
+            if word in freqs:
+                if freq > freqs[word]:
+                    freqs[word] = freq
+                    promoted += 1
+            else:
+                freqs[word] = freq
+                added += 1
+        print(f"  {path.name}: {len(extra)} entries")
+    print(f"  {added} new words, {promoted} promoted, {len(vocab_forms)} carrying capitals")
+
+    # The corpus gives every contraction the same floor count, an artefact of
+    # how it was tokenised rather than a fact about English: "don't" cannot
+    # really be rarer than the 37,000th word.  Lift them to a plausible rank so
+    # a dropped apostrophe finds them.
+    ranked = sorted(freqs.items(), key=lambda kv: (-kv[1], kv[0]))
+    contraction_floor = ranked[min(args.contraction_rank, len(ranked)) - 1][1]
+    lifted = 0
+    for word in freqs:
+        if "'" in word and freqs[word] < contraction_floor:
+            freqs[word] = contraction_floor
+            lifted += 1
+    print(f"  lifted {lifted} contractions to the rank-{args.contraction_rank} frequency "
+          f"({contraction_floor:,})")
+
+    ranked = sorted(freqs.items(), key=lambda kv: (-kv[1], kv[0]))
+    if args.limit:
+        ranked = ranked[: args.limit]
+
+    words = [w for w, _ in ranked]
+    counts = [c for _, c in ranked]
+
+    OUT.mkdir(exist_ok=True)
+    write_text(OUT / "spellless.words", "\n".join(words) + "\n")
+    write_bytes(OUT / "spellless.weights", quantise_weights(counts))
+
+    known = set(words)
+    # data/forms.txt is explicit and wins over capitals inferred from a vocab
+    # entry, so it goes in last.
+    surface = dict(vocab_forms)
+    for key, display in parse_forms(FORMS):
+        if key not in known:
+            print(f"    warning: forms.txt lists {key!r}, which is not in the dictionary")
+            continue
+        surface[key] = display
+    forms = [f"{k}\t{surface[k]}" for k in sorted(surface) if k in known]
+    write_text(OUT / "spellless.forms", "\n".join(forms) + "\n")
+
+    manifest = {
+        # SOURCE_DATE_EPOCH makes the manifest byte-reproducible too; the data
+        # files themselves already are, with or without it.
+        "generated_at": _build_time().isoformat(timespec="seconds"),
+        "generator": "scripts/build_dictionary.py",
+        "entries": len(words),
+        "parameters": {"limit": args.limit, "vocab_rank": args.vocab_rank,
+                       "supplemental_default_frequency": default_freq,
+                       "contraction_rank": args.contraction_rank,
+                       "contraction_floor_frequency": contraction_floor},
+        "sources": [
+            {
+                "path": str(SOURCE.relative_to(REPO)),
+                "sha256": sha256_file(SOURCE),
+                "origin": "https://github.com/wolfgarbe/SymSpell"
+                          " (SymSpell/frequency_dictionary_en_82_765.txt)",
+                "licence": "MIT",
+            },
+            *[
+                {"path": str(p.relative_to(REPO)), "sha256": sha256_file(p),
+                 "origin": "this repository", "licence": "MIT"}
+                for p in [*vocab_files, *( [FORMS] if FORMS.exists() else [] )]
+            ],
+        ],
+    }
+    write_text(OUT / "spellless.build.json", json.dumps(manifest, indent=2) + "\n")
+    print(f"done: {len(words):,} entries")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

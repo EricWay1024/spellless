@@ -1,0 +1,21 @@
+# Short or genuinely ambiguous input.  The point of these cases is that the
+# ranking must not pretend to be certain: several readings have to survive in
+# the visible candidate list rather than one of them monopolising it.
+frm	from	1
+frm	form	4
+frm	firm	8
+frm	farm	8
+cn	can	3
+cn	con	9
+th	the	1
+th	this|that	4
+bt	but	3
+wrd	word|world	4
+wrk	work	2
+# a misspelling that is itself a word must not silently displace what was typed
+form	form	1
+from	from	1
+their	their	1
+there	there	1
+# and the intended correction should still be reachable nearby
+form	from	6

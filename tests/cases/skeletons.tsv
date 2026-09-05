@@ -1,0 +1,34 @@
+# Consonant-only input.  Several of these are genuinely ambiguous, so the rank
+# budget reflects how much certainty the input actually carries.
+mthmtcs	mathematics	1
+rcmmndtn	recommendation	2
+strtfctn	stratification	1
+dffmrphsm	diffeomorphism	1
+brdsm	bordism	1
+trngltn	triangulation	1
+tplgy	topology	1
+hmtpy	homotopy	1
+cbrdsm	cobordism	1
+ctgrfctn	categorification	1
+cmltplctn	comultiplication	1
+frbns	Frobenius	1
+prgrm	program	3
+cmptr	computer	3
+lngg	language	3
+dctnry	dictionary	1
+knwldg	knowledge	1
+gvrnmnt	government	1
+dvlpmnt	development	1
+nvrnmnt	environment	1
+infrmtn	information	1
+qstn	question	3
+prblm	problem	3
+smthng	something	1
+bcs	because	4
+thrgh	through	2
+systm	system	2
+nlyss	analysis	4
+# slightly mistyped skeletons should still be recoverable
+rcmndtn	recommendation	4
+mthmtks	mathematics	4
+trngltion	triangulation	2

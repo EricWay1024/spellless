@@ -1,0 +1,17 @@
+# Ordinary typing: correctly spelled words and prefix completion.
+the	the	1
+and	and	1
+recommend	recommend	1
+mathematics	mathematics	1
+theorem	theorem	1
+receive	receive	1
+comput	computer|computers|computed|computing	3
+langu	language|languages	2
+enviro	environment|environmental	2
+knowled	knowledge	2
+develo	develop|development|developed|developing	3
+inform	information|informed|informal	3
+gover	government|governor|governing	3
+diffeo	diffeomorphism|diffeomorphic	2
+bordi	bordism	2
+homoto	homotopy|homotopic	2

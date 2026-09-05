@@ -1,0 +1,28 @@
+# "Do not trap me inside your dictionary."
+#
+# Two different promises, and they are not the same one:
+#
+#   * the literal input is ALWAYS somewhere on the first page, whatever else we
+#     found, so it is one keystroke away (and Enter commits it regardless);
+#   * when nothing we found is trustworthy, the literal input LEADS, so the
+#     space bar cannot turn an identifier into a random English word.
+#
+# nothing plausible exists -> the literal leads
+spellless	=raw	1
+librime	=raw	1
+qwertyuiop	=raw	1
+xyzzy	=raw	1
+fzf	=raw	1
+argmax	=raw	1
+kubectl	=raw	1
+zzxxqq	=raw	1
+# a confident correction exists -> it leads, but the literal stays on page one
+recieve	=raw	7
+teh	=raw	7
+mthmtcs	=raw	7
+# "zsh" really is one neighbouring key away from "ssh"; the correction winning
+# is right, and the literal still sits on the first page.
+zsh	=raw	7
+# a word that is already correct is its own first candidate
+the	=raw	1
+mathematics	=raw	1

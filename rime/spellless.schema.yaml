@@ -1,0 +1,205 @@
+# Spellless -- fuzzy English input for Rime / Weasel
+# encoding: utf-8
+#
+# The schema deliberately does almost nothing: no dictionary, no
+# table_translator, no giant regex lists.  Rime handles composition, selection,
+# punctuation and committing; every candidate comes from
+# lua_translator@*spellless, which is documented in DESIGN.md.
+
+schema:
+  schema_id: spellless
+  name: Spellless
+  version: "0.1.0"
+  author:
+    - Spellless
+  description: |
+    Type an approximate spelling, or just the consonants, and choose the word
+    you meant.  Enter always commits exactly what you typed.
+
+switches:
+  - name: ascii_mode
+    reset: 0
+    states: [ Spellless, ASCII ]
+  - name: full_shape
+    reset: 0
+    states: [ Half width, Full width ]
+  - name: ascii_punct
+    reset: 1
+    states: [ 。，, . , ]
+
+engine:
+  processors:
+    - ascii_composer
+    - recognizer
+    - key_binder
+    - speller
+    # After the speller (so it never sees a letter) and before the punctuator
+    # (so it can end the word before the punctuation is written).
+    - lua_processor@*spellless*processor
+    - punctuator
+    - selector
+    - navigator
+    # express_editor binds Return to "commit raw input", which is how
+    # "I can always commit exactly what I typed" is satisfied natively -- and
+    # literally, so Enter adds no trailing space.
+    - express_editor
+  segmentors:
+    - ascii_segmentor
+    - matcher
+    - abc_segmentor
+    - punct_segmentor
+    - fallback_segmentor
+  translators:
+    - punct_translator
+    - lua_translator@*spellless
+  filters:
+    - uniquifier
+    # Gives a full stop or comma the space that follows it; the word gave up
+    # its own so that "you." came out right.
+    - lua_filter@*spellless*filter@punct_spacer
+
+# Only punctuation segments; `punct_spacer` is a namespace, not a restriction.
+punct_spacer:
+  tags: [ punct ]
+
+menu:
+  # Number keys 1..7 select; the literal input sits in slot 7 by default, so
+  # changing this also moves the literal-input slot (see spellless/ below).
+  page_size: 7
+
+speller:
+  # Upper case is part of the alphabet so that "Frobenius" and "NASA" stay one
+  # composition instead of dropping out to ASCII mode; the translator restores
+  # the capitalisation pattern on every candidate.
+  # The apostrophe is a letter here ("don't"), but may not start a composition.
+  alphabet: "zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA'"
+  initials: "zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA"
+  delimiter: " "
+  # auto_select is deliberately left off: a single candidate must never commit
+  # itself, because that is exactly the silent autocorrection we are avoiding.
+
+spellless:
+  # Any key from rime/lua/spellless/config.lua may be set here.  These are the
+  # ones worth knowing about; everything else keeps its tuned default.
+  #
+  # 1-based slot for the "commit exactly what I typed" candidate.  0 means
+  # "last slot of the first page"; set it to 1 to always offer it first.
+  raw_candidate_index: 0
+  # Marker shown next to that candidate; "" for no marker.
+  raw_comment: ""
+  # Space words apart automatically.  The space is committed with the word, so
+  # the key that picks the word -- space bar, a number -- puts it in too.
+  # Typing punctuation instead ends the word without its space and puts one
+  # after the punctuation, so "you" + "." gives "you. ".
+  # Set to false to type your own.
+  auto_space: true
+  # Take the space back when punctuation follows a word you already committed,
+  # so picking "you" with the space bar and then typing "." gives "you. "
+  # rather than "you . ".
+  #
+  # Needs the Spellless build of Weasel: the commit is prefixed with a
+  # backspace character, which that frontend turns into one reclaimed space
+  # (and only ever a space -- it checks what it is taking) while stock Weasel
+  # would type it in literally.  Leave it false on a stock install.
+  reclaim_space: false
+  # Offer a capital on the first word of a sentence -- after . ! ? and on a new
+  # line.  Only when you typed the word in lower case; an explicit capital of
+  # your own is never overridden.
+  auto_capitalize: true
+  # Learn from what you select, into <rime user dir>/spellless_user.txt.
+  # Control+Shift+D forgets the highlighted candidate again -- or, with nothing
+  # composing, the word just committed -- so a typo learned by accident does
+  # not lead the list for ever.  It only removes your own entry; a real English
+  # word stays in the dictionary.
+  learn: true
+  # Set to true to see the source and score of every candidate.
+  show_debug_comments: false
+
+ascii_composer:
+  good_old_caps_lock: true
+  switch_key:
+    # Tap either Shift to leave Spellless and type straight through; tap again
+    # to come back.  "commit_code" means a tap mid-word commits exactly what
+    # you had typed, literally, and then switches -- so it doubles as the
+    # escape hatch when a word is not going to be found.
+    #
+    # This is safe to use while typing capitals: librime only toggles on a
+    # *bare* press-and-release, any other key in between cancels it, and it
+    # must be released within 500 ms.  Shift+M can never flip the mode.
+    #
+    # Set either to "noop" if you still manage to trip it; Control+Shift+A
+    # below and the F4 menu do the same thing deliberately.
+    Shift_L: commit_code
+    Shift_R: commit_code
+    Control_L: noop
+    Control_R: noop
+    Caps_Lock: clear
+    Eisu_toggle: clear
+
+punctuator:
+  import_preset: default
+
+key_binder:
+  # No `import_preset: default` here.  Rime's config compiler *merges* an
+  # imported list into the local one rather than letting the local one win, so
+  # importing the preset and then restating `bindings` simply appends the
+  # preset's entries back -- including the four this schema must not have.
+  # The list below is therefore complete in itself.
+  #
+  # Control+Shift+A is the deliberate version of the Shift tap, but it is NOT
+  # bound here: a plain `toggle: ascii_mode` leaves an open composition alone
+  # and then appends plain ASCII to it, so mid-word -- the case it exists for --
+  # it did the wrong thing.  lua_processor@*spellless*processor handles it,
+  # committing what you typed first.
+  #
+  # The preset is left out because four of its bindings take punctuation keys
+  # away:
+  #
+  #     minus  -> Page_Up     equal  -> Page_Down
+  #     comma  -> Page_Up     period -> Page_Down
+  #
+  # For a Chinese schema those are free keys.  Here they are a hyphen, an
+  # equals sign, a comma and a full stop -- and key_binder runs *before* the
+  # processor, so while candidates are showing the key never arrives and the
+  # punctuation simply cannot be typed.  Paging stays on the Control chords
+  # below, plus the Page keys themselves.  The preset's Chinese-only toggles
+  # (full_shape, simplification, extended_charset) go with it; F4 and
+  # Control+Shift+A remain.
+  # The preset's Emacs chords are gone too, and for the same reason: they are
+  # `when: composing`, but a composition here is an ordinary English word you
+  # are part-way through typing, and Control+V during one means paste, not
+  # page down.  Control+A, Control+F, Control+D, Control+E and Control+K are
+  # select-all, find, delete, end and cut in every Windows application.
+  # Arrow keys, Page Up/Down, Backspace and Escape all work natively.
+  bindings:
+    - {accept: "Control+bracketleft", send: Escape, when: composing}
+    - {accept: "Control+Shift+1", select: .next, when: always}
+    - {accept: "Control+Shift+exclam", select: .next, when: always}
+  # Two more shortcuts are not bound here but handled by
+  # lua_processor@*spellless*processor, which needs to commit before it acts:
+  #   Control+Shift+A  leave Spellless mid-word, committing what you typed
+  #   Control+Shift+D  forget the highlighted candidate (see `learn` below)
+
+recognizer:
+  import_preset: default
+  patterns:
+    # Rime's preset sends anything starting with a capital straight through as
+    # literal text.  That would defeat capitalised input, so switch it off.
+    uppercase: ""
+    # snake_case identifiers: once an underscore shows up, take the whole
+    # token literally instead of trying to spell it.
+    ident: "^[A-Za-z]+_[-_.0-9A-Za-z']*$"
+    # Identifiers that are unambiguously not prose: a second capital before the
+    # digit.  "TQFT2", "ArXiv2", "CW1" compose as one token.
+    #
+    # This deliberately does NOT cover "Lean4" or "Hat02".  The recognizer runs
+    # before the selector, so any pattern matching "Mathe2" would swallow the
+    # "2" and break candidate selection after every capitalised word -- and
+    # sentence-initial capitals are constant in prose.  Digits therefore end a
+    # word: press Return (or a candidate key) first, then the digit.
+    #
+    # If you write far more identifiers than prose, replacing the line above
+    # with the one below buys "Lean4" and "Hat02" at the cost of number-key
+    # selection after any capitalised word of six letters or fewer:
+    #   ident_caps: "^[A-Z][A-Za-z']{0,5}[0-9][-_.0-9A-Za-z']*$"
+    ident_caps: "^[A-Z][A-Za-z']*[A-Z][A-Za-z']*[0-9][-_.0-9A-Za-z']*$"

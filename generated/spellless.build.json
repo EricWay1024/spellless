@@ -1,0 +1,49 @@
+{
+  "generated_at": "2026-09-05T07:41:37+00:00",
+  "generator": "scripts/build_dictionary.py",
+  "entries": 82974,
+  "parameters": {
+    "limit": 0,
+    "vocab_rank": 20000,
+    "supplemental_default_frequency": 1225495,
+    "contraction_rank": 500,
+    "contraction_floor_frequency": 147969893
+  },
+  "sources": [
+    {
+      "path": "data/sources/frequency_dictionary_en_82_765.txt",
+      "sha256": "c604e1121e398ae7c7fbf777f11e0a0f2fa66eda932cb9fba1321466cf3acd7b",
+      "origin": "https://github.com/wolfgarbe/SymSpell (SymSpell/frequency_dictionary_en_82_765.txt)",
+      "licence": "MIT"
+    },
+    {
+      "path": "data/vocab/abbreviations.txt",
+      "sha256": "34c14d958b7aff6181da001491b6bebc65e7f4f1bbb0bf94005109ac5c10eac3",
+      "origin": "this repository",
+      "licence": "MIT"
+    },
+    {
+      "path": "data/vocab/math_sample.txt",
+      "sha256": "4984ea8926910b41f4d70160b926849358e902d6097152ce454f74e322779d3c",
+      "origin": "this repository",
+      "licence": "MIT"
+    },
+    {
+      "path": "data/forms.txt",
+      "sha256": "ea79b40adf8b79cb186533b3b1f5ffbd32ed1317dabad108f5370bc58eebc6e9",
+      "origin": "this repository",
+      "licence": "MIT"
+    }
+  ],
+  "indexes": {
+    "alpha": {
+      "entries": 82974,
+      "encoding": "u24le"
+    },
+    "skel": {
+      "entries": 82974,
+      "encoding": "u24le",
+      "distinct_skeletons": 62215
+    }
+  }
+}
