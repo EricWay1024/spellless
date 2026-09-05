@@ -37,45 +37,34 @@ English never got the same treatment, because typing English assumes you can
 spell it. So spelling stays a tax on thinking — a hundred small stumbles an
 hour, each one pulling your attention off the sentence and onto the keyboard.
 
-### Why not autocorrect?
-
-Autocorrect has to choose. It gets one guess, it has no way to say *I am not
-sure*, and it applies its guess to text you have already written. When it is
-right you never notice; when it is wrong you often do not notice either, which
-is the entire problem. You find out when a reader does. The keystroke it saved
-was never the expensive part — the expensive part is that you can no longer
-trust the sentence without re-reading it.
-
-A candidate list moves the decision to the only party who knows which word was
-meant. That is not a smaller version of autocorrect. It is the opposite
-arrangement: the machine proposes, you dispose, and nothing lands that you did
-not choose.
-
-It also makes far more ambition affordable. Autocorrect can only risk a
-near-miss of an edit or two, because every guess is applied unseen. Spellless
-can offer `mathematics` for `mthmtcs`, because a consonant skeleton is not a
-typo of anything — it is an abbreviation, and accepting it means allowing a
-distance so large that half the dictionary becomes reachable. That is
-unthinkable if a machine must pick, and perfectly safe when a human is looking
-at seven options.
-
-And it never fights you. Autocorrect's whole job is to overrule what you typed,
-so it overrules `kubectl`, `argmax`, `Grothendieck` and every name it has not
-met. Here what you typed is always on the list, `Enter` always commits it
-verbatim, and a word Spellless does not know will not go in at all until you
-press space a second time.
-
 Spellless treats what you typed as **a noisy encoding of a word you already
 know**, and decodes it:
 
 * **A transposition is nearly free.** `teh` is `the`. Your fingers arrived out
   of order, which says almost nothing about what you meant.
 * **Vowels are cheap. Consonants carry the word.** `mthmtcs` is `mathematics`
-  and `dffmrphsm` is `diffeomorphism`, because English spelling is largely
-  redundant and the consonant skeleton is where the information lives.
+  and `dffmrphsm` is `diffeomorphism`.
 * **Everything competes on one score** — frequency, edit cost, how much a
   completion adds, what you have chosen before — so a common word reached by a
-  cheap slip can legitimately beat a rare exact prefix.
+  cheap slip can beat a rare exact prefix.
+
+### Why not autocorrect?
+
+Autocorrect has to choose. One guess, no way to say *I am not sure*, applied to
+text you have already written. When it is right you never notice; when it is
+wrong you often do not either, and you find out when a reader does. The
+keystroke it saved was never the expensive part — the expensive part is no
+longer trusting the sentence without re-reading it. A candidate list is not a
+smaller version of that. It is the opposite arrangement: the machine proposes,
+you dispose, nothing lands that you did not choose.
+
+That also makes far more ambition affordable. Autocorrect can only risk a
+near-miss of an edit or two, because every guess is applied unseen. Offering
+`mathematics` for `mthmtcs` means allowing a distance at which half the
+dictionary is reachable — unthinkable if a machine must pick, perfectly safe
+when a human is looking at seven options. And it never fights you over
+`kubectl`, `argmax` or a name it has not met: what you typed is always on the
+list, and `Enter` always commits it verbatim.
 
 Look again at the screenshot. `complicated` is first, and `completed`,
 `complicate`, `compacted`, `complicity` are the words a reasonable reader might
@@ -85,15 +74,13 @@ consonant-skeleton index and one ranking function. See [DESIGN.md](DESIGN.md).
 
 ## What it feels like
 
-You stop proofreading mid-sentence. You stop backspacing four characters to fix
-a transposition. Spaces appear between words and never in front of a comma; the
-first word of a sentence arrives capitalised; `eg` becomes `e.g.`, `english`
-becomes `English`, `i` becomes `I`. You type a colleague's name once and it is
-remembered. You get a word wrong that Spellless has never seen, and the space
-bar *declines to commit it* until you press it a second time — because the one
-moment worth interrupting you is the moment you were about to be wrong.
-
-And when it does get something wrong, one key makes it forget.
+You stop proofreading mid-sentence. Spaces appear between words and never in
+front of a comma, sentences start with a capital, `eg` becomes `e.g.` and `i`
+becomes `I`. A colleague's name is remembered after you type it once. A word
+Spellless has never seen will not go in on one press of the space bar — it
+takes two, because the moment worth interrupting you is the moment you were
+about to be wrong. And when it does get something wrong, one key makes it
+forget.
 
 ```
 mathe            →  mathematics · mathematical · mathematician …
@@ -109,6 +96,34 @@ gets wrong and why.
 
 ---
 
+## The other half: [spellless-weasel](https://github.com/EricWay1024/spellless-weasel)
+
+Everything above works on a stock [Weasel](https://github.com/rime/weasel).
+Three features do not, because no schema can reach them — they need the
+frontend, so there is a companion repository:
+
+**[EricWay1024/spellless-weasel](https://github.com/EricWay1024/spellless-weasel)**
+— Weasel, rebuilt to install *beside* the one you already have.
+
+| | |
+| --- | --- |
+| punctuation takes its space back | `you` space `.` gives `you. `, not `you . ` |
+| a word being re-typed is picked up | delete the space after `so`, type `oner`, get `sooner` |
+| Backspace twice | deletes the whole word |
+
+All three exist because Rime cannot see or retract what it has committed: a
+commit is a string, and once it has left the input method the text belongs to
+the application. The frontend is on the other side of that line. It holds a TSF
+range, so it can read the few characters in front of the caret and hand them
+over, and it can take a character back. That fork adds one convention and
+nothing else.
+
+It installs alongside your existing Weasel — its own GUIDs, pipe, registry key
+and user directory — so a Chinese input method already on the machine carries
+on untouched. It is GPL-3.0, like Weasel. This repository is MIT.
+
+---
+
 ## Requirements
 
 * **Windows 11 with [Weasel](https://github.com/rime/weasel) 0.16 or newer.**
@@ -121,7 +136,7 @@ gets wrong and why.
 
 ### What has and has not been verified
 
-The matcher, the ranking and the Rime adapter are exercised by 1774 assertions
+The matcher, the ranking and the Rime adapter are exercised by 1844 assertions
 under a real Lua 5.4 (`make test`), including `tests/test_adapter.lua`, which
 drives `rime/lua/spellless.lua` against a stand-in for librime-lua built from
 its actual API (`tests/rime_mock.lua`). The schema and the librime behaviour it
@@ -140,16 +155,10 @@ are the two places to look.
 
 ## Install
 
-Everything below works on a stock [Weasel](https://github.com/rime/weasel), and
-installs into your Rime user directory without touching anything else.
-
-One optional feature needs a patched frontend. `reclaim_space` lets punctuation
-take back the space after a word you already committed, so pressing space and
-then `.` gives `you. ` rather than `you . `. That needs
-[spellless-weasel](https://github.com/EricWay1024/spellless-weasel) — a build
-of Weasel that installs *beside* your existing one, with its own GUIDs, pipe,
-registry key and user directory, so a Chinese input method already installed
-carries on untouched. It is GPL-3.0, like Weasel; this repository is MIT.
+This installs into your Rime user directory and touches nothing else. It works
+on a stock Weasel; the three features that need
+[spellless-weasel](https://github.com/EricWay1024/spellless-weasel) stay off
+until you have it.
 
 From Windows:
 
@@ -207,13 +216,17 @@ Nothing else is touched. In particular `rime.lua` is never written: only one
 | Key | |
 | --- | --- |
 | <kbd>1</kbd>…<kbd>7</kbd> | select a candidate |
-| <kbd>Space</kbd> | commit the highlighted candidate |
-| <kbd>Enter</kbd> | **commit exactly what you typed** |
+| <kbd>Space</kbd> | commit the highlighted candidate — twice, if it is a word the dictionary does not have |
+| <kbd>Enter</kbd> | **commit exactly what you typed**, at once |
 | <kbd>Esc</kbd> | cancel the composition |
-| <kbd>−</kbd> / <kbd>=</kbd>, <kbd>,</kbd> / <kbd>.</kbd>, <kbd>PgUp</kbd> / <kbd>PgDn</kbd> | page through candidates |
+| <kbd>PgUp</kbd> / <kbd>PgDn</kbd> | page through candidates |
 | <kbd>Shift</kbd> (tapped on its own) | leave Spellless and type straight through; tap again to come back |
 | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> | the same, deliberately — also commits the word first |
+| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> or <kbd>Shift</kbd>+<kbd>Del</kbd> | forget the highlighted candidate |
 | <kbd>F4</kbd> | schema menu |
+
+Punctuation keys are punctuation. Rime's preset binds `,` `.` `-` `=` to
+paging; this schema does not, because they are a comma and a full stop.
 
 **Tap Shift to get out of the way.** It switches to plain typing, and tapping it
 again switches back — the tray icon shows which mode you are in. Tapped
@@ -258,10 +271,6 @@ what stops it being mistaken for the end of a sentence. Add your own in
 and units far more often than the start of a longer word, and typing an acronym
 in capitals is deliberate. A real word still means itself (`i`, `an`, `eg`), and
 a one-letter completion of a short stem is still trusted (`th` → `the`).
-
-**Possessives are productive**: `noether's` → `Noether's`, `cat's` → `cat's`,
-and a name you taught it once works too — commit `Awodey`, and `awodey's` gives
-`Awodey's`.
 
 **The literal text you typed is always on the first page** — in slot 7 by
 default, or first when nothing plausible was found, so pressing space on
@@ -315,31 +324,26 @@ working vocabulary; it is a sample, not something the matcher knows about.
 
 ## Capitals, place names and phrases
 
-Words that are only ever written with a capital — `English`, `Mexico`,
-`Thursday`, `Oxford`, and given names like `Eric` — live in
-`data/vocab/proper_nouns.txt` and `data/vocab/given_names.txt` and commit that way
-however you type them. The bar for adding one is that the lowercase spelling is
-wrong in *every* context, which is why `March`, `May`, `Polish` and `Turkey` are
-deliberately absent: each is an ordinary word too, and listing it would put the
-ordinary word out of reach.
+`English`, `Mexico`, `Thursday`, `Oxford`, `Eric` — words only ever written
+with a capital — live in `data/vocab/proper_nouns.txt` and
+`data/vocab/given_names.txt`, and commit that way however you type them. The
+bar for adding one is that the lowercase spelling is wrong in *every* context,
+which is why `March`, `May`, `Polish`, `Bill` and `Grace` are deliberately
+absent.
 
-`data/vocab/phrases.txt` holds word groups that behave as one word when typed:
+`data/vocab/phrases.txt` holds groups that behave as one word:
 
 ```
-in front of      ->  type "infrontof"
-each other       ->  type "eachother"
-Hong Kong        ->  type "hongkong"
-with respect to  ->  type "withrespectto"
+infrontof  ->  in front of        hongkong       ->  Hong Kong
+eachother  ->  each other         withrespectto  ->  with respect to
 ```
 
-The lookup key is the letters alone and the entry commits as written, spaces
-included. They are ordinary dictionary entries, so fuzzy matching applies —
-`hngkng` finds `Hong Kong`. Typing the words separately still works exactly as
-before; this is an addition, not a replacement.
+The key is the letters alone, and the entry commits as written, spaces
+included. They are ordinary dictionary entries, so `hngkng` finds `Hong Kong`
+too. Typing the words separately still works.
 
-Both files rebuild the dictionary (`make`). A file may open with `#!rank N` to
-say how common its words are; without it every supplemental word arrives at
-rank 20,000, which is far too prominent for a list of place names.
+Both files rebuild the dictionary with `make`. A file may open with `#!rank N`
+to say how common its words are.
 
 ---
 
@@ -352,51 +356,34 @@ iamgoingtoschool  ->  I am going to school
 asamatteroffact   ->  as a matter of fact
 ```
 
-Two words is what one asks for, but two is the special case: finding the best
-way to cut a string into dictionary words is a word-break dynamic program, so
-any number of words falls out of it. Each part keeps its own spelling, which is
-why the pronoun comes back capitalised.
+Any number of words, not just two — cutting a string into dictionary words is a
+word-break search, so the count falls out of it. Each part keeps its own
+spelling, hence the capital `I`.
 
-Two rules keep it from running wild, because almost any long string can be cut
-up somehow:
+A word is never split (`another` is not `a not her`), and a split is placed
+rather than ranked: last among the real candidates, so it can neither displace
+a correction nor be crowded out by a mediocre one. `spellless` and `argmax`
+keep the first slot; `this day` is there when you want it.
 
-* **A word is never split.** `another` segments perfectly into `a not her`, and
-  `together` into `to get her`. If the dictionary has the string, it is a word.
-  Only the dictionary counts, not your own history: a word committed once is a
-  record of something typed, quite possibly the very run-together this fixes.
-* **A split is placed, not ranked.** It goes last among the real candidates,
-  with the literal after it as usual. It is worth having and never worth
-  preferring, and no score says that: scored high it displaced real
-  corrections, and suppressed whenever anything else fitted it vanished exactly
-  when it was wanted — `thisday` offered `Thursday`, `Tuesday`, and no way at
-  all to say `this day`.
-
-So `spellless` and `argmax` keep the first slot, `receive` still leads for
-`recieve`, and `this day` is there when you want it.
-
-Not done: matching a run-together that is *also* misspelled, so `exctlyrght`
-would find `exactly right`. Each part would need the full fuzzy search, at
-every split point, which is a different order of cost from a dictionary lookup.
+Not done: a run-together that is *also* misspelled, so `exctlyrght` would find
+`exactly right`.
 
 ---
 
 ## Possessives
 
-Type the apostrophe and the whole list comes back possessive:
-
 ```
-mther's   ->  mother's      milnor's   ->  Milnor's
-mthers'   ->  mothers'      students'  ->  students'
+mther's  ->  mother's        mthers'   ->  mothers'
+milnor's ->  Milnor's        students' ->  students'
 ```
 
-The stem is matched fuzzily — that is the part you might misspell — and the
-ending you typed is put back untouched. Which ending is right depends on
-whether the noun is plural, and the apostrophe you placed already says so, so
-the matcher does not guess at it.
+Type the apostrophe and the whole list comes back possessive. The stem is
+matched — that is the part you misspell — and the ending you typed is put back
+untouched, because whether it takes `'s` or a bare `'` depends on the noun
+being plural and your apostrophe already says so.
 
-Nothing guesses a possessive from a bare `s`: `teachers`, `students` and
-`mothers` are ordinary plurals far more often, and offering `teacher's` under
-every plural would be wrong nearly every time.
+Nothing guesses a possessive from a bare `s`: `teachers` and `students` are
+ordinary plurals far more often.
 
 ---
 
@@ -457,7 +444,7 @@ Redeploy afterwards.
 
 ```bash
 make            # dictionary + indexes + test set
-make test       # 1774 assertions
+make test       # 1844 assertions
 make bench      # accuracy and latency over tests/cases/
 make install
 ```
@@ -509,7 +496,7 @@ spellless/
 ├── scripts/               dictionary build, index build, test-set build, installer
 ├── data/                  vendored corpus, supplemental vocabulary, surface forms
 ├── generated/             build output (1.3 MB) — what gets deployed
-├── tests/                 1774 assertions + the evaluation cases
+├── tests/                 1844 assertions + the evaluation cases
 └── bench/                 evaluate.lua, tune.lua, naive.lua
 ```
 
@@ -551,17 +538,18 @@ Found while building this, not guessed at.
 4. **No multi-word input.** One composition is one word. `mthmtcs s hrd`
    requires three commits. Rime's `octagram` (bundled) would give sentence
    context, but that needs a real dictionary-backed translator; see *Next*.
-5. **No word-boundary splitting.** Typing `newyork` will not offer
-   `new york`.
+5. **Splitting is exact only.** `exactlyright` gives `exactly right`, but a
+   run-together that is *also* misspelled does not: `exctlyrght` finds nothing.
+   Every part would need the full fuzzy search at every split point.
 6. **Learning remembers the word, not the input that found it.** Selecting
    `recommendation` for `rcmmndtn` raises `recommendation` everywhere; it does
    not remember that *this* abbreviation meant *that* word. Storing the pair
    would be a small change to `userdb.lua` and is still the highest-value next
    step.
-7. **Proper nouns from the corpus can crowd short prefixes.** The frequency
-   list is Google-Books-derived, so `mathe` offers `mathew` above
-   `mathematics`. Better data, or a name-demotion pass at build time, would fix
-   it; nothing in the algorithm needs to change.
+7. **Proper nouns from the corpus sit among short prefixes.** The frequency
+   list is Google-Books-derived, so `mathe` offers `mathew` and `mathews`
+   alongside `mathematics`. Better data, or a name-demotion pass at build time,
+   would clear them out.
 8. **First-letter errors are only partly covered.** The scan is anchored on the
    query's first *or second* letter, so `nirth`→`north` works but a query whose
    first letter is a wrong key and whose second is also wrong will miss.
@@ -570,23 +558,23 @@ Found while building this, not guessed at.
 9. **Very short input is genuinely ambiguous** and the ranking does not
    pretend otherwise: `frm` offers `from`, `form`, `firm`, `farm`, `forum`,
    `frame` in frequency order. One and two characters go further and lead with
-   the literal, so `cm` stays `cm` — which means a two-letter abbreviation like
-   `im` costs one extra keystroke to reach `I'm`.
+   the literal, so `cm` stays `cm`. A shorthand listed in `data/forms.txt` is
+   the exception — `im` gives `I'm` — because someone wrote it down on purpose.
 10. **Typing latency is Lua-bound.** About 1.7 ms per keystroke while typing an
    ordinary word, 8 ms at the 95th percentile across the whole evaluation set,
    with a ceiling on how many candidates are examined. It is comfortably
    interactive, but there is no headroom for, say, a 500k-word dictionary
    without a different index.
-11. **Spacing and capitals infer the surrounding text, and can be wrong.** Rime
-   clears its commit history on Return and Backspace and records spaces you
-   type yourself, and Spellless notes which of Return/Backspace happened, so
-   the common cases are right. But a mouse click that moves the caret is
-   invisible to the IME, and an abbreviation you type dot by dot is
-   indistinguishable from a full stop — so you will occasionally get a stray
-   space or capital. (`e.g.` and `i.e.` are in `data/forms.txt`, so committing
-   them from `eg`/`ie` is recognised and does not start a sentence.)
-   Backspace re-syncs it (it marks "not a sentence start"), and
-   `spellless/auto_space` / `spellless/auto_capitalize` turn either off.
+11. **On a stock Weasel, spacing and capitals are inferred.** Rime's commit
+   history is a record of what the input method committed, not of the document:
+   it is cleared on Return and Backspace, and a mouse click that moves the
+   caret is invisible. So you will occasionally get a stray space or capital;
+   Backspace re-syncs it, and `spellless/auto_space` /
+   `spellless/auto_capitalize` turn either off. With
+   [spellless-weasel](https://github.com/EricWay1024/spellless-weasel) this
+   stops being guesswork — the frontend reads the text in front of the caret
+   and hands it over. An abbreviation typed dot by dot is still
+   indistinguishable from a full stop either way.
 12. **Capitalisation comes from three places, none of them the corpus.** The
    frequency list is lowercase throughout, so capitals come from how you typed
    the word, from `data/forms.txt` and capitalised `data/vocab/` entries
@@ -600,27 +588,29 @@ Found while building this, not guessed at.
 ## Next improvements, in order of expected impact
 
 1. **Remember the input, not just the word.** Store `(typed, committed)` pairs
-   in `spellless_user.txt` and score an exact match on the typed form very
-   highly. This makes every correction you make once permanent, and directly
-   fixes limitation 4. Small, contained change to `userdb.lua` and `rank.lua`.
+   in `spellless_user.txt` and score an exact match on the typed form highly.
+   Every correction you make once becomes permanent. Contained change to
+   `userdb.lua` and `rank.lua`.
 2. **A better frequency list.** The Google-Books-derived corpus over-weights
-   archaic words and proper nouns (limitation 5). Blending in a modern
-   subtitle/web corpus, or demoting capitalised-in-corpus tokens at build time,
-   would improve the top-1 rate more than any further weight tuning.
-3. **Score candidates against previously committed text.** `Context` exposes
-   `commit_history`; using the previous word as a bigram context would
-   disambiguate `frm`-class inputs, which is where the remaining top-1 losses
-   are concentrated. `librime-octagram` is bundled and could supply the model.
-4. **Learn the cost profile from data.** The edit weights were tuned by
-   coordinate descent over ~1000 cases; fitting them to a real keystroke log
-   (yours) would do better, and `bench/tune.lua` already provides the loop.
-5. **Word-boundary splitting** for run-together input (limitation 3). A dynamic
-   program over the prefix index, offered as a lower-ranked candidate class.
-6. **Incremental search.** Consecutive keystrokes re-search from scratch;
+   archaic words and proper nouns. Blending in a modern subtitle or web corpus,
+   or demoting capitalised-in-corpus tokens at build time, would raise the
+   top-1 rate more than any further weight tuning.
+3. **Score against the previous word.** A bigram context would disambiguate the
+   `frm`-class inputs where the remaining top-1 losses are concentrated.
+   `librime-octagram` is bundled and could supply the model.
+4. **Fuzzy splitting**, so `exctlyrght` finds `exactly right`. Every part needs
+   the full search at every split point, so it wants tight budgets and a gate.
+5. **LaTeX context.** `\emph{co}homology` gains a space after the `}`, and
+   `\cite{...}` arguments get prose spacing. Tracking control sequences and
+   brace depth would fix a class of irritation for anyone writing maths.
+6. **Recognised URLs and emails swallow trailing punctuation**, and commit
+   without their own space.
+7. **Learn the cost profile from data.** The edit weights came from coordinate
+   descent over ~1000 cases; fitting them to a real keystroke log would do
+   better, and `bench/tune.lua` already provides the loop.
+8. **Incremental search.** Consecutive keystrokes re-search from scratch;
    restricting the next scan to the previous candidate set plus one edit would
    cut typical latency several-fold.
-7. **Case-aware dictionary entries** so `NASA` and `Frobenius` carry their own
-   capitalisation instead of being reconstructed from the input pattern.
 
 ---
 
