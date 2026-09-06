@@ -97,11 +97,47 @@ def version_module(version: str) -> str:
     )
 
 
+# `make` rewrites the build timestamp in this file every time it runs, so a
+# tree that has just been rebuilt is always "dirty" by exactly one line.
+# Refusing that would make `make release` -- which rebuilds first, on purpose --
+# impossible to run at all.  Only the timestamp is forgiven; a real change to
+# the build parameters still shows up as a changed line and still stops us.
+BUILD_STAMP = "generated/spellless.build.json"
+
+
+def dirty_files() -> list[str]:
+    """Paths with uncommitted changes, ignoring a bare rebuild timestamp."""
+    status = git("status", "--porcelain") or ""
+    out = []
+    for line in status.splitlines():
+        # Split on whitespace rather than slicing a fixed offset: `git()`
+        # strips the whole output, which eats the leading space of the first
+        # line and silently shifts every path by one character.
+        parts = line.split(None, 1)
+        if len(parts) < 2:
+            continue
+        path = parts[1].strip()
+        if path == BUILD_STAMP and timestamp_only():
+            continue
+        out.append(path)
+    return out
+
+
+def timestamp_only() -> bool:
+    diff = git("diff", "--unified=0", "--", BUILD_STAMP) or ""
+    changed = [l for l in diff.splitlines()
+               if l[:1] in "+-" and not l.startswith(("+++", "---"))]
+    return bool(changed) and all("generated_at" in l for l in changed)
+
+
 def check_tree(version: str) -> None:
     """Refuse to package something nobody can reproduce."""
     problems = []
-    if git("status", "--porcelain"):
-        problems.append("the working tree has uncommitted changes")
+    dirty = dirty_files()
+    if dirty:
+        problems.append("the working tree has uncommitted changes: "
+                        + ", ".join(dirty[:5])
+                        + (" ..." if len(dirty) > 5 else ""))
     for name in ("generated/spellless.words", "generated/spellless.alpha",
                  "generated/spellless.skel", "generated/spellless.forms",
                  "generated/spellless.weights"):
