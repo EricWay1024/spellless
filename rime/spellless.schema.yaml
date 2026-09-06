@@ -47,7 +47,9 @@ engine:
     # Before ascii_composer, which is the only place it can be: in ASCII mode
     # that processor rejects printable keys where it stands and nothing behind
     # it runs, so the `$` that should bring us back out would never be seen.
-    - lua_processor@*spellless*delimiter
+    # Before the speller too, which consumes letters, so that an editor snippet
+    # trigger can be committed the moment it is complete.
+    - lua_processor@*spellless*handover
     - ascii_composer
     - recognizer
     - key_binder

@@ -10,6 +10,7 @@ local cue = require("spellless.cue")
 local affix = require("spellless.affix")
 local version = require("spellless.version")
 local Shortcuts = require("spellless.shortcuts")
+local Snippets = require("spellless.snippets")
 local split = require("spellless.split")
 local config = require("spellless.config")
 local generate = require("spellless.generate")
@@ -53,6 +54,11 @@ function Engine.new(opts)
   self.shortcuts = Shortcuts.load(
       opts.shortcuts_path
       or (opts.user_dir and util.join(opts.user_dir, cfg.shortcuts_file)))
+  -- Read once for the same reason: a handful of lines someone edits or
+  -- generates deliberately, and a redeploy picks the changes up.
+  self.snippets = Snippets.load(
+      opts.snippets_path
+      or (opts.user_dir and util.join(opts.user_dir, cfg.snippets_file)))
   return self
 end
 

@@ -115,7 +115,7 @@ noether's        →  Noether's      psdfnctr  →  pseudofunctor
 
 It is a [Rime](https://rime.im) schema for Windows, and **the word you meant is
 first 89.9% of the time, in the top five 99.1%** — measured on cases the tuning
-never saw. About 2.5 ms per keystroke. 2,144 assertions say it still behaves.
+never saw. About 2.5 ms per keystroke. 2,158 assertions say it still behaves.
 [EVALUATION.md](EVALUATION.md) has the numbers, including the cases it gets
 wrong and why.
 
@@ -194,6 +194,16 @@ two places to look.
 
 Punctuation keys are punctuation: `,` `.` `-` `=` type themselves, where Rime's
 preset would page.
+
+**Editor snippets are handed back to the editor.** VS Code expands `xdm` into
+a display-maths block the moment those letters land in the document, and under
+an input method they never land — `xdm` is a composition, and whatever commits
+it adds a space. So the triggers you list in `spellless_snippets.txt` commit
+verbatim the instant they are complete, with no space and no capital, and the
+ones that open maths hand the keyboard to plain typing as well. Every trigger
+starts with `x` because no English word does.
+[docs/SNIPPETS.md](docs/SNIPPETS.md) has the scheme and the two files it lives
+in.
 
 **Typing `$` gets out of the way on its own.** It writes the dollar and
 switches to plain typing; the closing `$` writes itself and switches back, so
@@ -417,6 +427,7 @@ patch:
   spellless/auto_space: false          # type your own spaces
   spellless/enter_space: false         # or keep them, except after Enter
   spellless/ascii_delimiters: "$`"     # characters that switch to plain typing and back
+  spellless/handover_apps: "code.exe"  # where those two features work at all
   spellless/auto_capitalize: false     # and your own capitals
   menu/page_size: 9                    # a bigger window (the literal slot follows it)
 ```
@@ -520,7 +531,7 @@ frontend, then type `zzver` and check the revision.
 
 ```bash
 make            # dictionary + indexes + test set
-make test       # 2,144 assertions
+make test       # 2,158 assertions
 make bench      # accuracy and latency over tests/cases/
 make install
 ```
@@ -533,9 +544,9 @@ spellless/
 ├── scripts/       dictionary build, index build, test-set build, icon, installer
 ├── data/          vendored corpus, supplemental vocabulary, surface forms
 ├── generated/     build output (1.3 MB) — what gets deployed
-├── tests/         2,144 assertions + the evaluation cases
+├── tests/         2,158 assertions + the evaluation cases
 ├── bench/         evaluate.lua, tune.lua, naive.lua
-└── docs/          the algorithm in full, deployment, the typing bench
+└── docs/          the algorithm in full, deployment, editor snippets, the bench
 ```
 
 The tests and benchmark need a `lua` binary (5.4) and exercise exactly the

@@ -636,6 +636,25 @@ still reads as it did before the run opened and `needs_space_after` has nothing
 to work with. A closing delimiter takes a space for the same reason a word
 does, and punctuation takes it back on the frontend that can (§5.6).
 
+### Editor snippets
+
+`xdm` means a display-maths block to VS Code's HyperSnips and nothing at all to
+English. It only means it if those three letters reach the document, which
+under an input method they never do — the composition offers words and whatever
+commits it adds a space. So `spellless_snippets.txt` lists the editor's
+triggers and the same processor gives those letters back: committed verbatim
+the moment the composition equals a trigger, with no space and no capital.
+Being in front of the speller is what makes it possible; a processor behind it
+never sees a letter at all.
+
+A trigger marked `ascii` hands the keyboard over as `$` does, because what
+follows it is maths. The theorem environments do not: what follows `xthm` is a
+sentence of English. Both, and the `$` pair above, are refused outside
+`handover_apps` — `code.exe` by default, since a trigger is meaningless where
+nothing expands it and `$` opening maths is wrong where `$5` is a price.
+[docs/SNIPPETS.md](docs/SNIPPETS.md) is the whole scheme, including why every
+trigger starts with `x`.
+
 ### Enter, and what the processor actually owns
 
 `express_editor` commits the raw input, which is what makes Enter the "exactly

@@ -419,6 +419,21 @@ M.defaults = {
   -- Abbreviations you define yourself, one "short<TAB>expansion" per line,
   -- in the Rime user directory.  See spellless/shortcuts.lua.
   shortcuts_file    = "spellless_shortcuts.txt",
+  -- Editor snippet triggers, one per line: typing one commits it verbatim so
+  -- the editor's own expansion can happen, and hands the keyboard to ASCII
+  -- mode when what follows is maths.  See snippets.lua and docs/SNIPPETS.md.
+  snippets_file     = "spellless_snippets.txt",
+  -- Where handing the keyboard over is allowed at all, by application name,
+  -- comma separated; empty means everywhere.
+  --
+  -- Both halves of it exist for an editor: a snippet trigger is meaningless
+  -- where nothing expands it, and `$` opening maths is wrong in a chat window
+  -- where "$5" is a price.  So they are off unless the application in front of
+  -- the caret is one that wants them, which the frontend reports as
+  -- `client_app`.  VS Code is `code.exe` for its editor and its terminal
+  -- alike, and the terminal is unaffected: ASCII mode is already on there, and
+  -- a `$` in ASCII mode nobody opened is an ordinary dollar sign.
+  handover_apps     = "code.exe",
   learn             = true,
   -- How many times you have to pick the same reading of the same input before
   -- it leads the list.  One selection is not evidence -- a good deal of what

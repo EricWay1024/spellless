@@ -285,6 +285,22 @@ local function text_behind(context)
   return document_tail(context) or commit_tail(context.commit_history)
 end
 
+--- Is the application in front of the caret one of `list`?
+---
+--- Comma separated, matched on the whole name and case-blind, which is how
+--- both lists that use it are written by hand.  An empty list matches nothing
+--- -- the two callers read that as "everywhere" and "nowhere" respectively,
+--- and each says so where it asks.
+local function app_listed(context, list)
+  local app = context:get_property("client_app")
+  if not app or app == "" or not list or list == "" then return false end
+  app = app:lower():gsub("^%s+", ""):gsub("%s+$", "")
+  for name in list:lower():gmatch("[^,]+") do
+    if name:gsub("^%s+", ""):gsub("%s+$", "") == app then return true end
+  end
+  return false
+end
+
 --- May we ask the frontend to take text back out of the document?
 ---
 --- `reclaim_space`, `absorb_fragment` and `word_backspace` all work the same
@@ -322,14 +338,7 @@ local function may_edit_document(context, engine)
   -- because leaving it on in the wrong window is the failure it exists to
   -- avoid.
   if context:get_option("edit_document") then return true end
-  local app = context:get_property("client_app")
-  local list = engine.cfg.commit_only_apps
-  if not app or app == "" or not list or list == "" then return true end
-  app = app:lower():gsub("^%s+", ""):gsub("%s+$", "")
-  for name in list:lower():gmatch("[^,]+") do
-    if name:gsub("^%s+", ""):gsub("%s+$", "") == app then return false end
-  end
-  return true
+  return not app_listed(context, engine.cfg.commit_only_apps)
 end
 
 --- Everything the text behind the cursor implies for the next word.
@@ -899,33 +908,48 @@ function M.processor.func(key, env)
 end
 
 -- ---------------------------------------------------------------------------
--- processor: coming back out of ASCII mode
+-- processor: handing the keyboard to the editor
 -- ---------------------------------------------------------------------------
 
---- Wire in as `lua_processor@*spellless*delimiter`, *first* -- before
---- `ascii_composer`.
+--- Wire in as `lua_processor@*spellless*handover`, *first* -- before
+--- `ascii_composer`, and therefore before the speller too.
 ---
---- Typing `$` hands the keyboard over to ASCII mode (see the punctuation
---- branch above), and the closing `$` has to hand it back.  Nothing else of
---- ours can do it: in ASCII mode `ascii_composer` rejects printable keys where
---- it stands, first in the list, and every processor behind it -- ours
---- included -- never sees them.  So this one gear sits in front of it.
+--- Two ways out of English, both of which have to be seen before anything else
+--- gets the key.
 ---
---- It answers for one character in one state.  Only the delimiter that opened
---- the run closes it, and a run nobody opened is not closed at all: a `$` in
---- ASCII mode you reached by tapping Shift is an ordinary dollar sign, which
---- is what typing `$PATH` in a terminal needs it to be.
-M.delimiter = {}
+--- **The closing delimiter.** Typing `$` hands the keyboard over to ASCII mode
+--- (see the punctuation branch above), and the closing `$` has to hand it
+--- back.  Nothing behind `ascii_composer` can: in ASCII mode it rejects
+--- printable keys where it stands, first in the list, and no processor after
+--- it ever sees them.  Only the delimiter that opened a run closes it, and a
+--- run nobody opened is not closed at all -- a `$` in ASCII mode you reached
+--- by tapping Shift is an ordinary dollar sign, which is what typing `$PATH`
+--- in a terminal needs it to be.
+---
+--- **An editor snippet trigger.** `dm` is two letters that mean a display
+--- maths block to VS Code and nothing at all to English, so they are committed
+--- verbatim the moment they are complete -- no space, no capital, no candidate
+--- list -- and the keyboard goes to ASCII mode for the maths that follows.
+--- This has to be in front of the speller, which consumes letters and returns
+--- kAccepted; a processor behind it never sees one.  See snippets.lua.
+M.handover = {}
 
-function M.delimiter.init(env)
+function M.handover.init(env)
   env.spellless = acquire(env)
 end
 
-function M.delimiter.func(key, env)
+function M.handover.func(key, env)
   local engine = env.spellless
-  if not engine or engine.cfg.ascii_delimiters == "" then return kNoop end
+  if not engine then return kNoop end
   if key:release() or key:ctrl() or key:alt() or key:super() then return kNoop end
   local context = env.engine.context
+  -- Nowhere by default would be useless, so an empty list is everywhere here;
+  -- `commit_only_apps` reads the same empty list as "no application is
+  -- refused", and both are the permissive reading of their own question.
+  if engine.cfg.handover_apps ~= ""
+     and not app_listed(context, engine.cfg.handover_apps) then
+    return kNoop
+  end
   if not context:get_option("ascii_mode") then
     -- Back in Spellless mode by some other route -- a tapped Shift, F4,
     -- Control+Shift+A -- so the run is over however it ended, and the next `$`
@@ -935,9 +959,32 @@ function M.delimiter.func(key, env)
     if context:get_property(DELIMITER) ~= "" then
       context:set_property(DELIMITER, "")
     end
+
+    -- A trigger is the whole composition and nothing else, which is where
+    -- HyperSnips' word-boundary rule ends up when you arrive at it from this
+    -- side: `dm` fires, `dmn` does not, and neither does the `dm` inside
+    -- `midmost`.  The letters go in exactly as typed -- a capital from the
+    -- start of a sentence would be a different snippet, or none.
+    local code = key.keycode
+    if code > 0x20 and code < 0x7f and engine.snippets.count > 0 then
+      local typed = context.input .. string.char(code)
+      local snippet = engine.snippets:get(typed)
+      if snippet then
+        env.engine:commit_text(typed)
+        context:set_property(SENTENCE, "")
+        context:clear()
+        -- `xdm` opens maths and `xthm` opens a theorem, whose body is English
+        -- and wants the matcher on.  The trigger says which it is.
+        if snippet.ascii then context:set_option("ascii_mode", true) end
+        return kAccepted
+      end
+    end
     return kNoop
   end
 
+  -- The two halves are configured apart: a list of snippet triggers is useful
+  -- with no delimiters at all, and the other way round.
+  if engine.cfg.ascii_delimiters == "" then return kNoop end
   local code = key.keycode
   if code <= 0x20 or code >= 0x7f then return kNoop end
   local mark = string.char(code)

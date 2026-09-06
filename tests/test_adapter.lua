@@ -553,9 +553,12 @@ env.spellless.cfg.reclaim_space = false
 env.engine.context.input = ""
 
 H.suite("adapter: a dollar hands the keyboard over, and takes it back")
+-- Both halves of the handover are for an editor, so they ask which one is in
+-- front of the caret before they do anything at all.
+env.engine.context:set_property("client_app", "code.exe")
 -- Maths is not English.  `$` opens it, and everything until the closing `$`
 -- belongs to the typist.
-spellless.delimiter.init(env)
+spellless.handover.init(env)
 local ctx = env.engine.context
 ctx:set_option("ascii_mode", false)
 ctx:set_property("spellless_delimiter", "")
@@ -568,11 +571,41 @@ H.ok(ctx:get_option("ascii_mode"), "and ASCII mode is on")
 H.eq(ctx:get_property("spellless_delimiter"), "$", "with the delimiter that opened it remembered")
 
 -- In ASCII mode nothing behind ascii_composer runs, so this gear is in front.
-H.eq(spellless.delimiter.func(mock.key(string.byte("x")), env), 2, "ordinary keys pass through")
-H.eq(spellless.delimiter.func(mock.key(string.byte("$")), env), 1, "the closing dollar is taken")
+H.eq(spellless.handover.func(mock.key(string.byte("x")), env), 2, "ordinary keys pass through")
+H.eq(spellless.handover.func(mock.key(string.byte("$")), env), 1, "the closing dollar is taken")
 H.eq(mock.committed[#mock.committed], "$ ", "and carries the space the next word needs")
 H.ok(not ctx:get_option("ascii_mode"), "ASCII mode is off again")
 H.eq(ctx:get_property("spellless_delimiter"), "", "and nothing is left open")
+
+H.suite("adapter: an editor snippet trigger is handed straight to the editor")
+-- "dm" means a display maths block to HyperSnips and nothing to English.  It
+-- has to arrive in the document as those two letters -- no space, no capital,
+-- no candidate list -- or the expansion never fires.
+env.spellless.snippets = require("spellless.snippets").parse(
+    "xdm ascii display maths\nxthm theorem\n")
+ctx:set_option("ascii_mode", false)
+ctx.input = "xd"
+H.eq(spellless.handover.func(mock.key(string.byte("m")), env), 1, "taken before the speller")
+H.eq(mock.committed[#mock.committed], "xdm", "committed verbatim, with no space")
+H.eq(ctx.input, "", "the composition is finished")
+H.ok(ctx:get_option("ascii_mode"), "and the maths that follows is typed, not guessed at")
+
+-- A theorem is opened the same way and hands nothing over: what goes inside it
+-- is English, which is the matcher's whole subject.
+ctx:set_option("ascii_mode", false)
+ctx.input = "xth"
+H.eq(spellless.handover.func(mock.key(string.byte("m")), env), 1, "the trigger is taken")
+H.eq(mock.committed[#mock.committed], "xthm", "and committed")
+H.ok(not ctx:get_option("ascii_mode"), "but the matcher stays on for the prose inside")
+
+-- The whole composition, or nothing: a trigger inside a word is a word.
+ctx:set_option("ascii_mode", false)
+ctx.input = "mixd"
+local untouched = #mock.committed
+H.eq(spellless.handover.func(mock.key(string.byte("m")), env), 2, "mixdm is not a trigger")
+H.eq(#mock.committed, untouched, "so nothing is committed")
+H.ok(not ctx:get_option("ascii_mode"), "and the mode is left alone")
+ctx.input = ""
 
 H.suite("adapter: a dollar in an ASCII run nobody opened is a dollar")
 -- Tapping Shift into ASCII mode to type `$PATH` in a terminal must not be
@@ -580,7 +613,7 @@ H.suite("adapter: a dollar in an ASCII run nobody opened is a dollar")
 ctx:set_option("ascii_mode", true)
 ctx:set_property("spellless_delimiter", "")
 local before_dollar = #mock.committed
-H.eq(spellless.delimiter.func(mock.key(string.byte("$")), env), 2, "passed through")
+H.eq(spellless.handover.func(mock.key(string.byte("$")), env), 2, "passed through")
 H.eq(#mock.committed, before_dollar, "committing nothing")
 H.ok(ctx:get_option("ascii_mode"), "and staying in ASCII mode")
 
@@ -588,8 +621,26 @@ H.suite("adapter: a run left by another route is not closed later")
 -- Shift, F4 and Control+Shift+A all leave ASCII mode without a closing dollar.
 ctx:set_option("ascii_mode", false)
 ctx:set_property("spellless_delimiter", "$")
-spellless.delimiter.func(mock.key(string.byte("a")), env)
+spellless.handover.func(mock.key(string.byte("a")), env)
 H.eq(ctx:get_property("spellless_delimiter"), "", "the stale delimiter is forgotten")
+ctx:set_option("ascii_mode", false)
+ctx.input = ""
+
+H.suite("adapter: nothing is handed over outside an editor")
+-- `$5` in a chat window is a price, and a snippet trigger is meaningless where
+-- nothing expands it.
+ctx:set_property("client_app", "chrome.exe")
+ctx:set_option("ascii_mode", false)
+ctx.input = "d"
+local elsewhere = #mock.committed
+H.eq(spellless.handover.func(mock.key(string.byte("m")), env), 2, "the trigger is just letters")
+H.eq(ctx.input, "d", "left to the speller")
+ctx:set_option("ascii_mode", true)
+ctx:set_property("spellless_delimiter", "$")
+H.eq(spellless.handover.func(mock.key(string.byte("$")), env), 2, "and the dollar is just a dollar")
+H.eq(#mock.committed, elsewhere, "nothing was committed either way")
+ctx:set_property("client_app", "code.exe")
+ctx:set_property("spellless_delimiter", "")
 ctx:set_option("ascii_mode", false)
 ctx.input = ""
 
