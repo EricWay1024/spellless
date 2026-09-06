@@ -1,0 +1,42 @@
+#!rank 20000
+# Contractions the base frequency list does not have, or has misspelled.
+#
+# `you've` is the one worth explaining, because the build was already doing
+# the right thing and the right thing left a hole. The corpus does not contain
+# `you've` at all -- what it contains is `you'v`, a truncated token, and the
+# contraction filter in build_dictionary.py rejects it precisely because the
+# part after the apostrophe is not a real contraction ending. So the artefact
+# is thrown away, correctly, and nothing replaces it. `you'd`, `you'll` and
+# `you're` are all there; `you've` was simply missing.
+#
+# The rest are ordinary gaps in the same list. `should've` and `could've` are
+# in it and `would've` is not, which is nobody's idea of a rule.
+#
+# The rank above barely matters: build_dictionary lifts every contraction to
+# the rank-500 frequency anyway, because the corpus gives them all the same
+# tail count and that is an artefact of tokenisation rather than a fact about
+# English. These arrive on the same footing as the 64 already there, and get
+# their apostrophe-free spellings by the same pass -- so `youve` finds
+# `you've` exactly as `dont` finds `don't`.
+
+you've
+would've
+must've
+how's
+when's
+that'll
+there'd
+
+# Dialectal, and in the dictionary for the same reason `oops` and `yeah` are:
+# people write them, and a word you cannot type is a word you have to spell.
+#
+# `y'all` was tried here and the build refuses it, correctly: the contraction
+# filter wants a real contraction ending after the apostrophe and `all` is not
+# one, nor is a single letter a stem. Widening the filter for one word would
+# let the truncated artefacts back in, which is the whole reason the filter
+# exists. It belongs in a personal spellless_shortcuts.txt if you want it.
+ain't
+
+# British, old-fashioned, and still written.
+shan't
+daren't

@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-06T19:09:02+00:00",
+  "generated_at": "2026-09-06T23:28:42+00:00",
   "generator": "scripts/build_dictionary.py",
-  "entries": 83151,
+  "entries": 83169,
   "parameters": {
     "limit": 0,
     "vocab_rank": 20000,
@@ -19,6 +19,12 @@
     {
       "path": "data/vocab/abbreviations.txt",
       "sha256": "34c14d958b7aff6181da001491b6bebc65e7f4f1bbb0bf94005109ac5c10eac3",
+      "origin": "this repository",
+      "licence": "MIT"
+    },
+    {
+      "path": "data/vocab/contractions.txt",
+      "sha256": "101fa57f95a8e891780e4fa9040e0e0d6d24bdf63a85d1e1e5f0f832728d2356",
       "origin": "this repository",
       "licence": "MIT"
     },
@@ -67,13 +73,13 @@
   ],
   "indexes": {
     "alpha": {
-      "entries": 83151,
+      "entries": 83169,
       "encoding": "u24le"
     },
     "skel": {
-      "entries": 83151,
+      "entries": 83169,
       "encoding": "u24le",
-      "distinct_skeletons": 62352
+      "distinct_skeletons": 62366
     }
   }
 }

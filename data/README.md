@@ -37,7 +37,9 @@ has an unambiguous permissive licence.
    `i`;
 3. keeps contractions `[a-z]+'[a-z]+` only when the part after the apostrophe
    is a real English contraction ending (`t s d ll re ve m clock`) — this
-   removes the one truncated artefact in the file, `you'v`;
+   removes the one truncated artefact in the file, `you'v` — which is right,
+   and left a hole, because the corpus has no `you've` to fall back on. See
+   `vocab/contractions.txt`;
 4. merges the supplemental vocabulary (below), keeping the larger frequency
    when a word appears in both;
 4b. floors every contraction at the frequency of the word at rank
@@ -53,8 +55,8 @@ has an unambiguous permissive licence.
 6. writes the words, and one byte per word holding
    `round(255 · (log f − log f_min) / (log f_max − log f_min))`.
 
-Rejected: 1 entry. Result: **83,151 entries** (82,833 kept + 276 new from the
-supplemental files + 42 apostrophe-free contraction spellings).
+Rejected: 1 entry. Result: **83,169 entries** (82,833 kept + 286 new from the
+supplemental files + 50 apostrophe-free contraction spellings).
 
 ### Known weaknesses of this corpus
 
