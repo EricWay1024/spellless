@@ -76,28 +76,20 @@ function Engine:repair_personal()
       user:forget_surface(word)
     end
   end
-  -- The same repair for the corrections, which learned our sentence capitals
-  -- for a while: fold "but -> But" back onto "but -> but" and keep the counts.
-  -- Collected first and applied after: adding a key to a table while `pairs`
-  -- is walking it is undefined, and Lua says so by raising.
-  local folds = {}
-  for typed, byword in pairs(user.choices) do
-    if typed == typed:lower() then
-      for text, n in pairs(byword) do
-        local lower = text:lower()
-        if text ~= lower and text == lower:sub(1, 1):upper() .. lower:sub(2) then
-          folds[#folds + 1] = { typed = typed, from = text, to = lower, n = n }
-        end
-      end
-    end
-  end
-  for _, f in ipairs(folds) do
-    local byword = user.choices[f.typed]
-    byword[f.from] = nil
-    byword[f.to] = (byword[f.to] or 0) + f.n
-    user.dirty = user.dirty + 1
-    user.dirty_stamp = user.dirty_stamp + 1
-  end
+  -- The corrections are deliberately *not* repaired the same way, and the
+  -- reason is worth writing down because the repair looks obviously right.
+  --
+  -- A correction is keyed by the lowercased input, so by the time it is on
+  -- disk "> windows Windows 2" and "> but But 6" are the same shape: one is
+  -- somebody who typed a capital W and took the candidate by its number, the
+  -- other is our own sentence capital learned back in the days before
+  -- `learn_choice` guarded against it.  Nothing in the file tells them apart.
+  -- A fold that lowercases both therefore destroys `learned_capital` -- the
+  -- whole point of which is that "Windows" survives -- and destroys it
+  -- permanently, on the next engine the process builds, because the store is
+  -- shared and flushed.  So the guard lives where the information still
+  -- exists, at record time in `learn_choice`, and old bad rows are removed the
+  -- way any other unwanted row is: Ctrl+Shift+D on the candidate.
 end
 
 -- ---------------------------------------------------------------------------
