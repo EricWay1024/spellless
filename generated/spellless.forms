@@ -29,6 +29,7 @@ antwerp	Antwerp
 anumberof	a number of
 april	April
 arabic	Arabic
+arent	aren't
 argentina	Argentina
 arthur	Arthur
 arxiv	arXiv
@@ -122,6 +123,8 @@ cologne	Cologne
 colombia	Colombia
 copenhagen	Copenhagen
 costarica	Costa Rica
+couldnt	couldn't
+couldve	could've
 croatia	Croatia
 croatian	Croatian
 cuba	Cuba
@@ -142,7 +145,10 @@ denver	Denver
 despitethefactthat	despite the fact that
 detroit	Detroit
 diana	Diana
+didnt	didn't
 dmitri	Dmitri
+doesnt	doesn't
+dont	don't
 douglas	Douglas
 dublin	Dublin
 dueto	due to
@@ -203,14 +209,18 @@ greek	Greek
 gregory	Gregory
 grothendieck	Grothendieck
 guangzhou	Guangzhou
+hadnt	hadn't
 hamburg	Hamburg
 hamiltonian	Hamiltonian
 hanoi	Hanoi
 harold	Harold
 harvard	Harvard
+hasnt	hasn't
 hausdorff	Hausdorff
 havana	Havana
+havent	haven't
 hebrew	Hebrew
+hed	he'd
 heinrich	Heinrich
 helena	Helena
 helsinki	Helsinki
@@ -221,6 +231,9 @@ hindi	Hindi
 hirzebruch	Hirzebruch
 hongkong	Hong Kong
 houston	Houston
+howd	how'd
+howll	how'll
+howre	how're
 hugo	Hugo
 hungarian	Hungarian
 hungary	Hungary
@@ -263,13 +276,17 @@ irina	Irina
 irish	Irish
 isabel	Isabel
 isabella	Isabella
+isnt	isn't
 israel	Israel
 israeli	Israeli
 istanbul	Istanbul
 italian	Italian
 italy	Italy
+itd	it'd
 itfollowsthat	it follows that
+itll	it'll
 ivan	Ivan
+ive	I've
 jacobian	Jacobian
 jakarta	Jakarta
 jamaica	Jamaica
@@ -351,6 +368,7 @@ mexicocity	Mexico City
 miami	Miami
 michael	Michael
 michelle	Michelle
+mightve	might've
 mikhail	Mikhail
 milan	Milan
 milnor	Milnor
@@ -364,6 +382,7 @@ mostofwhich	most of which
 msg	message
 mumbai	Mumbai
 munich	Munich
+mustnt	mustn't
 myanmar	Myanmar
 nairobi	Nairobi
 namibia	Namibia
@@ -371,6 +390,7 @@ nanjing	Nanjing
 naples	Naples
 natalia	Natalia
 needlesstosay	needless to say
+neednt	needn't
 nepal	Nepal
 netherlands	Netherlands
 newdelhi	New Delhi
@@ -394,6 +414,7 @@ norwegian	Norwegian
 notethat	note that
 nottingham	Nottingham
 november	November
+oclock	o'clock
 october	October
 ofcourse	of course
 olga	Olga
@@ -478,6 +499,8 @@ seville	Seville
 shanghai	Shanghai
 sheffield	Sheffield
 shenzhen	Shenzhen
+shouldnt	shouldn't
+shouldve	should've
 siberia	Siberia
 silvia	Silvia
 simon	Simon
@@ -487,6 +510,7 @@ slovenia	Slovenia
 smth	something
 sobolev	Sobolev
 sofar	so far
+somebodys	somebody's
 someofwhich	some of which
 sophia	Sophia
 sophie	Sophie
@@ -525,7 +549,13 @@ thai	Thai
 thailand	Thailand
 thanksto	thanks to
 thatistosay	that is to say
+thats	that's
 thenumberof	the number of
+theres	there's
+theyd	they'd
+theyll	they'll
+theyre	they're
+theyve	they've
 thom	Thom
 thomas	Thomas
 thursday	Thursday
@@ -558,20 +588,32 @@ viktor	Viktor
 vincent	Vincent
 warsaw	Warsaw
 warwick	Warwick
+wasnt	wasn't
 wednesday	Wednesday
 weil	Weil
 wellington	Wellington
 welsh	Welsh
+werent	weren't
+weve	we've
 weyl	Weyl
 whitehead	Whitehead
+whod	who'd
+wholl	who'll
+whos	who's
+whyd	why'd
+whyre	why're
 wilhelm	Wilhelm
 william	William
 withrespectto	with respect to
 wolfgang	Wolfgang
+wouldnt	wouldn't
 wuhan	Wuhan
 yau	Yau
 yoneda	Yoneda
 york	York
+youd	you'd
+youll	you'll
+youre	you're
 yuhang	Yuhang
 yuri	Yuri
 zambia	Zambia

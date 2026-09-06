@@ -69,6 +69,28 @@ function Engine:repair_personal()
       user:forget_surface(word)
     end
   end
+  -- The same repair for the corrections, which learned our sentence capitals
+  -- for a while: fold "but -> But" back onto "but -> but" and keep the counts.
+  -- Collected first and applied after: adding a key to a table while `pairs`
+  -- is walking it is undefined, and Lua says so by raising.
+  local folds = {}
+  for typed, byword in pairs(user.choices) do
+    if typed == typed:lower() then
+      for text, n in pairs(byword) do
+        local lower = text:lower()
+        if text ~= lower and text == lower:sub(1, 1):upper() .. lower:sub(2) then
+          folds[#folds + 1] = { typed = typed, from = text, to = lower, n = n }
+        end
+      end
+    end
+  end
+  for _, f in ipairs(folds) do
+    local byword = user.choices[f.typed]
+    byword[f.from] = nil
+    byword[f.to] = (byword[f.to] or 0) + f.n
+    user.dirty = user.dirty + 1
+    user.dirty_stamp = user.dirty_stamp + 1
+  end
 end
 
 -- ---------------------------------------------------------------------------
@@ -437,12 +459,15 @@ function Engine:suggest(raw, limit, opts)
     for i = #choices, 1, -1 do
       local choice = choices[i]
       if choice.count >= cfg.choice_confirm_count then
+        -- Through surface(), so the capital follows the input you just typed
+        -- rather than the one you happened to type the day it was learned.
+        local text = self:surface(choice.text, style) .. (suffix or "")
         for j = #out, 1, -1 do
-          if out[j].text == choice.text then table.remove(out, j) end
+          if out[j].text == text then table.remove(out, j) end
         end
-        table.insert(out, 1, { text = choice.text, source = "chosen",
+        table.insert(out, 1, { text = text, source = "chosen",
                                score = cfg.base_exact + choice.count, cost = 0 })
-        promoted = choice.text
+        promoted = text
       end
     end
     while #out > limit do table.remove(out) end
@@ -627,9 +652,28 @@ end
 --- exists to correct.
 function Engine:learn_choice(typed, text)
   if not self.cfg.learn or not typed or not text then return end
-  typed = typed:match("^%s*(.-)%s*$"):lower()
+  typed = typed:match("^%s*(.-)%s*$")
   text = text:match("^%s*(.-)%s*$")
   if typed == "" or text == "" then return end
+
+  -- A capital you did not type is ours, not yours.
+  --
+  -- Sentence-initial capitalisation is applied by this software, so recording
+  -- the result as "what you chose" learns our own output and then insists on
+  -- it: six commits of "But" at the start of a sentence and "but" leads with a
+  -- capital in the middle of every later one.  The word store has guarded
+  -- against this since the day it was written -- see worth_remembering -- and
+  -- the lesson did not get carried across when this store was added.
+  --
+  -- Only a plain Title Case word is stripped, so "CLI" and "TQFT" keep their
+  -- capitals: those are how the word is written, not where it sat in a
+  -- sentence.  Nothing is lost by stripping, because the text is rendered back
+  -- through Engine:surface, which knows the spellings and the forms.
+  if typed == typed:lower() then
+    local lower = text:lower()
+    if text == lower:sub(1, 1):upper() .. lower:sub(2) then text = lower end
+  end
+  typed = typed:lower()
   if not typed:find("^[a-z][a-z']*$") then return end
   local n = self.user:record_choice(typed, text)
   if n >= self.cfg.flush_every then self:flush() end

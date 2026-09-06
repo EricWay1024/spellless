@@ -62,6 +62,9 @@ local SENTENCE = "spellless_sentence"
 local BACKSPACE = "spellless_backspace"
 -- Set once the space bar has been offered a literal candidate and declined it.
 local LITERAL = "spellless_literal"
+-- Set while a candidate is being taken by its number key.  A correction is
+-- only learned from one of those: see the commit notifier.
+local PICKED = "spellless_picked"
 local SENTENCE_YES, SENTENCE_NO = "1", "0"
 
 local function write_note(context, value)
@@ -196,7 +199,7 @@ function M.init(env)
     -- the input is still here to be read -- and get_selected_candidate is nil
     -- exactly when Return committed the raw input, which is a refusal to choose
     -- rather than a choice.
-    if ctx:get_selected_candidate() then
+    if ctx:get_selected_candidate() and ctx:get_property(PICKED) == "1" then
       engine:learn_choice(ctx.input, committed)
     end
     -- Something was just committed, so whatever the last Return or Backspace
@@ -514,6 +517,19 @@ function M.absorb.func(key, env)
   if key.keycode ~= XK_space then
     context:set_property(LITERAL, "")
   end
+
+  -- Was this key a deliberate pick of a candidate by its number?
+  --
+  -- The space bar is not.  At speed nobody reads the list -- the space bar
+  -- goes on muscle memory and whatever is first goes in -- so counting it as
+  -- "this is the word I meant" teaches the list to insist on its own first
+  -- guess, and a wrong one entrenches itself the second time you fail to
+  -- notice it.  A number key is aimed at a particular line and means what it
+  -- says.
+  local picked = context:is_composing()
+      and key.keycode >= 0x31 and key.keycode <= 0x39
+      and not (key:ctrl() or key:alt() or key:super())
+  context:set_property(PICKED, picked and "1" or "")
 
   if not engine or not engine.cfg.absorb_fragment then return kNoop end
   if not may_edit_document(context, engine) then return kNoop end

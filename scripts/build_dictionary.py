@@ -203,6 +203,31 @@ def main() -> int:
     print(f"  lifted {lifted} contractions to the rank-{args.contraction_rank} frequency "
           f"({contraction_floor:,})")
 
+    # A contraction typed without its apostrophe, as an entry in its own right.
+    #
+    # Dropping the apostrophe is priced at 0.15 by the matcher, which is enough
+    # on its own when nothing competes -- "dont" has only one reading.  It is
+    # not enough when something does: "youll" is two dropped letters from "you",
+    # and "you" is common enough, and selected often enough, to win.  Making the
+    # bare spelling a real key settles it, because an exact match on an entry
+    # that carries a written form is the strongest evidence this ranker has.
+    #
+    # Only where the bare spelling is not already a word.  "cant", "its",
+    # "hes", "were", "wont", "ill" are all ordinary English, and turning them
+    # into contractions would be the mistake data/forms.txt exists to warn
+    # about -- the lowercase reading has to stay reachable.
+    bare_added = 0
+    bare_of: dict[str, str] = {}
+    for word in list(freqs):
+        if "'" not in word:
+            continue
+        bare = word.replace("'", "")
+        if bare and bare not in freqs:
+            freqs[bare] = freqs[word]
+            bare_of[bare] = word
+            bare_added += 1
+    print(f"  {bare_added} contractions also reachable without the apostrophe")
+
     ranked = sorted(freqs.items(), key=lambda kv: (-kv[1], kv[0]))
     if args.limit:
         ranked = ranked[: args.limit]
@@ -223,6 +248,11 @@ def main() -> int:
             print(f"    warning: forms.txt lists {key!r}, which is not in the dictionary")
             continue
         surface[key] = display
+    # Resolved last, so a bare contraction shows whatever its apostrophe form
+    # finally shows: "ive" commits "I've", not "i've".
+    for bare, word in bare_of.items():
+        surface[bare] = surface.get(word, word)
+
     forms = [f"{k}\t{surface[k]}" for k in sorted(surface) if k in known]
     write_text(OUT / "spellless.forms", "\n".join(forms) + "\n")
 

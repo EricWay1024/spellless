@@ -24,7 +24,11 @@ theres	there's	1
 ive	I've	1
 ill	I'll	2
 its	it's	2
-were	we're	2
+# "weren't" now sits between them.  Typing "were" is four characters of it and
+# only two of the bare spelling the dictionary also carries, so the completion
+# is judged shorter and scores a little higher -- which is defensible, and puts
+# the contraction one place further down than the rest of this file asks for.
+were	we're	3
 wont	won't	2
 cant	can't	2
 whats	what's	2

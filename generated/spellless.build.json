@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-06T07:44:22+00:00",
+  "generated_at": "2026-09-06T12:25:50+00:00",
   "generator": "scripts/build_dictionary.py",
-  "entries": 83095,
+  "entries": 83137,
   "parameters": {
     "limit": 0,
     "vocab_rank": 20000,
@@ -61,13 +61,13 @@
   ],
   "indexes": {
     "alpha": {
-      "entries": 83095,
+      "entries": 83137,
       "encoding": "u24le"
     },
     "skel": {
-      "entries": 83095,
+      "entries": 83137,
       "encoding": "u24le",
-      "distinct_skeletons": 62322
+      "distinct_skeletons": 62348
     }
   }
 }

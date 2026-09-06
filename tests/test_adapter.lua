@@ -632,11 +632,14 @@ end
 
 os.remove(personal)
 
-H.suite("adapter: only a selection is a choice")
--- Return commits the raw input, and librime clears the non-confirmed
--- composition to do it -- so get_selected_candidate is nil exactly then.  That
--- is the difference between "this is the word I meant" and "none of these is",
--- and only the first should be remembered.
+H.suite("adapter: only a number key is a choice")
+-- Two things have to be true before a correction is recorded, and the second
+-- one matters more than it looks.  A candidate must have been confirmed --
+-- Return commits the raw input and librime clears the non-confirmed
+-- composition to do it, so get_selected_candidate is nil exactly then.  And it
+-- must have been taken by its *number*: at speed the space bar goes on muscle
+-- memory and whatever is first goes in, so counting that teaches the list to
+-- insist on its own first guess.
 do
   -- Its own environment: mock.install rebinds the commit handler, so the one
   -- left over from an earlier suite belongs to an earlier engine.
@@ -661,11 +664,20 @@ do
   H.eq(store:choices_for("mathe"), nil,
        "committing the raw input records no correction")
 
-  mock.selected = { text = "mathematics " }   -- a candidate key, or the space bar
+  -- The space bar: a candidate is confirmed, but nobody aimed at it.
+  mock.selected = { text = "mathematics " }
   mock.commit_text = "mathematics "
+  sp.absorb.func(mock.key(0x20), own)
+  mock.commit_handler(ctx)
+  H.eq(store:choices_for("mathe"), nil,
+       "and neither does the space bar taking whatever was first")
+
+  -- A number key, which is aimed.
+  ctx.input = "mathe"
+  sp.absorb.func(mock.key(0x32), own)
   mock.commit_handler(ctx)
   local got = store:choices_for("mathe")
-  H.ok(got ~= nil, "choosing a candidate does")
+  H.ok(got ~= nil, "taking a candidate by its number does")
   if got then
     H.eq(got[1].text, "mathematics", "and the trailing space is not part of it")
     H.eq(got[1].count, 1, "counted once, which is not yet enough to lead")
