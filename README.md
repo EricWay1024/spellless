@@ -224,11 +224,27 @@ so a capital that came from the start of a sentence is never mistaken for a
 preference — and committing the plain lowercase form takes a stored spelling
 back.
 
+**A correction you make twice is a correction you meant.** Pick the same
+candidate for the same input a second time and it leads that input from then
+on — placed, not scored, so nothing about English frequency argues with it.
+Once is not enough on purpose: a good deal of what anyone picks is picked once
+by accident.
+
+```
+cli   →  click  client  clip  clips ...      before
+cli   →  CLI    click   client  clip         after picking CLI twice
+```
+
+Only selections count. <kbd>Enter</kbd> commits exactly what you typed, which
+is a refusal to choose between the readings rather than a choice among them, so
+it teaches nothing. Control+Shift+D takes a correction back along with the word.
+
 That file is plain text and safe to edit by hand:
 
 ```
 # word <TAB> count
 # word <TAB> how you write it <TAB> count
+# > what you typed <TAB> what you chose <TAB> count
 perverse	5
 grothendieck	Grothendieck	12
 Hausdorff

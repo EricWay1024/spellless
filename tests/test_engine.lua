@@ -394,3 +394,36 @@ do
   H.ok(not off:suggest("zzver", 20)[1].text:find("^spellless "),
        "and an empty version_query removes it entirely")
 end
+
+H.suite("engine: a correction made twice leads the list")
+-- The evidence a person supplies directly, and the only such evidence there is.
+-- One selection is not it: a good deal of what anyone picks is picked once by
+-- accident, so the second is what counts -- it says the first was not a slip.
+do
+  local path = os.tmpname()
+  require("spellless.userdb").forget(path)
+  local e = assert(Engine.new{ data_dir = DATA, personal_path = path })
+  local function first(q) return e:suggest(q, 5)[1].text:gsub("%s+$", "") end
+
+  local before = first("cli")
+  H.ok(before ~= "CLI", "nothing is promoted to begin with: " .. before)
+  e:learn_choice("cli", "CLI")
+  H.eq(first("cli"), before, "one selection changes nothing")
+  e:learn_choice("cli", "CLI")
+  H.eq(first("cli"), "CLI", "the second puts it first")
+  H.eq(first("CLI"), "CLI", "however the input was capitalised")
+
+  -- It is placed, not scored, so frequency does not argue with it.
+  e:learn_choice("teh", "hello"); e:learn_choice("teh", "hello")
+  H.eq(first("teh"), "hello", "even over an overwhelming correction")
+
+  -- And the forget key takes it back, or it would lead for ever.
+  e:forget("CLI")
+  H.eq(first("cli"), before, "forgetting the word forgets the correction too")
+
+  -- Return commits the raw input, which is a refusal to choose rather than a
+  -- choice; the adapter never calls this for it, and it declines junk anyway.
+  H.eq(e:learn_choice("", "x"), nil, "an empty input records nothing")
+  H.eq(e:learn_choice("a b", "x"), nil, "nor does anything with a space in it")
+  os.remove(path)
+end

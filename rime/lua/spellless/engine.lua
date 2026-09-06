@@ -423,6 +423,31 @@ function Engine:suggest(raw, limit, opts)
     end
   end
 
+  -- A correction you have made before, and made *again*.
+  --
+  -- One selection is not evidence: half of what anyone picks is picked once by
+  -- accident, and a store that led on a single choice would fill with them.
+  -- The second selection is different in kind -- it says the first was not a
+  -- slip -- and it is the only signal here that comes from the person rather
+  -- than from a measurement of English.  So it is placed rather than scored:
+  -- confirmed means first, and no amount of frequency argues with it.
+  local promoted = nil
+  local choices = not (opts and opts.literal_first) and self.user:choices_for(query)
+  if choices then
+    for i = #choices, 1, -1 do
+      local choice = choices[i]
+      if choice.count >= cfg.choice_confirm_count then
+        for j = #out, 1, -1 do
+          if out[j].text == choice.text then table.remove(out, j) end
+        end
+        table.insert(out, 1, { text = choice.text, source = "chosen",
+                               score = cfg.base_exact + choice.count, cost = 0 })
+        promoted = choice.text
+      end
+    end
+    while #out > limit do table.remove(out) end
+  end
+
   -- An abbreviation the user wrote down beats anything inferred, and goes to
   -- the very top.  It is the one place in the whole matcher where there is no
   -- guessing to do: they said what they meant.
@@ -447,6 +472,7 @@ function Engine:suggest(raw, limit, opts)
   -- The literal candidate stays exactly literal: "commit what I typed" must
   -- not quietly capitalise "kubectl".
   local trusted = expansions ~= nil and expansions ~= false
+  trusted = trusted or promoted ~= nil
   trusted = trusted or (not (opts and opts.literal_first)
       and self:trustworthy(ranked[1], query, has_exact, typed_style))
   -- The split goes last among the real answers, and the literal is placed
@@ -580,11 +606,34 @@ function Engine:forget(text)
   text = text:match("^%s*(.-)%s*$")
   if text == "" then return false end
   local gone = self.user:forget_word(text:lower())
+  -- And every correction that produced it.  Forgetting the word but keeping
+  -- "this is what you meant by cli" would leave it leading the list for ever,
+  -- which is exactly what the key is for undoing.
+  for typed in pairs(self.user.choices) do
+    if self.user:forget_choice(typed, text) then gone = true end
+  end
   if gone then
     self.user:flush()
     self.last_flush = self.now_ms()
   end
   return gone
+end
+
+--- Record that `text` is what `typed` meant.
+---
+--- Only ever called when a candidate was actually selected.  Committing the
+--- raw input with Return is not a choice between readings -- it is a refusal to
+--- choose -- and counting it would fill the store with the misspellings this
+--- exists to correct.
+function Engine:learn_choice(typed, text)
+  if not self.cfg.learn or not typed or not text then return end
+  typed = typed:match("^%s*(.-)%s*$"):lower()
+  text = text:match("^%s*(.-)%s*$")
+  if typed == "" or text == "" then return end
+  if not typed:find("^[a-z][a-z']*$") then return end
+  local n = self.user:record_choice(typed, text)
+  if n >= self.cfg.flush_every then self:flush() end
+  return n
 end
 
 function Engine:learn(text)

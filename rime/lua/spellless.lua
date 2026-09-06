@@ -189,7 +189,16 @@ function M.init(env)
   -- Connected unconditionally: `learn: false` must switch off the personal
   -- store, not the sentence bookkeeping that also lives here.
   env.commit_connection = env.engine.context.commit_notifier:connect(function(ctx)
-    engine:learn(ctx:get_commit_text())
+    local committed = ctx:get_commit_text()
+    engine:learn(committed)
+    -- Remember what the input meant, but only when a candidate was actually
+    -- selected.  librime fires this notifier before it clears the context, so
+    -- the input is still here to be read -- and get_selected_candidate is nil
+    -- exactly when Return committed the raw input, which is a refusal to choose
+    -- rather than a choice.
+    if ctx:get_selected_candidate() then
+      engine:learn_choice(ctx.input, committed)
+    end
     -- Something was just committed, so whatever the last Return or Backspace
     -- implied is stale; the text behind the cursor is authoritative again.
     ctx:set_property(SENTENCE, "")

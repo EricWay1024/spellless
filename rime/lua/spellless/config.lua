@@ -390,6 +390,16 @@ M.defaults = {
   -- in the Rime user directory.  See spellless/shortcuts.lua.
   shortcuts_file    = "spellless_shortcuts.txt",
   learn             = true,
+  -- How many times you have to pick the same reading of the same input before
+  -- it leads the list.  One selection is not evidence -- a good deal of what
+  -- anyone picks is picked once by accident -- and the second is different in
+  -- kind: it says the first was not a slip.  Corrections are kept in the
+  -- personal file as "> typed <TAB> chosen <TAB> times".
+  --
+  -- Only selections count.  Committing the raw input with Return is a refusal
+  -- to choose between readings rather than a choice, and counting it would
+  -- fill the store with the misspellings this exists to correct.
+  choice_confirm_count = 2,
   -- A word selected this many times reaches the top of the personal scale.
   user_saturation   = 12,
   -- How many personal words are compared against the query directly.  Every

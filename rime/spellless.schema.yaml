@@ -210,17 +210,17 @@ recognizer:
     # snake_case identifiers: once an underscore shows up, take the whole
     # token literally instead of trying to spell it.
     ident: "^[A-Za-z]+_[-_.0-9A-Za-z']*$"
-    # Identifiers that are unambiguously not prose: a second capital before the
-    # digit.  "TQFT2", "ArXiv2", "CW1" compose as one token.
+    # There is deliberately no pattern here for "TQFT2" or "Lean4", and the
+    # reason is worth stating because the omission looks like an oversight.
     #
-    # This deliberately does NOT cover "Lean4" or "Hat02".  The recognizer runs
-    # before the selector, so any pattern matching "Mathe2" would swallow the
-    # "2" and break candidate selection after every capitalised word -- and
-    # sentence-initial capitals are constant in prose.  Digits therefore end a
-    # word: press Return (or a candidate key) first, then the digit.
+    # The recognizer runs *before* the selector.  So any pattern that can match
+    # an acronym followed by a digit swallows that digit the moment it is
+    # typed -- and that digit is how you pick a candidate.  Type "CLI", see it
+    # offered fourth, press 4 to take it, and the composition silently becomes
+    # "CLI4" instead.  Acronyms are constant in prose and identifiers ending in
+    # a digit are not, so the trade is one-sided.
     #
-    # If you write far more identifiers than prose, replacing the line above
-    # with the one below buys "Lean4" and "Hat02" at the cost of number-key
-    # selection after any capitalised word of six letters or fewer:
-    #   ident_caps: "^[A-Z][A-Za-z']{0,5}[0-9][-_.0-9A-Za-z']*$"
-    ident_caps: "^[A-Z][A-Za-z']*[A-Z][A-Za-z']*[0-9][-_.0-9A-Za-z']*$"
+    # Digits therefore end a word: pick the word first -- Return, the space bar
+    # or its number -- then type the digit.  If you write far more identifiers
+    # than prose, this buys "TQFT2" back at exactly the cost described above:
+    #   ident_caps: "^[A-Z][A-Za-z']*[A-Z][A-Za-z']*[0-9][-_.0-9A-Za-z']*$"

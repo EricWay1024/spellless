@@ -621,3 +621,48 @@ do
 end
 
 os.remove(personal)
+
+H.suite("adapter: only a selection is a choice")
+-- Return commits the raw input, and librime clears the non-confirmed
+-- composition to do it -- so get_selected_candidate is nil exactly then.  That
+-- is the difference between "this is the word I meant" and "none of these is",
+-- and only the first should be remembered.
+do
+  -- Its own environment: mock.install rebinds the commit handler, so the one
+  -- left over from an earlier suite belongs to an earlier engine.
+  local scratch = os.tmpname()
+  os.remove(scratch)
+  local own = mock.install{
+    user_dir = scratch, page_size = 7,
+    config = { ["spellless/data_dir"] = DATA, ["spellless/learn"] = true },
+  }
+  package.loaded["spellless"] = nil
+  local sp = require("spellless")
+  sp.init(own)
+  local ctx = own.engine.context
+  local store = own.spellless.user
+
+  H.eq(store:choices_for("mathe"), nil, "nothing remembered for this input yet")
+
+  ctx.input = "mathe"
+  mock.selected = nil                        -- Return: no candidate confirmed
+  mock.commit_text = "mathe"
+  mock.commit_handler(ctx)
+  H.eq(store:choices_for("mathe"), nil,
+       "committing the raw input records no correction")
+
+  mock.selected = { text = "mathematics " }   -- a candidate key, or the space bar
+  mock.commit_text = "mathematics "
+  mock.commit_handler(ctx)
+  local got = store:choices_for("mathe")
+  H.ok(got ~= nil, "choosing a candidate does")
+  if got then
+    H.eq(got[1].text, "mathematics", "and the trailing space is not part of it")
+    H.eq(got[1].count, 1, "counted once, which is not yet enough to lead")
+  end
+
+  sp.fini(own)
+  mock.selected, mock.commit_text = nil, nil
+  -- Put the module and the environment the rest of the file uses back.
+  package.loaded["spellless"] = spellless
+end

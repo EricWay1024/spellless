@@ -47,6 +47,10 @@ function UserDB.load(path, cfg)
     path = path,
     counts = {},
     surfaces = {},
+    -- What you chose, for what you typed.  Keyed by the lowercased input, then
+    -- by the committed text, so one input can have several readings and the
+    -- count says which you meant.
+    choices = {},
     order = {},
     dirty = 0,
     -- Bumped on every change so callers can invalidate caches cheaply.
@@ -56,7 +60,15 @@ function UserDB.load(path, cfg)
   local blob = path and path ~= "" and util.slurp(path) or nil
   if blob then
     for line in blob:gmatch("[^\r\n]+") do
-      if line:sub(1, 1) ~= "#" then
+      if line:sub(1, 1) == ">" then
+        -- "> typed <TAB> chosen <TAB> count".  A leading ">" cannot begin a
+        -- word, so the two kinds of line can share a file without a guess.
+        local typed, chosen, count =
+            line:match("^>%s*([^\t]-)%s*\t%s*([^\t]-)%s*\t%s*(%d+)%s*$")
+        if typed and chosen and typed ~= "" and chosen ~= "" then
+          self:set_choice(typed:lower(), chosen, tonumber(count))
+        end
+      elseif line:sub(1, 1) ~= "#" then
         local fields = {}
         for field in (line .. "\t"):gmatch("([^\t]*)\t") do
           fields[#fields + 1] = field:match("^%s*(.-)%s*$")
@@ -93,6 +105,53 @@ function UserDB:set(word, count, surface)
   end
   self.dirty_stamp = self.dirty_stamp + 1
   self.selection = nil
+end
+
+--- Record that `chosen` is what `typed` meant, `n` times over.
+function UserDB:set_choice(typed, chosen, n)
+  local byword = self.choices[typed]
+  if not byword then byword = {}; self.choices[typed] = byword end
+  byword[chosen] = n
+  self.dirty_stamp = self.dirty_stamp + 1
+end
+
+--- One more vote that `chosen` is what `typed` meant.  Returns the new count.
+function UserDB:record_choice(typed, chosen)
+  local n = ((self.choices[typed] or {})[chosen] or 0) + 1
+  self:set_choice(typed, chosen, n)
+  self.dirty = self.dirty + 1
+  return n
+end
+
+--- What you have chosen for this input before, commonest first.
+--- Returns a list of { text = ..., count = ... }.
+function UserDB:choices_for(typed)
+  local byword = self.choices[typed]
+  if not byword then return nil end
+  local out = {}
+  for text, n in pairs(byword) do out[#out + 1] = { text = text, count = n } end
+  if #out == 0 then return nil end
+  table.sort(out, function(a, b)
+    if a.count ~= b.count then return a.count > b.count end
+    return a.text < b.text
+  end)
+  return out
+end
+
+--- Forget every correction recorded for `typed`, or just the one for `chosen`.
+function UserDB:forget_choice(typed, chosen)
+  local byword = self.choices[typed]
+  if not byword then return false end
+  if chosen then
+    if byword[chosen] == nil then return false end
+    byword[chosen] = nil
+  else
+    self.choices[typed] = nil
+  end
+  if next(byword) == nil then self.choices[typed] = nil end
+  self.dirty = self.dirty + 1
+  self.dirty_stamp = self.dirty_stamp + 1
+  return true
 end
 
 --- Drop a word from the store completely: its count, its spelling, and its
@@ -201,7 +260,18 @@ function UserDB:flush()
   fh:write("# spellless personal vocabulary\n")
   fh:write("#   word <TAB> times selected\n")
   fh:write("#   word <TAB> how you write it <TAB> times selected\n")
+  fh:write("#   > typed <TAB> what you chose <TAB> times\n")
   fh:write("# Edit freely; unknown words listed here become candidates.\n")
+  -- Corrections first: they are the interesting half of the file, and the
+  -- word list below can be thousands of lines.
+  local typed_keys = {}
+  for typed in pairs(self.choices) do typed_keys[#typed_keys + 1] = typed end
+  table.sort(typed_keys)
+  for _, typed in ipairs(typed_keys) do
+    for _, choice in ipairs(self:choices_for(typed) or {}) do
+      fh:write("> ", typed, "\t", choice.text, "\t", tostring(choice.count), "\n")
+    end
+  end
   for i = 1, #words do
     local word = words[i]
     local surface = self.surfaces[word]

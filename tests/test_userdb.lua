@@ -78,3 +78,35 @@ H.eq(#edited:words(1), 1, "capped to the most recent")
 H.eq(edited:words(1)[1], "diffeomorphism")
 
 os.remove(path)
+
+H.suite("userdb: what you chose, for what you typed")
+do
+  local path = os.tmpname()
+  UserDB.forget(path)
+  local db = UserDB.load(path, cfg)
+  H.eq(db:choices_for("cli"), nil, "nothing remembered to begin with")
+  H.eq(db:record_choice("cli", "CLI"), 1, "one selection")
+  H.eq(db:record_choice("cli", "CLI"), 2, "and a second counts up")
+  db:record_choice("cli", "client")
+  local got = db:choices_for("cli")
+  H.eq(#got, 2, "both readings are kept")
+  H.eq(got[1].text, "CLI", "commonest first")
+  H.eq(got[1].count, 2)
+  H.eq(got[2].text, "client")
+
+  db:flush()
+  UserDB.forget(path)
+  local back = UserDB.load(path, cfg)
+  local again = back:choices_for("cli")
+  H.eq(#again, 2, "and they survive a round trip through the file")
+  H.eq(again[1].text .. ":" .. again[1].count, "CLI:2")
+
+  -- A hand-edited file is the same file; the two kinds of line coexist because
+  -- ">" cannot begin a word.
+  H.ok(back:count("grothendieck") == 0, "word lines still parse as words")
+  H.eq(back:forget_choice("cli", "client"), true, "one reading can be dropped")
+  H.eq(#back:choices_for("cli"), 1)
+  H.eq(back:forget_choice("cli"), true, "or all of them")
+  H.eq(back:choices_for("cli"), nil)
+  os.remove(path)
+end
