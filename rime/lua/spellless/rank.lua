@@ -16,7 +16,6 @@ local BASE_KEY = {
   prefix   = "base_prefix",
   typo     = "base_typo",
   skeleton = "base_skeleton",
-  split    = "base_split",
   cue      = "base_cue",
 }
 

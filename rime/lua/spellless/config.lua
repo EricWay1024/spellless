@@ -141,8 +141,6 @@ M.defaults = {
   max_affix_tries   = 4,
   split_words       = true,
   split_word_penalty = 0.8,
-  -- How good an ordinary explanation has to be before splitting is abandoned.
-  split_max_rival_cost = 1.6,
   -- Below this there is not enough string for two words worth having.  It can
   -- afford to be short because a split never competes: it sits one above the
   -- literal, so a short identifier that happens to segment costs a slot near
