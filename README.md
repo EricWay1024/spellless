@@ -49,23 +49,58 @@ Spellless is that same arrangement, for English. It treats what you typed as
   the letters you *left out* rather than demanding the ones you kept.
 * **Everything competes on one score** — frequency, edit cost, how much a
   completion adds, what you have chosen before — so a common word reached by a
-  cheap slip can beat a rare exact prefix.
+  cheap slip can beat a rare exact prefix. 
 
 ### Why not autocorrect?
 
-Autocorrect has only one guess and no way to say *I am not sure*, applied to
-text you have already written. When it is right you never notice; when it is
-wrong you often do not either, and you find out when a reader does. A candidate list is not a
-smaller version of that. It is the opposite arrangement: the machine proposes,
-you dispose, nothing lands that you did not choose. 
+Not because a candidate list makes you careful. It does not, and anyone who
+says otherwise has not used one at speed. Typing fast you barely read the list
+— you hit the space bar on muscle memory, the first candidate goes in, and now
+and then it is not the one you wanted. Worth admitting up front, because the
+honest argument does not need it.
 
-That also makes far more ambition affordable. Autocorrect can only risk a
-near-miss of an edit or two, because every guess is applied unseen. Offering
-`mathematics` for `mthmtcs` means allowing a distance at which half the
-dictionary is reachable — unthinkable if a machine must pick, perfectly safe
-when a human is looking at seven options. And it never fights you over
-`kubectl`, `argmax` or a name it has not met: what you typed is always on the
-list, and <kbd>Enter</kbd> always commits it verbatim.
+What a candidate list buys you is a move you could not make before.
+
+There is a moment, several times an hour, when you know you cannot spell a word
+*and you know that you know*. `bureaucratic`. `liaison`. `diffeomorphism`.
+Autocorrect is no use there — it has to wait for you to write something wrong
+and then guess. So instead you break off, or you settle for a duller word you
+can spell, or you go and look it up and lose the sentence you were holding.
+What you do here is type the consonants and let the machine put the word in
+front of you: a dictionary lookup that never takes your hands off the keyboard.
+
+```
+brcrtc      →  bureaucratic         liasn       →  liaison
+dffmrphsm   →  diffeomorphism       accomodate  →  accommodate
+```
+
+That costs a beat, and the beat is real. The first time you fetch a word this
+way you are slower than someone who simply knew it.
+
+**Then it compounds.** You do not stay a person who stops to look things up.
+You build muscle memory for the shorthand exactly as you once built it for the
+spelling, and `dffmrphsm` stops being a lookup and becomes how you type that
+word. The vocabulary you can spell and the vocabulary you can *write* start to
+converge — and the second one is much bigger.
+
+**That is what autocorrect can never give you.** You cannot get good at a
+system whose whole design is that you do not take part. Its ceiling is the day
+you install it; this has its floor there instead.
+
+Two consequences of pressing space on muscle memory are designed for rather
+than wished away. A word this has never seen takes **two** presses of the space
+bar, not one, because the moment worth interrupting you is the moment you were
+about to commit something it cannot vouch for. And a correction you make twice
+is promoted to first place for that input, so the shorthand you are building is
+learned from your side as well, not only guessed at from the dictionary's.
+
+The same arrangement is what makes real ambition affordable. Autocorrect can
+only risk a near-miss of an edit or two, because every guess is applied unseen.
+Offering `mathematics` for `mthmtcs` means allowing a distance at which half
+the dictionary is reachable — unthinkable if a machine must pick, and
+affordable here because the answer is one of seven on the page, because what
+you typed is always among them, and because <kbd>Enter</kbd> always commits it
+verbatim. It never fights you over `kubectl`, `argmax` or a name it has not met.
 
 Look again at the screenshot. `complicated` is first, and `completed`,
 `complicate`, `compacted`, `complicity` are the words a reasonable reader might
@@ -75,8 +110,9 @@ See [DESIGN.md](DESIGN.md).
 
 ## What it feels like
 
-You stop proofreading mid-sentence. Spaces appear between words and never in
-front of a comma, sentences start with a capital, `eg` becomes `e.g.` and `i`
+You stop breaking off mid-sentence to work out a spelling. Spaces appear
+between words and never in front of a comma, sentences start with a capital,
+`eg` becomes `e.g.` and `i`
 becomes `I`. A colleague's name is remembered after you type it once, and a
 correction you make twice becomes the first thing offered ever after. A word
 Spellless has never seen will not go in on one press of the space bar — it
