@@ -120,7 +120,7 @@ noether's        →  Noether's      psdfnctr  →  pseudofunctor
 
 It is a [Rime](https://rime.im) schema for Windows, and **the word you meant is
 first 89.9% of the time, in the top five 99.1%** — measured on cases the tuning
-never saw. About 2.5 ms per keystroke. 2,175 assertions say it still behaves.
+never saw. About 2.5 ms per keystroke. 2,178 assertions say it still behaves.
 [EVALUATION.md](EVALUATION.md) has the numbers, including the cases it gets
 wrong and why.
 
@@ -539,7 +539,7 @@ frontend, then type `zzver` and check the revision.
 
 ```bash
 make            # dictionary + indexes + test set
-make test       # 2,175 assertions
+make test       # 2,178 assertions
 make bench      # accuracy and latency over tests/cases/
 make install
 ```
@@ -552,7 +552,7 @@ spellless/
 ├── scripts/       dictionary build, index build, test-set build, icon, installer
 ├── data/          vendored corpus, supplemental vocabulary, surface forms
 ├── generated/     build output (1.3 MB) — what gets deployed
-├── tests/         2,175 assertions + the evaluation cases
+├── tests/         2,178 assertions + the evaluation cases
 ├── bench/         evaluate.lua, tune.lua, probe.lua, naive.lua
 └── docs/          the algorithm in full, deployment, editor snippets, the bench
 ```

@@ -513,7 +513,7 @@ entirely of dictionary words.
 Current constants:
 
 ```
-base_exact 100   base_typo 75    base_cue    70    form_bonus       70
+base_exact 84    base_typo 75    base_cue    70    form_bonus       70
 base_prefix 74   base_skeleton 62                  unknown_penalty  25
 w_f 34   w_u 18   w_c 16   w_e 8   V_skeleton 10   V_cue 10
 ```
@@ -533,12 +533,26 @@ searches nine of them.
 **What the units mean.** The dictionary's log-frequency range is 14.41 nats, so
 `w_f` buys 2.36 points per nat and one unit of edit cost is priced at 6.78 nats,
 about 880:1. But that is not the number that governs anything. A repair must
-also cross `base_exact − base_typo = 25`, and 41 points is 17.4 nats against a
-corpus whose entire dynamic range is 14.4 — so **a full-price repair never beats
-an exact dictionary match at any frequency.** It is a veto, not a price, and
-checking the 2,500 commonest words confirms the exact reading leads in every
-one. In the rank band people actually type, the whole frequency spread available
-is 4.7 nats: enough to overturn a cost gap of 0.69, never a whole edit.
+also cross `base_exact − base_typo = 9`, and 25 points is 10.6 nats against a
+corpus whose entire dynamic range is 14.4. So a full-price repair *can* in
+principle beat an exact dictionary match, and needs a word about 40,000 times
+commoner to do it — which never arises in the band people type, where the whole
+frequency spread available is 4.7 nats: enough to overturn a cost gap of 0.69,
+never a whole edit. Checking the 2,500 commonest words confirms the exact
+reading still leads in every one, apart from the 42 apostrophe-free contraction
+keys, which lead with their written form on purpose.
+
+**That gap used to be 25, and closing it was the point.** A completion is
+cheaper than a repair — cost 0, `base_exact − base_prefix` and nothing else —
+and at 26 points that gap was 11 nats, which is to say no completion could ever
+overtake a word you had actually typed, however rare that word and however
+common the completion. `contras` beat `contrast`, `sear` beat `search`, `wit`
+beat `with`. The evidence for preferring the completion is already in `w_f`;
+the prior was simply drowning it. `base_exact = 84` leaves 10 points, so a
+completion needs to be about 70 times commoner, which `contrast` (13×) does not
+clear on frequency alone — it clears it because a one-character completion is
+also charged only 0.8 of `w_e`. See tests/cases/rare_words.tsv, which pins both
+directions, and note that the benchmark is blind to all of it (§5.3).
 
 Three of the constants encode a principle rather than a tuning result:
 
@@ -584,12 +598,14 @@ word and exactly wrong when it is a misspelling.
 
 ### 5.1 Method, and what is wrong with it
 
-1,484 cases in `tests/cases/*.tsv`, each a triple *(input, expected, max rank)*.
+1,523 cases in `tests/cases/*.tsv`, each a triple *(input, expected, max rank)*.
 
-**Hand-written (284).** Every example in the original brief; 68 well-known
+**Hand-written (323).** Every example in the original brief; 68 well-known
 English misspellings; consonant-only input including deliberately mistyped
 skeletons; ordinary correct typing; short ambiguous input; the literal-input
-guarantees; dropped apostrophes and abbreviations; 57 syllabic shorthands.
+guarantees; dropped apostrophes and abbreviations; 57 syllabic shorthands; and
+39 cases pinning what happens when the thing you typed is itself a word, just a
+much rarer one than the word it completes (§4.8).
 
 **Generated (1,200)**, from a fixed seed, over words ranked 150–12,000 (what
 people actually type; deeper into the tail one measures the corpus, not the
@@ -660,7 +676,7 @@ mean rose 78.0 → 88.1. The lesson is worth keeping: five free constants over
 Two things this does *not* measure, and they are the larger uncertainties. A
 fresh seed re-samples from the same generator against the same dictionary, so
 it says nothing about whether `make_testset.py`'s model of how people abbreviate
-resembles how people actually abbreviate. And the 284 hand-written cases have no
+resembles how people actually abbreviate. And the 323 hand-written cases have no
 held-out version and cannot have one.
 
 There is a third, and it is worth stating because the obvious way to answer it
@@ -697,7 +713,7 @@ skeletons.tsv                    31  100.0%  100.0%      hand-written, no held-o
 spec_examples.tsv                16   75.0%   87.5%      hand-written, no held-out set
 syllables.tsv                    57   98.2%  100.0%      hand-written, no held-out set
 ------------------------------------------------------------
-TOTAL                          1484   89.6%   99.0%      shipped seed
+TOTAL                          1523   89.6%   99.0%      shipped seed
                                       89.9%   99.3%      mean of 10 fresh seeds
 ```
 
@@ -764,7 +780,7 @@ That is the shape of a recall feature, and it is why it is judged on top-5.
 ### 5.3 Latency
 
 ```
-over all 1,484 evaluation queries
+over all 1,523 evaluation queries
   mean 2.9 ms   median 2.2 ms   p95 7.8 ms
 
 typing nine words out, one keystroke at a time (86 keystrokes)
@@ -789,7 +805,7 @@ room for both. See §8.9.
 **A warning about reading the table above.** Three shipped features are
 invisible to it. `lua bench/evaluate.lua -- affix_words=false` returns
 bit-identical accuracy, because no case file contains a coined word; slip
-tolerance and the correction store are the same shape. So the 1,484 cases
+tolerance and the correction store are the same shape. So the 1,523 cases
 measure the four matching channels and nothing else, and a change that only
 touches the rest can be neither validated nor caught here. `bench/probe.lua`
 covers two of the three; the correction store has only its unit tests.
@@ -799,7 +815,7 @@ covers two of the three; the correction store has only its unit tests.
 `bench/tune.lua` runs coordinate descent over the ranking weights and edit
 budgets, maximising a macro average of `2·top-1 + top-5 + in-rank` across the
 case files. Macro rather than micro, so the 1,200 generated cases do not drown
-out the 284 hand-written ones.
+out the 323 hand-written ones.
 
 **How much of that is real?** Starting the descent from the middle of every
 grid — the point someone would pick knowing only the plausible ranges — and
@@ -841,22 +857,22 @@ is a real regression the objective cannot see.
 ## 6. Where it fails now
 
 Almost every remaining loss is a real ambiguity rather than a search failure.
-Across all 1,484 cases, 155 (10.4%) do not lead, and of those:
+Across all 1,523 cases, 159 (10.4%) do not lead, and of those:
 
 ```
-  intended word at rank 2       102   66% of misses
-                  at rank 3–5    38   25%
+  intended word at rank 2       106   67% of misses
+                  at rank 3–5    38   24%
                   at rank 6–20   14    9%
                   not offered     1    1%
 ```
 
-**Almost nothing is ever missing** — one case in 1,484, and it is worth naming
+**Almost nothing is ever missing** — one case in 1,523, and it is worth naming
 because it used to be zero: `lan`, wanted for `lawn`, which is three letters
 against a page of commoner words that explain them. That is the price of a
 fuller candidate list, and it is one case.
 
 The rest of the residual is ordering, and 62% of it is ordering between two
-readings that are both defensible. In 24% of misses the winning word shares a
+readings that are both defensible. In 25% of misses the winning word shares a
 four-character prefix with the target — a morphological sibling. **That number
 looks more actionable than it is; §8.1 has the measurement.** The classes, from
 a full sweep of the case files:
@@ -933,7 +949,8 @@ before being abandoned:
   repair to a rare one. The predicted direction is monotonically *wrong* —
   `β = +1.0` costs 30 cases at rank 1 — and the shallow optimum at `β = −0.45`
   turns out to be `w_c` in disguise: it vanishes once `w_c` is 13. Coordinate
-  descent leaves it at −0.15, worth one case in 1,484. **They do not interact.**
+  descent leaves it at −0.15, worth one case in the 1,484 that existed then.
+**They do not interact.**
 - **A part-of-speech class bigram** on the previous word (§8.1). Loses on every
   previous word it has an opinion about.
 - **Deleting the tail charge** from the shorthand channel once the model was
@@ -977,7 +994,7 @@ The chain was: morphological siblings are 24% of misses → siblings differ in
 part of speech → the previous word predicts part of speech. Each link leaks:
 
 ```
-  36 of 155 misses are morphological siblings           23% of misses
+  39 of 159 misses are morphological siblings           25% of misses
   ... that differ in part of speech at all              ~9   25% of those
   ... decidable from the word on the LEFT               ~5   14% of those
 ```
@@ -994,7 +1011,7 @@ separates, and degree adverbs.
 The prototype confirms it. A class function (closed-class list plus 44 suffix
 rules), a zero-centred `w_ctx · PMI(c(w); c(prev))` term, gated on the previous
 token being a dictionary word, applied only within a margin of the leader.
-Scored over all 1,484 cases under six fixed previous words — nothing chosen
+Scored over all 1,523 cases under six fixed previous words — nothing chosen
 after the fact:
 
 ```
@@ -1220,7 +1237,7 @@ it cheaper still.
 ```bash
 git clone https://github.com/EricWay1024/spellless && cd spellless
 make            # rebuild dictionary, indexes and generated test sets
-make test       # 2,125 assertions, including every hand-written case
+make test       # 2,128 assertions, including every hand-written case
 make bench      # the accuracy and latency tables in §5
 lua bench/try.lua --debug mthmtcs satfcatn tnk     # ask it anything
 

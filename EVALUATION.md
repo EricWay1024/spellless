@@ -20,9 +20,9 @@ Numbers below are from a single-threaded Lua 5.4.7 build on WSL2
 
 ## The test set
 
-1,484 cases in `tests/cases/`, in two kinds.
+1,523 cases in `tests/cases/`, in two kinds.
 
-**Hand-written (284 cases).** What the brief asks for, plus the failure modes
+**Hand-written (323 cases).** What the brief asks for, plus the failure modes
 worth guarding:
 
 | file | what it pins down |
@@ -33,6 +33,7 @@ worth guarding:
 | `prefix.tsv` | ordinary correctly-spelled typing and completion |
 | `ambiguity.tsv` | short input with several legitimate readings, and misspellings that are themselves words |
 | `raw.tsv` | the literal input stays reachable, and leads when nothing is trustworthy |
+| `rare_words.tsv` | a word you typed that is much rarer than one it completes, in both directions |
 | `forms.tsv` | dropped apostrophes, the pronoun "I", and abbreviations typed without their dots |
 | `literal.tsv` | short and capitalised input — variables, units and acronyms — leading with itself |
 | `syllables.tsv` | syllabic shorthand: one or two letters per syllable, several different spellings of the same word |
@@ -85,17 +86,17 @@ skeletons.tsv                    31  100.0%  100.0%  100.0%
 spec_examples.tsv                16   75.0%   87.5%  100.0%
 syllables.tsv                    57   98.2%  100.0%  100.0%
 ------------------------------------------------------------
-TOTAL                          1484   89.6%   99.0%   99.4%   <- shipped seed
+TOTAL                          1523   89.6%   99.0%   99.4%   <- shipped seed
 
 held out, mean of ten fresh generator seeds:
 generated_cues.tsv              300   88.1%   99.0%
 generated_skeletons.tsv         400   89.8%   99.8%
 generated_typos.tsv             500   91.0%   98.9%
 ------------------------------------------------------------
-TOTAL                          1484   89.9%   99.3%          <- held out
+TOTAL                          1523   89.9%   99.3%          <- held out
 ```
 
-**Top-1 89.9%, top-5 99.3%** — held out, and every one of the 284 hand-written
+**Top-1 89.9%, top-5 99.3%** — held out, and every one of the 323 hand-written
 cases passes.
 
 The generated sets come from a seeded generator, so a fresh seed is a free
@@ -234,7 +235,7 @@ These are in `ambiguity.tsv`, and passing them means *not* being over-confident:
 ## Latency
 
 ```
-over all 1,484 evaluation queries
+over all 1,523 evaluation queries
   mean 2.9 ms   median 2.2 ms   p95 7.8 ms
 
 typing nine words out, one keystroke at a time (86 keystrokes)
@@ -271,7 +272,7 @@ about 2.5 ms, roughly a 40× reduction with no measured loss of recall.
 `bench/tune.lua` runs coordinate descent over the ranking weights and edit
 budgets, maximising a macro average of `2·top-1 + top-5 + in-rank` across the
 case files. Macro rather than micro, so the 1,200 generated cases do not drown
-out the 284 hand-written ones.
+out the 323 hand-written ones.
 
 The first round, before the syllable-cue channel existed, moved the objective
 from 3.4896 to 3.6002 and changed:
@@ -327,6 +328,6 @@ Changes found by *hand* mattered considerably more than the tuning itself:
 
 ## Regression protection
 
-`tests/run.lua` runs 2125 assertions, and `tests/test_install.py` another 50, including every hand-written case at its
+`tests/run.lua` runs 2128 assertions, and `tests/test_install.py` another 50, including every hand-written case at its
 stated budget and accuracy floors a few points below the numbers above for the
 generated sets. Ordinary tuning does not trip it; a real regression does.
