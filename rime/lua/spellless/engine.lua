@@ -289,7 +289,7 @@ end
 --- afternoon.  The first line comes from a module the installer overwrites, so
 --- it reports what this process *loaded*; the rest is read from the live
 --- corpus and the live configuration, so it cannot be stale by construction.
-function Engine:describe()
+function Engine:describe(opts)
   local cfg, corpus = self.cfg, self.corpus
   local built = version.revision or "?"
   if version.installed then built = built .. " installed " .. version.installed
@@ -299,12 +299,22 @@ function Engine:describe()
   for _ in pairs(corpus.forms) do forms = forms + 1 end
 
   local slip = cfg.cue_slip_cost > 0 and ("slip " .. cfg.cue_slip_cost) or "slip off"
-  return {
+  local out = {
     "spellless " .. built,
     ("%d words, %d forms, %d shortcuts"):format(corpus.n, forms, self.shortcuts.count),
     ("cue %s/%s, %s, learn %s"):format(cfg.base_cue, cfg.cue_cost_scale, slip,
                                        cfg.learn and "on" or "off"),
   }
+  -- What the matcher can actually see about the application it is typing into,
+  -- which is not always what the configuration implies -- and when the two
+  -- disagree, this line is the one that is true.
+  if opts and opts.may_edit ~= nil then
+    local app = opts.client_app
+    if app == nil or app == "" then app = "(frontend reports none)" end
+    out[#out + 1] = ("app %s, document edits %s"):format(
+        app, opts.may_edit and "allowed" or "refused")
+  end
+  return out
 end
 
 function Engine:suggest(raw, limit, opts)
@@ -316,7 +326,7 @@ function Engine:suggest(raw, limit, opts)
   -- so nothing else can reach this branch by accident.
   if cfg.version_query ~= "" and raw:lower() == cfg.version_query then
     local out = {}
-    for i, line in ipairs(self:describe()) do
+    for i, line in ipairs(self:describe(opts)) do
       out[i] = { text = line, source = "version", score = 0, cost = 0 }
     end
     out[#out + 1] = { text = raw, source = "raw", score = 0, cost = 0, raw = true }

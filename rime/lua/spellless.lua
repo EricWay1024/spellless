@@ -308,6 +308,11 @@ local function read_behind(engine, context)
   local out = {
     literal_first = preceding.expects_literal(tail),
     sentence_start = false,
+    -- Only ever read back by the version query, which is the one place that
+    -- has to report what the matcher can actually see rather than what the
+    -- configuration says it should.
+    client_app = context:get_property("client_app"),
+    may_edit = may_edit_document(context, engine),
     -- The word fragment the caret is sitting against, if any: delete the space
     -- after "so" and start typing again and this is "so".  Only ever set from
     -- the document, because absorbing it means deleting it, and a guess is not
@@ -361,6 +366,7 @@ local cache = { engine = nil, input = nil, result = nil, stamp = -1, key = nil }
 
 local function suggest(engine, input, behind)
   local key = tostring(behind.sentence_start) .. tostring(behind.literal_first)
+      .. tostring(behind.client_app)
   if cache.engine == engine and cache.input == input and cache.key == key
      and cache.stamp == engine.user.dirty_stamp then
     return cache.result
