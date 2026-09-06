@@ -349,25 +349,32 @@ local function app_allows(context, list)
 end
 
 --- Everything the text behind the cursor implies for the next word.
-local function read_behind(engine, context)
+---
+--- `input` is only used to recognise the version query.  It is worth passing
+--- for that alone: the three diagnostic fields below cost an application-name
+--- lookup and a list scan, and paying for them on every keystroke to answer a
+--- question asked once a session is the wrong trade.
+local function read_behind(engine, context, input)
   local cfg = engine.cfg
   local tail = text_behind(context)
+  local document = document_tail(context)
   local out = {
     literal_first = preceding.expects_literal(tail),
     sentence_start = false,
-    -- Only ever read back by the version query, which is the one place that
-    -- has to report what the matcher can actually see rather than what the
-    -- configuration says it should.
-    client_app = context:get_property("client_app"),
-    may_edit = may_edit_document(context, engine),
-    readable = document_tail(context) ~= nil,
     -- The word fragment the caret is sitting against, if any: delete the space
     -- after "so" and start typing again and this is "so".  Only ever set from
     -- the document, because absorbing it means deleting it, and a guess is not
     -- good enough to delete on.
     fragment = nil,
   }
-  local document = document_tail(context)
+  if cfg.version_query ~= "" and input and input:lower() == cfg.version_query then
+    -- Read back by the version query, which is the one place that has to
+    -- report what the matcher can actually see rather than what the
+    -- configuration says it should.
+    out.client_app = context:get_property("client_app")
+    out.may_edit = may_edit_document(context, engine)
+    out.readable = document ~= nil
+  end
   if document and cfg.absorb_fragment then
     out.fragment = document:match("([%a][%a']*)$")
   end
@@ -436,7 +443,7 @@ function M.func(input, seg, env)
           or seg:has_tag("ident_caps")) then return end
 
   local context = env.engine.context
-  local behind = read_behind(engine, context)
+  local behind = read_behind(engine, context, input)
   local candidates = suggest(engine, input, behind)
   local debug_comments = engine.cfg.show_debug_comments
   local raw_comment = engine.cfg.raw_comment

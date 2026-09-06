@@ -886,3 +886,44 @@ do
   env.spellless.cfg.reclaim_space = false
   mock.history:clear()
 end
+
+H.suite("adapter: the version query reports what the matcher can actually see")
+-- The three fields behind this line are gathered only for `zzver`, because
+-- they cost an application-name lookup and a list scan and would otherwise be
+-- paid on every keystroke to answer a question asked once a session. That
+-- makes them exactly the kind of thing that can stop being gathered at all
+-- without any other test noticing.
+do
+  local function version_lines(app)
+    ctx0:set_property("client_app", app)
+    local out = {}
+    for _, c in ipairs(mock.translate(spellless, "zzver",
+                                      mock.segment({ "abc" }, 0, 5), env)) do
+      out[#out + 1] = c.text:gsub("%s+$", "")
+    end
+    return table.concat(out, "\n")
+  end
+
+  local refused = version_lines("code.exe")
+  H.ok(refused:find("^spellless "), "it still leads with the build")
+  H.ok(refused:find("app code.exe", 1, true),
+       "and names the application the frontend reported: " .. refused)
+  H.ok(refused:find("edits refused", 1, true),
+       "and says the document is off limits there")
+
+  local allowed = version_lines("notepad.exe")
+  H.ok(allowed:find("app notepad.exe", 1, true) and
+       allowed:find("edits allowed", 1, true),
+       "and says so the other way round elsewhere: " .. allowed)
+
+  H.ok(version_lines(""):find("frontend reports none", 1, true),
+       "an application the frontend cannot name is said to be unnamed")
+
+  -- Ordinary input must not pay for any of it.
+  ctx0:set_property("client_app", "code.exe")
+  local ordinary = mock.translate(spellless, "mathe",
+                                  mock.segment({ "abc" }, 0, 5), env)
+  H.ok(#ordinary > 1 and not ordinary[1].text:find("^app "),
+       "and a real word is unaffected")
+  ctx0:set_property("client_app", "")
+end
