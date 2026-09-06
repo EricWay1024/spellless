@@ -7,6 +7,7 @@
 -- completion adds and the user's own history do the fine ordering.
 
 local skeleton = require("spellless.skeleton")
+local wordclass = require("spellless.wordclass")
 
 local M = {}
 
@@ -15,13 +16,9 @@ local BASE_KEY = {
   prefix   = "base_prefix",
   typo     = "base_typo",
   skeleton = "base_skeleton",
+  split    = "base_split",
   cue      = "base_cue",
 }
--- No entry for "split" on purpose.  A split candidate is *placed* rather than
--- ranked (see Engine:suggest) and never reaches this function, so a base score
--- for it would be a number that could not do anything.  There was one for a
--- long time, and it was dead the day the split stopped being ranked: setting it
--- to 0 or to 1000 left every case file bit-identical.
 
 --- How much longer the candidate is than what was typed, normalised to [0,1].
 --- Only completions are penalised; a shorter word already paid through cost.
@@ -69,6 +66,47 @@ function M.score(item, cfg, ctx)
   return s
 end
 
+--- Nudge near-ties towards the class the previous word predicts.
+---
+--- Applied after the per-word deduplication and before the sort, on the
+--- candidates only, so it can settle "regulator" against "regulatory" without
+--- being able to overturn anything the input actually decided.  Three
+--- properties are load-bearing:
+---
+---   * it is a log-ratio, not a log-probability, so it is zero-centred: an
+---     unreadable previous word and an unclassifiable candidate both contribute
+---     exactly nothing, and adding the term can only reorder candidates whose
+---     classes differ.  A log P term would instead push every classifiable
+---     candidate down relative to every unclassifiable one, which is a bias
+---     about the class function rather than about the language;
+---   * it is scaled in points per nat, the same units as the frequency term,
+---     so it enters the additive score at a rate that means something;
+---   * it only reaches candidates within `context_margin` of the leader, so an
+---     exact match -- which leads its sibling by 20 points or more once
+---     form_bonus is in -- is out of reach whatever the previous word was.
+---
+--- `ctx.previous_class` is nil unless the engine both has the flag on and could
+--- read the previous word, and then this whole function is one comparison.
+function M.apply_context(out, cfg, ctx)
+  local previous = ctx.previous_class
+  if not previous then return end
+  local top = -math.huge
+  for i = 1, #out do
+    if out[i].score > top then top = out[i].score end
+  end
+  local floor, weight = top - cfg.context_margin, cfg.context_weight
+  for i = 1, #out do
+    local item = out[i]
+    if item.score >= floor then
+      local bonus = weight * wordclass.pmi(previous, wordclass.of(item.word))
+      if bonus ~= 0 then
+        item.score = item.score + bonus
+        item.context = bonus
+      end
+    end
+  end
+end
+
 --- Rank `items`, keeping the best-scoring entry per word.
 --- Returns a list ordered by descending score.
 function M.rank(items, query, cfg, ctx)
@@ -91,6 +129,7 @@ function M.rank(items, query, cfg, ctx)
 
   local out = {}
   for i = 1, count do out[i] = best[order[i]] end
+  M.apply_context(out, cfg, ctx)
   -- Ties are broken by corpus rank so the order is stable and reproducible.
   table.sort(out, function(a, b)
     if a.score ~= b.score then return a.score > b.score end

@@ -14,6 +14,7 @@ local generate = require("spellless.generate")
 local rank = require("spellless.rank")
 local skeleton = require("spellless.skeleton")
 local distance = require("spellless.distance")
+local wordclass = require("spellless.wordclass")
 local util = require("spellless.util")
 
 local Engine = {}
@@ -199,6 +200,34 @@ local function generate_personal(self, query, out)
 end
 
 -- ---------------------------------------------------------------------------
+-- context
+-- ---------------------------------------------------------------------------
+
+--- What the word before this one predicts about the class of this one, or nil.
+---
+--- Gated three ways, and every gate is there to make the term silent rather
+--- than wrong:
+---
+---   * the feature is off unless `context_class` is set;
+---   * the previous word must be one the dictionary knows.  A token nobody has
+---     measured says nothing about what follows, and a closed-class word -- the
+---     only kind this table has an opinion about -- is always in the dictionary,
+---     so the gate costs one binary search and rejects noise;
+---   * the class table itself is small, so most previous words return nil.
+---
+--- The caller is responsible for the other half of the gate: `previous_word`
+--- must be a word that was cleanly separated from this one by exactly one
+--- space.  `preceding.previous_word` is what works that out from the text
+--- behind the caret.
+function Engine:context_class(previous_word)
+  if not self.cfg.context_class then return nil end
+  if not previous_word or previous_word == "" then return nil end
+  local w = previous_word:lower()
+  if not self.corpus:lookup(w) then return nil end
+  return wordclass.context_of(w)
+end
+
+-- ---------------------------------------------------------------------------
 -- the query itself
 -- ---------------------------------------------------------------------------
 
@@ -207,8 +236,11 @@ end
 --- `opts.sentence_start` says the text before this word ended a sentence, so
 --- candidates should lead with a capital.  `opts.literal_first` says the text
 --- before it means we must not guess at all -- a LaTeX control sequence, say.
---- Working both out is the adapter's job; everything here stays independent of
---- Rime.
+--- `opts.previous_word` is the word immediately before this one, when there was
+--- one and it was cleanly separated (`preceding.previous_word`); it is read only
+--- for its part of speech, and only when `context_class` is on.
+--- Working all three out is the adapter's job; everything here stays independent
+--- of Rime.
 ---
 --- Returns a list of { text, source, score, cost, raw } and a stats table.
 --- Offer the query cut back into words, when it is not a word itself.
@@ -318,6 +350,7 @@ function Engine:suggest(raw, limit, opts)
     end,
     user = function(item) return user:score(item.word, cfg.user_saturation) end,
     tiebreak = function(item) return item.id or (corpus.n + 1) end,
+    previous_class = self:context_class(opts and opts.previous_word),
   }
   local ranked = rank.rank(items, search, cfg, ctx)
 

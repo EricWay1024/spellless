@@ -171,6 +171,40 @@ function M.starts_fresh(previous)
   return true
 end
 
+--- The word immediately before the caret, when there is one and it is cleanly
+--- separated from what is about to be typed.
+---
+--- Deliberately strict, because this is read for its part of speech and a wrong
+--- reading is worse than none.  Exactly one space, and only letters and inner
+--- apostrophes before it:
+---
+---   "the "        -> "the"
+---   "of the "     -> "the"
+---   "don't "      -> "don't"
+---   "the  "       -> nil    two spaces is a paste or a layout, not prose
+---   "the"         -> nil    still being typed, or a caret mid-word
+---   "the, "       -> nil    a comma is a boundary the class table cannot read
+---   "(the) "      -> nil    same
+---   ""            -> nil
+---
+--- Punctuation is rejected rather than stepped over on purpose: "after the
+--- meeting, generate" and "after the meeting generate" are different sentences,
+--- and a bracket or a full stop between the two words means the previous word
+--- is not the one predicting this one.
+function M.previous_word(previous)
+  if not previous or previous == "" then return nil end
+  if byte(previous, #previous) ~= 32 then return nil end
+  if #previous >= 2 and is_space(byte(previous, #previous - 1)) then return nil end
+  local word = previous:sub(1, -2):match("([%a][%a']*)$")
+  if not word then return nil end
+  -- The match above stops at any non-letter, so anything else immediately in
+  -- front of the word -- a digit, a bracket, a hyphen -- has already been
+  -- excluded by it.  What it cannot see is a trailing apostrophe, which is a
+  -- closing quote far more often than it is a possessive.
+  if word:sub(-1) == "'" then return nil end
+  return word
+end
+
 --- Is the user part-way through something we must not guess at?
 ---
 --- A backslash means a LaTeX control sequence has started: `\citep` must not

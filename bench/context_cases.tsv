@@ -1,0 +1,144 @@
+# Contextual cases for the class-bigram experiment (spellless/wordclass.lua).
+#
+# Not in tests/cases/, and deliberately: those files are the contract, this one
+# is a measurement of a feature that is off by default.  bench/context.lua runs
+# it.
+#
+#   kind <TAB> behind <TAB> input <TAB> expected
+#
+# `behind` is the text in front of the caret, with `_` for a space and `-` for
+# nothing at all.  It is fed to preceding.previous_word, so the gating -- one
+# space, no punctuation, a dictionary word -- is exercised end to end.
+#
+# `kind` is what the row is for:
+#   fix    a morphological-sibling failure from tests/cases: the intended word
+#          is not first today, and the question is whether context makes it so.
+#   keep   an answer that is already first: it must stay first.
+#   null   the context must change the candidate list not at all.
+#
+# `expected` is the word that must be at rank 1, or `=raw` for the literal
+# input, or `=same` meaning the whole 20-candidate list must be identical to
+# the one produced with no context at all.
+#
+# ---------------------------------------------------------------------------
+# HOW THE PREVIOUS WORDS WERE CHOSEN, which is the only thing that makes this
+# file worth anything:
+#
+# The `fix` rows are every one of the 40 cases in tests/cases/*.tsv where the
+# intended word is not first AND the word that beat it shares a four-character
+# prefix with it -- the morphological-sibling class of docs/ALGORITHM.md §6.
+# The inputs and the intended words are therefore not chosen at all: they are
+# whatever the existing case files already assert.  Only the previous word is
+# mine, and the rule I followed was "what would a person actually have typed
+# immediately before this word", written down for all forty before the ranking
+# code was run even once.
+#
+# Several of them are honestly bad for the feature and were left that way:
+# "the regulatory" and "the regulator" are both perfectly good English, so a
+# determiner cannot separate them and the row is expected to stay broken; the
+# natural predecessors of "observed", "goodbye", "whatsoever" and "recommended"
+# are words the hand-written table has no opinion about at all.  Choosing more
+# convenient contexts for those would have measured nothing.
+# ---------------------------------------------------------------------------
+
+# ------------------------------------------------------------------- fix (40)
+fix	the_	calender	calendar
+fix	the_	maintainance	maintenance
+fix	know_	whats	what's
+fix	the_	rgulator	regulatory
+fix	the_	vegtal	vegetables
+fix	the_	hbit	habitat
+fix	an_	amrc	American
+fix	the_	gnert	generation
+fix	a_	dnam	dynamic
+fix	an_	adjutt	adjustment
+fix	in_	ascnd	ascending
+fix	the_	experimt	experimental
+fix	the_	ltigt	litigation
+fix	an_	acdem	academic
+fix	we_	osrv	observed
+fix	the_	elevt	elevation
+fix	the_	effe	effects
+fix	the_	tadito	traditional
+fix	in_	indn	indiana
+fix	was_	cntnd	contained
+fix	the_	spcs	species
+fix	the_	wrrnts	warrants
+fix	the_	plnt	planet
+fix	in_	accor	accord
+fix	say_	goodye	goodbye
+fix	a_	gramm	gram
+fix	the_	importt	import
+fix	the_	slovka	slovak
+fix	left_	alon	alone
+fix	the_	reallm	realm
+fix	very_	hungy	hungry
+fix	our_	breakfasst	breakfasts
+fix	the_	hassls	hassle
+fix	evidence_	whatoever	whatsoever
+fix	a_	remak	remark
+fix	the_	inform	information
+fix	the_	mathe	mathematical
+fix	a_	mathe	mathematician
+fix	highly_	recommned	recommended
+fix	is_	recommned	recommending
+
+# ------------------------------------------------------------------ keep (37)
+# Answers that are first today, in contexts a person would really have typed.
+# The previous word is a classified one wherever English allows it, because a
+# previous word the table has no opinion about tests nothing.
+keep	the_	infrmtn	information
+keep	the_	gvrnmnt	government
+keep	the_	dvlpmnt	development
+keep	the_	prblm	problem
+keep	a_	qstn	question
+keep	the_	systm	system
+keep	in_	tplgy	topology
+keep	of_	hmtpy	homotopy
+keep	the_	dctnry	dictionary
+keep	the_	knwldg	knowledge
+keep	the_	lngg	language
+keep	a_	cmptr	computer
+keep	the_	mthmtcs	mathematics
+keep	of_	nlyss	analysis
+keep	of_	satfcatn	stratification
+keep	the_	dfmrphsm	diffeomorphism
+keep	in_	chmlgy	cohomology
+keep	the_	enviroment	environment
+keep	the_	goverment	government
+keep	to_	acheive	achieve
+keep	to_	accomodate	accommodate
+keep	most_	definately	definitely
+keep	the_	begining	beginning
+keep	an_	arguement	argument
+keep	the_	adress	address
+keep	a_	liason	liaison
+keep	very_	familar	familiar
+keep	the_	existance	existence
+keep	to_	beleive	believe
+keep	an_	independant	independent
+keep	very_	concious	conscious
+# The literal has to stay reachable and leading whatever is behind it.
+keep	in_	cm	=raw
+keep	a_	PDE	=raw
+keep	of_	x	=raw
+# Contexts that are wrong for the word on purpose: a contraction after a
+# determiner is not English, and must still not be demoted.
+keep	the_	dont	don't
+keep	the_	didnt	didn't
+keep	very_	isnt	isn't
+
+# ------------------------------------------------------------------ null (12)
+# Every gate, and the two previous words that are supposed to say nothing.
+null	zzzq_	rgulator	=same
+null	the__	rgulator	=same
+null	the	rgulator	=same
+null	the,_	rgulator	=same
+null	(the)_	rgulator	=same
+null	-	rgulator	=same
+null	_	rgulator	=same
+null	and_	rgulator	=same
+null	but_	gnert	=same
+null	or_	experimt	=same
+null	elephant_	gnert	=same
+null	the_	frm	=same

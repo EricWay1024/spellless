@@ -95,6 +95,23 @@ H.ok(P.expects_literal("see \\\\"), "even with text before it")
 H.ok(not P.expects_literal("hello"), "ordinary text is fair game")
 H.ok(not P.expects_literal(nil))
 
+H.suite("preceding: the word before the caret, when it is clean enough to read")
+-- Read only for its part of speech (spellless/wordclass.lua), where a wrong
+-- reading is worse than none, so every ambiguous shape is rejected outright.
+local word = {
+  ["the "] = "the", ["of the "] = "the", ["don't "] = "don't",
+  ["Hello there "] = "there", ["a "] = "a",
+}
+for tail, want in pairs(word) do
+  H.eq(P.previous_word(tail), want, ("previous word of %q"):format(tail))
+end
+local no_word = { "", " ", "the", "the  ", "the, ", "(the) ", "the.  ", "3 ",
+                  "the- ", "x' ", "  " }
+for _, tail in ipairs(no_word) do
+  H.eq(P.previous_word(tail), nil, ("no readable word before %q"):format(tail))
+end
+H.eq(P.previous_word(nil), nil, "nothing behind at all")
+
 H.suite("preceding: abbreviations match as a suffix, in any case")
 local ab = { ["e.g."] = true }
 H.ok(not P.ends_sentence("see e.g.", ab), "in the middle of a tail")

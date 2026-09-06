@@ -182,6 +182,35 @@ M.defaults = {
   -- linear form is right.
   extra_weight      = 8,    -- x how much longer the completion is than the input
 
+  ---------------------------------------------------------------- context
+  -- One previous word, read as a coarse part-of-speech class.  Off, and while
+  -- it is off nothing below is consulted and the ranking is bit-for-bit what it
+  -- was -- verified over all 16,429 candidate rows the case files produce.
+  --
+  -- Off because it was measured and it loses: `lua bench/context.lua` reports 9
+  -- answers fixed against 29 broken after "the", and worse after every other
+  -- previous word the table has an opinion about.  spellless/wordclass.lua says
+  -- why, and it is not something the two constants below can repair.
+  context_class     = false,
+  -- Points per nat of PMI between the previous word's class and the
+  -- candidate's.  The other log-ratio in the score is the frequency term, which
+  -- spans 34 points over the whole dictionary, so 5 says one nat of contextual
+  -- evidence is worth about a seventh of that -- enough to settle the median
+  -- sibling pair, which sits 3.8 points apart, and not enough to move anything
+  -- that is 15 points clear.
+  --
+  -- Swept, so nobody has to sweep it again: with the hand-written table the net
+  -- effect after "the" is -1 at weight 1, -3 at 2, -9 at 3, -20 at 5 and -42 at
+  -- 8, and the margin below changes none of it.  The only value that does not
+  -- lose is zero, which is what the flag being off amounts to.
+  context_weight    = 5,
+  -- Only candidates within this many points of the leader are re-scored, so the
+  -- term can reorder near-ties and cannot reach down the list.  Every
+  -- morphological sibling in tests/cases sits within 9.8 points of the word
+  -- that beat it; every *exact* match that beat its sibling leads by at least
+  -- 19.7, because of form_bonus.  12 is the gap between those two facts.
+  context_margin    = 12,
+
   -- A query with few vowels is far more likely to be an abbreviation than a
   -- misspelling, so skeleton candidates get up to this much extra when the
   -- input looks consonantal.
