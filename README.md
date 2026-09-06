@@ -371,6 +371,22 @@ three on with `spellless/reclaim_space`, `spellless/absorb_fragment` and
 
 ---
 
+## A typing bench, as a bonus
+
+[`docs/typing-bench.html`](docs/typing-bench.html) — open it in a browser,
+nothing to build. Six public-domain passages one line at a time, the model
+above and your writing on the rule below, scored by **minimum edit distance**
+so a dropped letter costs one edit rather than making the rest of the line read
+as wrong. The clock starts on your first keystroke, so the time spent choosing
+a candidate is charged to you, and what it credits is the text that arrived —
+which is the only way an input method can be compared with a keyboard fairly.
+
+It measures transcription, though, not writing. With the model line in front of
+you the spelling is already solved, which is the one problem Spellless exists
+to fix. Read a good score as "I copy quickly", not as "the matcher helps".
+
+---
+
 ## Deploying and checking it took
 
 [docs/DEPLOYING.md](docs/DEPLOYING.md) — how a build reaches the input method,

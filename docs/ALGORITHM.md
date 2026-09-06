@@ -628,6 +628,18 @@ it says nothing about whether `make_testset.py`'s model of how people abbreviate
 resembles how people actually abbreviate. And the 284 hand-written cases have no
 held-out version and cannot have one.
 
+There is a third, and it is worth stating because the obvious way to answer it
+does not. **Every case here is a transcription**: an input is given and the
+word it stands for is known. Writing is not that. When you are composing, the
+spelling is the thing you do not have — which is the entire reason this project
+exists — and when you are copying, it is in front of you. A typing test built
+on this repository (`docs/typing-bench.html`) makes the gap plain: with the
+model line visible, a good score means you copy quickly and says very little
+about whether the matcher helps you *write*. Measuring that needs a test where
+the words come out of the typist's own head, and nobody has built one. It is
+the same shape of gap as §8.2's missing keystroke log, and probably the same
+fix: real data from real composition.
+
 ### 5.2 Current results
 
 Every number below is **held out** unless it says otherwise: the generated

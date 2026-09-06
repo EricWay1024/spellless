@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  Typing Bench -- open this file in a browser; nothing to build or serve.
+
+  A bonus, and an honest one: it measures *transcription*, not writing.  With
+  the model line in front of you the spelling is already solved, which is the
+  one thing Spellless exists to do -- so a good score here says you can copy
+  quickly, and says very little about whether the matcher helps you write.
+  Measuring that needs a test where the words come out of your own head, and
+  nobody has built one.  See docs/ALGORITHM.md 5.1.
+
+  What it does do properly is score by minimum edit distance against the best
+  matching *prefix* of the line, so a part-typed line reads as unfinished
+  rather than wrong and one dropped letter costs one edit instead of the rest
+  of the line -- the same correction, and the same reason, as prefix_distance
+  in rime/lua/spellless/distance.lua.
+
+  It is also the same file as the published page, minus this document wrapper:
+  when a runtime store is granted it keeps your runs there, and otherwise in
+  the browser's own storage, so opening it from disk still builds a history.
+-->
+<title>Typing Bench</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+</head>
+<body>
+
+<style>
+  :root {
+    color-scheme: light;
+    --paper:  #eef0f2;
+    --raise:  #fafbfc;
+    --ink:    #15191e;
+    --muted:  #6d7681;
+    --faint:  #aab2bc;
+    --rule:   #d4d9df;
+    --accent: #9c5a00;
+    --bad:    #ab3527;
+    --bad-bg: #f4dbd7;
+    --add-bg: #e6dcc6;
+    --serif: "Literata", Georgia, "Times New Roman", serif;
+    --sans: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --paper:  #101317; --raise: #171b21; --ink: #e8ebee; --muted: #8e98a5;
+      --faint:  #4b535f; --rule: #262c34; --accent: #dfa243;
+      --bad:    #e5837a; --bad-bg: #3b1f1c; --add-bg: #3a3320;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --paper:  #101317; --raise: #171b21; --ink: #e8ebee; --muted: #8e98a5;
+    --faint:  #4b535f; --rule: #262c34; --accent: #dfa243;
+    --bad:    #e5837a; --bad-bg: #3b1f1c; --add-bg: #3a3320;
+  }
+
+  body {
+    background: var(--paper); color: var(--ink);
+    font-family: var(--sans); font-size: 16px; line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 44rem; margin: 0 auto; padding: 2rem 1.25rem 3.5rem;
+    display: flex; flex-direction: column; gap: 1.4rem;
+  }
+  h1 {
+    font-family: var(--serif); font-size: 1.45rem; font-weight: 600;
+    margin: 0; letter-spacing: -.01em; text-wrap: balance;
+  }
+  .sub { color: var(--muted); margin: .25rem 0 0; font-size: .92rem; }
+
+  .picker { display: flex; flex-wrap: wrap; gap: .35rem; }
+  .chip {
+    font: inherit; font-size: .8rem; color: var(--muted);
+    background: transparent; border: 1px solid var(--rule);
+    border-radius: 999px; padding: .28rem .75rem; cursor: pointer;
+  }
+  .chip:hover { color: var(--ink); border-color: var(--faint); }
+  .chip[aria-pressed="true"] {
+    color: var(--paper); background: var(--ink); border-color: var(--ink); font-weight: 500;
+  }
+  .chip:focus-visible, .btn:focus-visible, #entry:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+
+  /* ---- the copybook: model line above, your line on the rule below ---- */
+  .book {
+    background: var(--raise);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 1.6rem 1.6rem 1.3rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 10px 28px -18px rgba(0,0,0,.35);
+  }
+  .whereami {
+    font-size: .66rem; text-transform: uppercase; letter-spacing: .1em;
+    color: var(--faint); margin-bottom: .9rem;
+    display: flex; justify-content: space-between; gap: 1rem;
+  }
+  .model, .yours {
+    font-family: var(--serif);
+    font-size: 1.3rem;
+    line-height: 1.7;
+    overflow-wrap: break-word;
+    min-height: 2.2rem;
+  }
+  /* Four states for a model character, and the difference between the last
+     two is the whole point: `ahead` is a letter you have not got to yet,
+     `miss` is one you went past without typing.  Only the second earns a
+     strike, so a line you have not started reads as waiting, not deleted. */
+  .model { color: var(--faint); }
+  .model .ahead { color: var(--faint); }
+  .model .kept { color: var(--ink); }
+  .model .miss { color: var(--bad); text-decoration: line-through; text-decoration-thickness: 1px; opacity: .75; }
+  .model .sub  { color: var(--bad); }
+  .yours {
+    color: var(--ink);
+    border-top: 1px solid var(--rule);
+    margin-top: .5rem;
+    padding-top: .5rem;
+    position: relative;
+  }
+  .yours .ok  { color: var(--ink); }
+  .yours .bad { color: var(--bad); background: var(--bad-bg); border-radius: 2px; }
+  .yours .add { background: var(--add-bg); border-radius: 2px; }
+  .yours .pending { color: var(--accent); }
+  .yours .caret {
+    display: inline-block; width: 0; border-left: 2px solid var(--accent);
+    height: 1.15em; vertical-align: text-bottom; margin: 0 -1px;
+    animation: blink 1.1s steps(1) infinite;
+  }
+  @keyframes blink { 50% { border-left-color: transparent; } }
+  @media (prefers-reduced-motion: reduce) { .yours .caret { animation: none; } }
+  .yours .ghost { color: var(--faint); }
+
+  /* The real input sits under the copybook, invisible but focusable, so an
+     input method still has a genuine field to compose into. */
+  #entry {
+    position: absolute; opacity: 0; pointer-events: none;
+    width: 1px; height: 1px; padding: 0; border: 0;
+  }
+  .book.away { border-style: dashed; }
+  .book.away .yours::after {
+    content: "click to type";
+    position: absolute; right: 0; bottom: .5rem;
+    font-family: var(--sans); font-size: .75rem; color: var(--faint);
+  }
+
+  .bar { height: 2px; background: var(--rule); border-radius: 2px; overflow: hidden; margin-top: 1.2rem; }
+  .bar i { display: block; height: 100%; background: var(--accent); width: 0; transition: width .2s; }
+
+  .readout {
+    display: grid; grid-template-columns: repeat(4, minmax(0,1fr));
+    gap: .2rem 1rem; border-bottom: 1px solid var(--rule); padding-bottom: .9rem;
+  }
+  .stat { display: flex; flex-direction: column; }
+  .stat b {
+    font-size: 1.5rem; font-weight: 600; line-height: 1.15;
+    font-variant-numeric: tabular-nums; letter-spacing: -.02em;
+  }
+  .stat.live b { color: var(--accent); }
+  .stat span {
+    font-size: .66rem; text-transform: uppercase; letter-spacing: .09em; color: var(--muted);
+  }
+
+  .row { display: flex; flex-wrap: wrap; gap: .55rem; align-items: center; }
+  .btn {
+    font: inherit; font-size: .84rem; font-weight: 500; color: var(--ink);
+    background: var(--raise); border: 1px solid var(--rule);
+    border-radius: 5px; padding: .42rem .9rem; cursor: pointer;
+  }
+  .btn:hover { border-color: var(--faint); }
+  .btn.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .hint { font-size: .78rem; color: var(--muted); }
+  kbd {
+    font-family: var(--sans); font-size: .78em; border: 1px solid var(--rule);
+    border-bottom-width: 2px; border-radius: 3px; padding: .05em .35em; color: var(--ink);
+  }
+
+  .result {
+    border: 1px solid var(--rule); border-left: 3px solid var(--accent);
+    border-radius: 4px; background: var(--raise); padding: .95rem 1.15rem;
+  }
+  .result h2 { margin: 0 0 .3rem; font-family: var(--serif); font-size: 1.1rem; font-weight: 600; }
+  .result p { margin: 0; color: var(--muted); font-size: .88rem; }
+  .result b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+  h2.sec {
+    font-size: .66rem; text-transform: uppercase; letter-spacing: .09em;
+    color: var(--muted); font-weight: 600; margin: 0 0 .5rem;
+  }
+  .run {
+    display: grid; grid-template-columns: 3.4rem 1fr auto; gap: .8rem;
+    align-items: baseline; padding: .4rem 0; border-bottom: 1px solid var(--rule); font-size: .86rem;
+  }
+  .run:last-child { border-bottom: 0; }
+  .run .wpm { font-variant-numeric: tabular-nums; font-weight: 600; font-size: .98rem; text-align: right; }
+  .run .what { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .run .when { color: var(--faint); font-size: .76rem; font-variant-numeric: tabular-nums; }
+
+  .note { font-size: .83rem; color: var(--muted); border-top: 1px solid var(--rule); padding-top: .9rem; margin: 0; }
+  .note b { color: var(--ink); font-weight: 600; }
+  .legend { display: flex; flex-wrap: wrap; gap: .9rem; font-size: .76rem; color: var(--muted); }
+  .legend i { font-style: normal; padding: 0 .25em; border-radius: 2px; }
+  /* Each swatch repeats a rule from .model or .yours above; keep the pairs
+     in step or the legend starts lying about the copybook. */
+  .legend .ex-ok    { color: var(--ink); }
+  .legend .ex-bad   { color: var(--bad); background: var(--bad-bg); }
+  .legend .ex-add   { background: var(--add-bg); }
+  .legend .ex-miss  { color: var(--bad); text-decoration: line-through; text-decoration-thickness: 1px; opacity: .75; }
+  .legend .ex-ahead { color: var(--faint); }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Typing Bench</h1>
+    <p class="sub">One line at a time, with the model above and your writing on the rule below.</p>
+  </header>
+
+  <div class="picker" id="picker" role="group" aria-label="Choose a passage"></div>
+
+  <div class="book" id="book">
+    <div class="whereami">
+      <span id="where">line 1</span>
+      <span id="credit"></span>
+    </div>
+    <div class="model" id="model"></div>
+    <div class="yours" id="yours"></div>
+    <div class="bar"><i id="bar"></i></div>
+    <textarea id="entry" rows="1" spellcheck="false" autocomplete="off"
+              autocapitalize="off" autocorrect="off" aria-label="Type the line above"></textarea>
+  </div>
+
+  <div class="legend">
+    <span><i class="ex-ok">right</i></span>
+    <span><i class="ex-bad">wrong letter</i></span>
+    <span><i class="ex-add">letter you added</i></span>
+    <span><i class="ex-miss">letter you went past</i></span>
+    <span><i class="ex-ahead">not there yet</i></span>
+  </div>
+
+  <div class="readout">
+    <div class="stat live"><b id="s-wpm">—</b><span>words / min</span></div>
+    <div class="stat"><b id="s-acc">—</b><span>accuracy</span></div>
+    <div class="stat"><b id="s-time">0:00</b><span>elapsed</span></div>
+    <div class="stat"><b id="s-edits">0</b><span>edits away</span></div>
+  </div>
+
+  <div class="row">
+    <button class="btn primary" id="restart">Restart</button>
+    <button class="btn" id="next">Next passage</button>
+    <span class="hint"><kbd>Enter</kbd> for the next line · <kbd>Esc</kbd> restarts</span>
+  </div>
+
+  <div id="result-slot"></div>
+  <section id="history-slot"></section>
+
+  <p class="note">
+    <b>How it is scored.</b> Not letter against letter in the same position —
+    drop one character early on and every letter after it would read as wrong,
+    which measures nothing. Your line and the model are aligned by the
+    <i>fewest edits that turn one into the other</i>, and what is counted is
+    how many letters survive that alignment. So a missing letter costs one
+    edit, not the rest of the line. The clock runs from your first keystroke
+    and includes the time spent choosing from an input method's candidate
+    list; what it credits is the text that arrived, which is the only
+    comparison worth making.
+  </p>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  const PASSAGES = [
+    { id: "austen", name: "Austen", credit: "Austen, Pride and Prejudice",
+      text: "It is a truth universally acknowledged, that a single man in possession of a good fortune, must be in want of a wife. However little known the feelings or views of such a man may be on his first entering a neighbourhood, this truth is so well fixed in the minds of the surrounding families, that he is considered as the rightful property of some one or other of their daughters." },
+    { id: "darwin", name: "Darwin", credit: "Darwin, On the Origin of Species",
+      text: "It is interesting to contemplate an entangled bank, clothed with many plants of many kinds, with birds singing on the bushes, with various insects flitting about, and with worms crawling through the damp earth, and to reflect that these elaborately constructed forms, so different from each other, and dependent upon each other in so complex a manner, have all been produced by laws acting around us." },
+    { id: "melville", name: "Melville", credit: "Melville, Moby-Dick",
+      text: "Call me Ishmael. Some years ago, never mind how long precisely, having little or no money in my purse, and nothing particular to interest me on shore, I thought I would sail about a little and see the watery part of the world. It is a way I have of driving off the spleen, and regulating the circulation." },
+    { id: "lincoln", name: "Lincoln", credit: "Lincoln, the Gettysburg Address",
+      text: "Four score and seven years ago our fathers brought forth on this continent a new nation, conceived in liberty, and dedicated to the proposition that all men are created equal. Now we are engaged in a great civil war, testing whether that nation, or any nation so conceived and so dedicated, can long endure." },
+    { id: "hardy", name: "Hardy", credit: "Hardy, A Mathematician's Apology",
+      text: "A mathematician, like a painter or a poet, is a maker of patterns. If his patterns are more permanent than theirs, it is because they are made with ideas. The mathematician's patterns, like the painter's or the poet's, must be beautiful; the ideas, like the colours or the words, must fit together in a harmonious way." },
+    { id: "gauntlet", name: "Spelling gauntlet", credit: "Constructed, not quoted",
+      text: "It is embarrassing to acknowledge that a conscientious colleague, having accommodated every unnecessary bureaucratic occurrence, still had to separate the definitely questionable from the merely unforeseen. The committee recommended a liaison, then withdrew it, apologising for the inconvenience and for the rhythm of its own maintenance schedule." }
+  ];
+
+  const LINE = 56;                 // characters per line, broken at spaces
+  const $ = (id) => document.getElementById(id);
+  const modelEl = $("model"), yoursEl = $("yours"), entry = $("entry"), book = $("book");
+
+  let current = PASSAGES[0];
+  let lines = [];
+  let idx = 0;
+  let done = [];                   // per finished line: {chars, kept, edits}
+  let startedAt = null, finished = false, ticker = null;
+  let composing = false, pendingLen = 0;
+  let db = null;
+
+  // ------------------------------------------------------------- alignment
+
+  // Levenshtein with traceback.  Returns the operations that turn `a` (what
+  // you typed) into `b` (the model), which is what lets a single missing
+  // letter cost one edit instead of poisoning the rest of the line.
+  //
+  // It also reports the frontier: how far into the model your typing has
+  // actually reached.  That is not `a.length` — the two differing is the
+  // whole reason this page aligns rather than compares — so it falls out of
+  // the traceback instead, as the furthest model index consumed by a match or
+  // a substitution.  Everything past it is ahead of you, not missed.
+  function align(a, b) {
+    const n = a.length, m = b.length;
+    const d = new Int32Array((n + 1) * (m + 1));
+    const w = m + 1;
+    for (let i = 0; i <= n; i++) d[i * w] = i;
+    for (let j = 0; j <= m; j++) d[j] = j;
+    for (let i = 1; i <= n; i++) {
+      for (let j = 1; j <= m; j++) {
+        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+        let v = d[(i - 1) * w + j - 1] + cost;
+        const del = d[(i - 1) * w + j] + 1;      // a character you added
+        const ins = d[i * w + j - 1] + 1;        // a character you missed
+        if (del < v) v = del;
+        if (ins < v) v = ins;
+        d[i * w + j] = v;
+      }
+    }
+    // The walk back starts not at the end of the line but at the end of the
+    // prefix of it that your typing best explains, because what you have not
+    // reached must cost nothing.  Against the whole line the cheapest reading
+    // of a lone stray "f" is a match with the next "f" wherever it falls, and
+    // every letter in between would be struck as skipped; against a prefix it
+    // is simply a wrong letter where you are.  On a tie take the longest such
+    // prefix, so a wrong letter reads as wrong rather than as an extra one.
+    let stop = 0;
+    for (let j = 1; j <= m; j++) if (d[n * w + j] <= d[n * w + stop]) stop = j;
+
+    // Now walk back for the per-character verdicts.  Many different paths
+    // usually share the minimum cost, and the order of these tests chooses
+    // between them.  The walk runs backwards, so testing the model character
+    // you have not reached *first* settles every tie in favour of the leftmost
+    // reading: each letter you typed is credited to the earliest model letter
+    // it can be.  Any other order drags the alignment rightwards — typing "m"
+    // against "mathematics" would seize the second m and strike out the five
+    // letters in front of it.
+    const aMark = new Array(n).fill("ok");
+    const bMark = new Array(m).fill("ahead");
+    let i = n, j = stop, kept = 0, reach = 0;
+    while (i > 0 || j > 0) {
+      const here = d[i * w + j];
+      const diag = i > 0 && j > 0 ? d[(i - 1) * w + j - 1] : Infinity;
+      if (j > 0 && here === d[i * w + j - 1] + 1) {
+        bMark[j - 1] = "miss"; j--;              // a character you missed
+      } else if (i > 0 && j > 0 && a[i - 1] === b[j - 1] && here === diag) {
+        aMark[i - 1] = "ok"; bMark[j - 1] = "kept"; kept++;
+        if (j > reach) reach = j;
+        i--; j--;
+      } else if (i > 0 && here === d[(i - 1) * w + j] + 1) {
+        aMark[i - 1] = "add"; i--;               // a character you added
+      } else if (i > 0 && j > 0 && here === diag + 1) {
+        aMark[i - 1] = "bad"; bMark[j - 1] = "sub";
+        if (j > reach) reach = j;
+        i--; j--;
+      } else break;                              // unreachable: never spin
+    }
+
+    // Past the frontier nothing has been skipped, only not yet arrived at.
+    for (let k = reach; k < m; k++) bMark[k] = "ahead";
+
+    // Two costs.  `edits` is the whole line, which is what a line is finally
+    // scored on; `spent` is only what you have done so far — wrong and added
+    // characters, plus model characters you went past — so an untouched line
+    // is nought edits away rather than its own length.
+    let spent = 0;
+    for (let k = 0; k < n; k++) if (aMark[k] !== "ok") spent++;
+    for (let k = 0; k < reach; k++) if (bMark[k] === "miss") spent++;
+
+    return { edits: d[n * w + m], kept: kept, reach: reach, spent: spent,
+             aMark: aMark, bMark: bMark };
+  }
+
+  // ------------------------------------------------------------- passage
+
+  function splitLines(text) {
+    const words = text.split(" ");
+    const out = [];
+    let line = "";
+    for (const word of words) {
+      if (line && (line + " " + word).length > LINE) { out.push(line); line = word; }
+      else line = line ? line + " " + word : word;
+    }
+    if (line) out.push(line);
+    return out;
+  }
+
+  function span(cls, text) {
+    const s = document.createElement("span");
+    s.className = cls;
+    s.textContent = text;
+    return s;
+  }
+
+  function paint(el, text, marks, trailing) {
+    el.textContent = "";
+    let run = "", runCls = null;
+    const flush = () => { if (run) { el.appendChild(span(runCls, run)); run = ""; } };
+    for (let k = 0; k < text.length; k++) {
+      const cls = marks[k];
+      if (cls !== runCls) { flush(); runCls = cls; }
+      run += text[k];
+    }
+    flush();
+    if (trailing) el.appendChild(trailing);
+  }
+
+  // ------------------------------------------------------------- scoring
+
+  function tallyDone() {
+    let chars = 0, kept = 0, edits = 0;
+    for (const d of done) { chars += d.chars; kept += d.kept; edits += d.edits; }
+    return { chars, kept, edits };
+  }
+
+  function elapsedMs() { return startedAt === null ? 0 : Date.now() - startedAt; }
+  function fmtTime(ms) {
+    const t = Math.floor(ms / 1000);
+    return Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0");
+  }
+
+  function update() {
+    const model = lines[idx] || "";
+    const typed = entry.value;
+    const settled = composing ? Math.max(0, typed.length - pendingLen) : typed.length;
+    const judged = typed.slice(0, settled);
+    const a = align(judged, model);
+
+    // The model line: right, wrong, gone past, and — beyond the frontier —
+    // simply not reached yet, which at rest is the whole of it.
+    paint(modelEl, model, a.bMark);
+
+    // Your line, with the caret, and the composing tail left unjudged.
+    yoursEl.textContent = "";
+    const tmp = document.createElement("span");
+    paint(tmp, judged, a.aMark);
+    while (tmp.firstChild) yoursEl.appendChild(tmp.firstChild);
+    if (settled < typed.length) yoursEl.appendChild(span("pending", typed.slice(settled)));
+    yoursEl.appendChild(span("caret", ""));
+    // A no-break space, so an empty line still has a line box for the caret
+    // to stand on and the rule below keeps its height.
+    if (!typed) yoursEl.appendChild(span("ghost", " "));
+
+    // Finished lines count in full; of the line in hand, only the part you
+    // have reached is judged.  The rest is not yet yours to have got wrong.
+    const sofar = tallyDone();
+    const chars = sofar.chars + a.reach;
+    const kept = sofar.kept + a.kept;
+    const edits = sofar.edits + a.spent;
+    const ms = elapsedMs();
+
+    $("s-wpm").textContent = ms > 900 ? Math.round((kept / 5) / (ms / 60000)) : "—";
+    $("s-acc").textContent = chars ? Math.round(100 * kept / chars) + "%" : "—";
+    $("s-time").textContent = fmtTime(ms);
+    $("s-edits").textContent = edits;
+    $("where").textContent = "line " + (idx + 1) + " of " + lines.length;
+    const through = model.length ? a.reach / model.length : 0;
+    $("bar").style.width = (100 * (idx + through) / Math.max(1, lines.length)) + "%";
+
+    // A line is finished once you have written at least as much as the model.
+    // An empty model would satisfy that before you touched the keyboard, so it
+    // is excluded rather than allowed to walk the passage on its own.
+    if (!composing && !finished && model.length > 0 && typed.length >= model.length) {
+      advance(a, model);
+    }
+  }
+
+  function advance(a, model) {
+    if (finished || idx >= lines.length) return;
+    done.push({ chars: model.length, kept: a.kept, edits: a.edits });
+    entry.value = "";
+    idx++;
+    if (idx >= lines.length) finish();
+    else update();
+  }
+
+  // Enter gives up on the rest of the line, so the whole of it is scored:
+  // what you never reached was, in the end, missed.
+  function finishLine() {
+    if (finished || idx >= lines.length) return;
+    const model = lines[idx];
+    advance(align(entry.value, model), model);
+  }
+
+  // ------------------------------------------------------------- finish
+
+  function finish() {
+    finished = true;
+    clearInterval(ticker);
+    entry.disabled = true;
+    const t = tallyDone();
+    const ms = elapsedMs();
+    // Enter alone never starts the clock, so a passage can be skipped through
+    // in no time at all; that is nought words a minute, not a division by nought.
+    const wpm = ms > 0 ? (t.kept / 5) / (ms / 60000) : 0;
+    const acc = t.chars ? 100 * t.kept / t.chars : 0;
+
+    const box = document.createElement("div");
+    box.className = "result";
+    const h = document.createElement("h2");
+    h.textContent = Math.round(wpm) + " words a minute, " + Math.round(acc) + "% of the passage intact";
+    const p = document.createElement("p");
+    p.innerHTML = "<b>" + t.kept + "</b> letters of <b>" + t.chars + "</b> survived the alignment, " +
+      "leaving you <b>" + t.edits + "</b> edit" + (t.edits === 1 ? "" : "s") +
+      " from the original, in <b>" + fmtTime(ms) + "</b>." +
+      (t.edits === 0 ? " Not one." : "");
+    box.append(h, p);
+    $("result-slot").textContent = "";
+    $("result-slot").appendChild(box);
+    box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+    save({ wpm: Math.round(wpm * 10) / 10, accuracy: Math.round(acc * 10) / 10,
+           kept: t.kept, chars: t.chars, edits: t.edits, ms: ms,
+           passage: current.name, at: Date.now() });
+  }
+
+  function reset() {
+    finished = false; startedAt = null; composing = false; pendingLen = 0;
+    idx = 0; done = [];
+    clearInterval(ticker);
+    lines = splitLines(current.text);
+    entry.disabled = false; entry.value = "";
+    $("result-slot").textContent = "";
+    $("credit").textContent = current.credit;
+    renderPicker();
+    update();
+    entry.focus();
+  }
+
+  function renderPicker() {
+    const el = $("picker");
+    el.textContent = "";
+    for (const p of PASSAGES) {
+      const b = document.createElement("button");
+      b.className = "chip"; b.type = "button"; b.textContent = p.name;
+      b.setAttribute("aria-pressed", String(p.id === current.id));
+      b.addEventListener("click", () => { current = p; reset(); });
+      el.appendChild(b);
+    }
+  }
+
+  // ------------------------------------------------------------- events
+
+  function startClock() {
+    if (startedAt === null && !finished) {
+      startedAt = Date.now();
+      ticker = setInterval(update, 200);
+    }
+  }
+
+  entry.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") { e.preventDefault(); reset(); return; }
+    if (e.key === "Enter") { e.preventDefault(); if (!composing) finishLine(); return; }
+    if (e.key.length === 1) startClock();
+  });
+  entry.addEventListener("compositionstart", () => { composing = true; startClock(); });
+  entry.addEventListener("compositionupdate", (e) => { pendingLen = (e.data || "").length; update(); });
+  entry.addEventListener("compositionend", () => { composing = false; pendingLen = 0; update(); });
+  entry.addEventListener("input", update);
+  entry.addEventListener("paste", (e) => e.preventDefault());
+  entry.addEventListener("focus", () => book.classList.remove("away"));
+  entry.addEventListener("blur", () => book.classList.add("away"));
+  book.addEventListener("click", () => { if (!entry.disabled) entry.focus(); });
+
+  $("restart").addEventListener("click", reset);
+  $("next").addEventListener("click", () => {
+    current = PASSAGES[(PASSAGES.indexOf(current) + 1) % PASSAGES.length];
+    reset();
+  });
+
+  // ------------------------------------------------------------- history
+
+  function renderHistory(runs) {
+    const slot = $("history-slot");
+    slot.textContent = "";
+    if (!runs || !runs.length) return;
+    const best = runs.reduce((x, y) => (y.wpm > x.wpm ? y : x));
+    const mean = runs.reduce((x, y) => x + y.wpm, 0) / runs.length;
+    const h = document.createElement("h2");
+    h.className = "sec";
+    h.textContent = "Your runs — best " + Math.round(best.wpm) +
+      ", average " + Math.round(mean) + " over " + runs.length;
+    slot.appendChild(h);
+    for (const r of runs.slice(0, 12)) {
+      const row = document.createElement("div");
+      row.className = "run";
+      const when = span("when", new Date(r.at).toLocaleDateString(undefined, { day: "numeric", month: "short" }));
+      const what = span("what", r.passage + " · " + Math.round(r.accuracy) + "% intact · " + r.edits + " edits");
+      const wpm = span("wpm", String(Math.round(r.wpm)));
+      row.append(when, what, wpm);
+      slot.appendChild(row);
+    }
+  }
+
+  // Where the runs live.  The store the viewer is granted when this page is
+  // published, and the browser's own when it is not -- opened from a file,
+  // that is the difference between keeping a history and keeping none.
+  const LOCAL = "typing-bench-runs";
+
+  function localRuns() {
+    try { return JSON.parse(localStorage.getItem(LOCAL) || "[]"); } catch (e) { return []; }
+  }
+
+  async function save(run) {
+    if (db) {
+      try { await db.collection("runs").add(run); await load(); return; } catch (e) { /* fall through */ }
+    }
+    try {
+      const runs = localRuns();
+      runs.unshift(run);
+      localStorage.setItem(LOCAL, JSON.stringify(runs.slice(0, 60)));
+    } catch (e) { /* a run you cannot keep is still a run you just did */ }
+    await load();
+  }
+
+  async function load() {
+    if (db) {
+      try {
+        const snap = await db.collection("runs").orderBy("at", "desc").limit(60).get();
+        renderHistory(snap.docs.map((d) => d.data()).filter(Boolean));
+        return;
+      } catch (e) { /* fall through */ }
+    }
+    renderHistory(localRuns());
+  }
+
+  reset();
+  book.classList.add("away");
+  load();
+
+  if (window.claude && typeof window.claude.use === "function") {
+    window.claude.use("db").then((ns) => { if (ns) { db = ns; load(); } }).catch(() => {});
+  }
+})();
+</script>
+</body>
+</html>
