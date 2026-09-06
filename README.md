@@ -115,7 +115,7 @@ noether's        →  Noether's      psdfnctr  →  pseudofunctor
 
 It is a [Rime](https://rime.im) schema for Windows, and **the word you meant is
 first 89.9% of the time, in the top five 99.1%** — measured on cases the tuning
-never saw. About 2.5 ms per keystroke. 2,109 assertions say it still behaves.
+never saw. About 2.5 ms per keystroke. 2,112 assertions say it still behaves.
 [EVALUATION.md](EVALUATION.md) has the numbers, including the cases it gets
 wrong and why.
 
@@ -144,7 +144,9 @@ python scripts\install.py
 
 From WSL, run `python3 scripts/install.py` instead — it finds the Windows-side
 Rime directory itself. Then right-click the Weasel tray icon → **Deploy**
-(「重新部署」), press <kbd>F4</kbd> and choose **Spellless**.
+(「重新部署」), press <kbd>F4</kbd> and choose **Spellless**. The tray icon and
+the language-bar button turn into an **S**, and tapping Shift into plain typing
+brings back Weasel's **A**.
 
 | Flag | |
 | --- | --- |
@@ -505,7 +507,7 @@ frontend, then type `zzver` and check the revision.
 
 ```bash
 make            # dictionary + indexes + test set
-make test       # 2,109 assertions
+make test       # 2,112 assertions
 make bench      # accuracy and latency over tests/cases/
 make install
 ```
@@ -514,11 +516,11 @@ make install
 spellless/
 ├── DESIGN.md      architecture, and why each decision went that way
 ├── EVALUATION.md  accuracy and latency, and how to reproduce them
-├── rime/          the schema, the Rime adapter, and the matcher (no Rime dependency)
-├── scripts/       dictionary build, index build, test-set build, installer
+├── rime/          the schema, its icon, the Rime adapter, and the matcher
+├── scripts/       dictionary build, index build, test-set build, icon, installer
 ├── data/          vendored corpus, supplemental vocabulary, surface forms
 ├── generated/     build output (1.3 MB) — what gets deployed
-├── tests/         2,109 assertions + the evaluation cases
+├── tests/         2,112 assertions + the evaluation cases
 ├── bench/         evaluate.lua, tune.lua, naive.lua
 └── docs/          the algorithm in full, deployment, the typing bench
 ```

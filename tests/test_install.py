@@ -108,6 +108,22 @@ with tempfile.TemporaryDirectory() as tmp:
           "an existing schema_list patch is left exactly as it was")
     check("by hand" in result.stdout, "and it says what to add instead")
 
+print("install: the icon the schema names is one it copies")
+with tempfile.TemporaryDirectory() as tmp:
+    user_dir = Path(tmp)
+    run_installer(user_dir)
+    schema = (REPO / "rime" / "spellless.schema.yaml").read_text(encoding="utf-8")
+    named = [line.split(":", 1)[1].strip().strip('"')
+             for line in schema.splitlines() if line.strip().startswith("icon:")]
+    check(len(named) == 1, "the schema names exactly one icon")
+    # Weasel resolves schema/icon against the user directory, so a schema that
+    # names a file the installer does not write shows Weasel's own icon and
+    # says nothing about why.
+    for name in named:
+        check((user_dir / name).is_file(), f"{name} is installed where Weasel looks")
+        check((user_dir / name).read_bytes()[:4] == b"\x00\x00\x01\x00",
+              f"{name} is an .ico Weasel can load")
+
 print("install: it is idempotent")
 with tempfile.TemporaryDirectory() as tmp:
     user_dir = Path(tmp)

@@ -14,7 +14,7 @@ GENERATED := generated/spellless.words generated/spellless.weights \
              generated/spellless.alpha generated/spellless.skel \
              generated/spellless.forms
 
-.PHONY: all dict indexes testset test bench naive tune install uninstall dry-run clean
+.PHONY: all dict indexes testset test bench naive tune icon install uninstall dry-run clean
 
 all: dict indexes testset
 
@@ -39,6 +39,10 @@ naive:
 
 tune:
 	$(LUA) bench/tune.lua 2
+
+# The .ico is committed, so this is only run when the drawing changes.
+icon:
+	$(PYTHON) scripts/make_icon.py
 
 install:
 	$(PYTHON) scripts/install.py

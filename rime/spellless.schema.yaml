@@ -15,6 +15,12 @@ schema:
   description: |
     Type an approximate spelling, or just the consonants, and choose the word
     you meant.  Enter always commits exactly what you typed.
+  # The tray icon, the language-bar button and the panel's mode mark, for a
+  # schema that is not Chinese and should stop saying so.  Weasel resolves the
+  # path against the user directory and falls back to its own icon if the file
+  # is missing, so an install that skipped it still works.  ASCII mode keeps
+  # Weasel's "A", which already means what it should.
+  icon: "spellless.ico"
 
 switches:
   - name: ascii_mode

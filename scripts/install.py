@@ -32,6 +32,7 @@ REPO = Path(__file__).resolve().parent.parent
 # Everything this script owns, as (source, destination-relative-to-user-dir).
 PAYLOAD: list[tuple[str, str]] = [
     ("rime/spellless.schema.yaml", "spellless.schema.yaml"),
+    ("rime/spellless.ico", "spellless.ico"),
     ("rime/lua/spellless.lua", "lua/spellless.lua"),
     ("rime/lua/spellless/", "lua/spellless/"),
     ("generated/", "spellless/"),
