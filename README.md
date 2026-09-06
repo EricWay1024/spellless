@@ -27,33 +27,81 @@ and <kbd>Enter</kbd> always commits exactly what you typed — because the one
 thing worse than mistyping a word is a machine mistyping it for you,
 confidently, while you look away.
 
-It is a [Rime](https://rime.im) schema for Windows: English arranged the way
-Chinese input methods have worked for decades, where you type an approximation,
-candidates appear, and you pick one. **The word you meant is first 89.9% of the
-time and on the first page 99.1%** — measured on cases the tuning never saw —
-at about 2.3 ms per keystroke.
-[EVALUATION.md](EVALUATION.md) has the numbers, including what it gets wrong.
+## Why this should exist
+
+Chinese input methods solved a version of this decades ago. You type an
+approximation, the IME shows you candidates, you pick one. Hundreds of millions
+of people write that way every day and nobody finds it remarkable.
+
+English never got the same treatment, because typing English assumes you can
+spell it. So spelling stays a tax on thinking — a hundred small stumbles an
+hour, each one pulling your attention off the sentence and onto the keyboard.
+You know the word. The machine is making you prove it, letter by letter, and
+giving you nothing for the trouble.
+
+Spellless is that same arrangement, for English. It treats what you typed as
+**a noisy encoding of a word you already know**, and decodes it:
+
+* **A transposition is nearly free.** `teh` is `the`. Your fingers arrived out
+  of order, which says almost nothing about what you meant.
+* **Vowels are cheap. Consonants carry the word.** `mthmtcs` is `mathematics`
+  and `dffmrphsm` is `diffeomorphism`.
+* **And you need not even keep all the consonants.** Say the word to yourself
+  and type one or two letters a syllable — `satfcatn`, `stfcatn`, `strtfctn`
+  are all `stratification`. There is no scheme to learn: the matcher prices
+  the letters you *left out* rather than demanding the ones you kept.
+* **Everything competes on one score** — frequency, edit cost, how much a
+  completion adds, what you have chosen before — so a common word reached by a
+  cheap slip can beat a rare exact prefix.
 
 ### Why not autocorrect?
 
 Autocorrect has to choose. One guess, no way to say *I am not sure*, applied to
 text you have already written. When it is right you never notice; when it is
-wrong you often do not either, and you find out when a reader does. A candidate
-list is not a smaller version of that — it is the opposite arrangement: the
-machine proposes, you dispose, nothing lands that you did not choose.
+wrong you often do not either, and you find out when a reader does. The
+keystroke it saved was never the expensive part — the expensive part is no
+longer trusting the sentence without re-reading it. A candidate list is not a
+smaller version of that. It is the opposite arrangement: the machine proposes,
+you dispose, nothing lands that you did not choose.
 
-That also makes far more ambition affordable. Autocorrect can risk a near-miss
-of an edit or two, because every guess is applied unseen. Offering
+That also makes far more ambition affordable. Autocorrect can only risk a
+near-miss of an edit or two, because every guess is applied unseen. Offering
 `mathematics` for `mthmtcs` means allowing a distance at which half the
 dictionary is reachable — unthinkable if a machine must pick, perfectly safe
-when a human is looking at seven options.
+when a human is looking at seven options. And it never fights you over
+`kubectl`, `argmax` or a name it has not met: what you typed is always on the
+list, and <kbd>Enter</kbd> always commits it verbatim.
 
-Look again at the screenshot: `complicated` first, then `completed`,
-`complicate`, `compacted`, `complicity` — the words a reasonable reader might
-have suspected. That is a ranking, not a lookup. Nothing under `rime/lua/`
-knows any of those words; they fall out of a weighted edit distance, a
+Look again at the screenshot. `complicated` is first, and `completed`,
+`complicate`, `compacted`, `complicity` are the words a reasonable reader might
+have suspected. That is a ranking, not a lookup: nothing under `rime/lua/`
+knows any of those words. They fall out of a weighted edit distance, a
 consonant-skeleton index, a syllable-cue alignment and one ranking function.
 See [DESIGN.md](DESIGN.md).
+
+## What it feels like
+
+You stop proofreading mid-sentence. Spaces appear between words and never in
+front of a comma, sentences start with a capital, `eg` becomes `e.g.` and `i`
+becomes `I`. A colleague's name is remembered after you type it once, and a
+correction you make twice becomes the first thing offered ever after. A word
+Spellless has never seen will not go in on one press of the space bar — it
+takes two, because the moment worth interrupting you is the moment you were
+about to be wrong. And when it does get something wrong, one key makes it
+forget.
+
+```
+mathe            →  mathematics · mathematical …
+dont             →  don't          its       →  its · it's
+youre            →  you're         id        →  id · I'd
+noether's        →  Noether's      psdfnctr  →  pseudofunctor
+```
+
+It is a [Rime](https://rime.im) schema for Windows, and **the word you meant is
+first 89.9% of the time, on the first page 99.1%** — measured on cases the
+tuning never saw. About 2.5 ms per keystroke over 83,095 words. 2,033
+assertions say it still behaves. [EVALUATION.md](EVALUATION.md) has the
+numbers, including the cases it gets wrong and why.
 
 ---
 
