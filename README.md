@@ -115,7 +115,7 @@ noether's        →  Noether's      psdfnctr  →  pseudofunctor
 
 It is a [Rime](https://rime.im) schema for Windows, and **the word you meant is
 first 89.9% of the time, in the top five 99.1%** — measured on cases the tuning
-never saw. About 2.5 ms per keystroke. 2,112 assertions say it still behaves.
+never saw. About 2.5 ms per keystroke. 2,123 assertions say it still behaves.
 [EVALUATION.md](EVALUATION.md) has the numbers, including the cases it gets
 wrong and why.
 
@@ -153,12 +153,15 @@ brings back Weasel's **A**.
 | `--dry-run` | print every action, change nothing |
 | `--list-candidates` | show which Rime user directories were considered, and why |
 | `--user-dir DIR` | install somewhere specific |
+| `--skip-dir DIR` | leave that directory out of every future install — for a stock Weasel you keep for Chinese |
 | `--uninstall` | remove the files this script wrote |
 
 The installer writes into **every** Rime user directory it finds —
 `%APPDATA%\Rime` for stock Weasel, `%APPDATA%\Spellless` for the fork — so both
 frontends end up running the same build, and `--list-candidates` prints what it
-found and why. It writes only inside those directories, and leaves `rime.lua`
+found and why. To keep one of them out of that, `--skip-dir DIR` leaves a
+`spellless.skip` file there and every later install passes it by; `--uninstall
+--user-dir DIR` takes the schema out of a directory it is already in. It writes only inside those directories, and leaves `rime.lua`
 alone — only one is ever loaded, so overwriting it would break other Lua
 schemas. It enables the schema by appending one entry to
 `default.custom.yaml` with Rime's list-append operator (`"schema_list/+"`),
@@ -507,7 +510,7 @@ frontend, then type `zzver` and check the revision.
 
 ```bash
 make            # dictionary + indexes + test set
-make test       # 2,112 assertions
+make test       # 2,123 assertions
 make bench      # accuracy and latency over tests/cases/
 make install
 ```
@@ -520,7 +523,7 @@ spellless/
 ├── scripts/       dictionary build, index build, test-set build, icon, installer
 ├── data/          vendored corpus, supplemental vocabulary, surface forms
 ├── generated/     build output (1.3 MB) — what gets deployed
-├── tests/         2,112 assertions + the evaluation cases
+├── tests/         2,123 assertions + the evaluation cases
 ├── bench/         evaluate.lua, tune.lua, naive.lua
 └── docs/          the algorithm in full, deployment, the typing bench
 ```

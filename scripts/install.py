@@ -40,6 +40,17 @@ PAYLOAD: list[tuple[str, str]] = [
 
 SCHEMA_ID = "spellless"
 
+# A directory holding this file is left out of the automatic install.  The
+# installer otherwise writes into every Rime user directory it can find, which
+# is right when the two frontends should run the same build and wrong when one
+# of them is deliberately somebody else's -- a stock Weasel kept for Chinese,
+# say.  Without it, "uninstall from there" lasts until the next `make install`.
+SKIP_MARKER = "spellless.skip"
+SKIP_TEXT = (
+    "# Spellless: scripts/install.py leaves this directory alone.\n"
+    "# Delete this file to install here again.\n"
+)
+
 
 # ---------------------------------------------------------------------------
 # finding the Rime user directory
@@ -526,6 +537,9 @@ def main() -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--user-dir", help="Rime user directory (auto-detected otherwise)")
     ap.add_argument("--dry-run", action="store_true", help="print actions, change nothing")
+    ap.add_argument("--skip-dir", metavar="DIR",
+                    help=f"write {SKIP_MARKER} into DIR so future installs "
+                         "leave it alone, then stop")
     ap.add_argument("--no-enable", action="store_true",
                     help="do not touch default.custom.yaml")
     ap.add_argument("--uninstall", action="store_true")
@@ -535,7 +549,24 @@ def main() -> int:
 
     if args.list_candidates:
         for path, why in candidate_user_dirs():
-            print(f"{'[exists] ' if safe_is_dir(path) else '[missing]'} {path}   ({why})")
+            state = "[exists] " if safe_is_dir(path) else "[missing]"
+            if (path / SKIP_MARKER).is_file():
+                state = "[skipped]"
+            print(f"{state} {path}   ({why})")
+        return 0
+
+    if args.skip_dir:
+        target = Path(args.skip_dir).expanduser()
+        if not safe_is_dir(target):
+            print(f"{target} is not a directory.")
+            return 1
+        marker = target / SKIP_MARKER
+        if args.dry_run:
+            print(f"would write {marker}")
+        else:
+            marker.write_text(SKIP_TEXT, encoding="utf-8")
+            print(f"wrote {marker}")
+        print("Future installs will leave that directory alone; --user-dir still works.")
         return 0
 
     # Every directory that exists, not just the best guess.
@@ -549,6 +580,15 @@ def main() -> int:
         targets = [(Path(args.user_dir).expanduser(), "given on the command line")]
     else:
         targets = [(p, why) for p, why in candidate_user_dirs() if safe_is_dir(p)]
+        # Named explicitly, a skipped directory is still installed into: the
+        # marker is there to keep the *automatic* sweep out, not to argue with
+        # someone who typed the path.
+        skipped = [(p, why) for p, why in targets if (p / SKIP_MARKER).is_file()]
+        targets = [(p, why) for p, why in targets if (p, why) not in skipped]
+        for path, _ in skipped:
+            print(f"Skipping {path}   ({SKIP_MARKER} is there)")
+        if skipped:
+            print()
 
     if not targets:
         path, why = resolve_user_dir(None)

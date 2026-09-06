@@ -124,6 +124,25 @@ with tempfile.TemporaryDirectory() as tmp:
         check((user_dir / name).read_bytes()[:4] == b"\x00\x00\x01\x00",
               f"{name} is an .ico Weasel can load")
 
+print("install: a directory can be left out of the sweep")
+with tempfile.TemporaryDirectory() as tmp:
+    import install as installer
+    kept, skipped = Path(tmp) / "kept", Path(tmp) / "skipped"
+    kept.mkdir(); skipped.mkdir()
+    result = subprocess.run(
+        [sys.executable, str(REPO / "scripts" / "install.py"), "--skip-dir", str(skipped)],
+        capture_output=True, text=True, cwd=REPO)
+    marker = skipped / installer.SKIP_MARKER
+    check(result.returncode == 0 and marker.is_file(), "--skip-dir writes the marker")
+    check("Delete this file" in marker.read_text(encoding="utf-8"),
+          "and the marker says how to undo it")
+    # Named on the command line it is still installed into: the marker keeps
+    # the automatic sweep out, rather than arguing with someone who typed the
+    # path.
+    run_installer(skipped)
+    check((skipped / "spellless.schema.yaml").is_file(),
+          "an explicit --user-dir overrules the marker")
+
 print("install: it is idempotent")
 with tempfile.TemporaryDirectory() as tmp:
     user_dir = Path(tmp)
