@@ -81,8 +81,13 @@ The last line of the stamp should say `0.1.0`, not `unknown`.
 ## Cutting the bundled Windows installer
 
 This one is built in the fork's tree, on Windows, and needs the fork already
-built — MSVC with ATL, Boost, and NSIS for the packaging step
-(`install_nsis.bat` in the fork fetches it).
+built — MSVC with ATL, Boost, and NSIS for the packaging step.
+
+**Use NSIS 3.10 or newer.** The fork's `install_nsis.bat` pins 3.08, whose
+`WinVer.nsh` has no `AtLeastWin11`, so `${If} ${AtLeastWin11}` expands to a
+bare `${If}` and the compile dies with `macro "_If" requires 4 parameter(s),
+passed 2`. Edit the version in that script, or fetch 3.10 the same way it
+does.
 
 ```bash
 # from this repository, on the WSL side
@@ -103,7 +108,37 @@ Then, on Windows, in the fork:
 build.bat installer
 ```
 
-which writes `output/archives/weasel-<version>-installer.exe`.
+which writes `output/archives/spellless-<version>-installer.exe`.
+
+Note that `build.bat installer` **also rebuilds Weasel**: none of `weasel`,
+`boost`, `data`, `opencc` or `rime` was requested, and the script's fallback
+then sets `build_weasel=1`. When `output/` is already current, calling NSIS
+directly is minutes rather than a full MSVC pass — from a `.bat` file, because
+`cmd.exe /c` through WSL mangles the quoting around `%ProgramFiles(x86)%`:
+
+```bat
+@echo off
+cd /d C:\Users\you\spellless-weasel
+"%ProgramFiles(x86)%\NSIS\Bin\makensis.exe" ^
+  /DWEASEL_VERSION=0.17.4 /DWEASEL_BUILD=0 /DPRODUCT_VERSION=0.1.0 ^
+  output\install.nsi
+```
+
+Six `no files found` warnings for the ARM binaries and the OpenCC data are
+expected on an x64-only build; every one of those lines is `/nonfatal`.
+
+**Check the payload before publishing**, because the failure mode is an
+installer that works and an input method that offers nothing:
+
+```bash
+cd <fork>/output && ./7z.exe l archives/spellless-0.1.0-installer.exe \
+  | grep -E 'data.(lua|spellless)'
+```
+
+That should list 17 Lua modules and six files under `data\spellless\`. If it
+lists only `data\spellless.schema.yaml`, the `File /r "data\lua\*.*"` lines
+have gone missing again — `File "data\*.yaml"` takes the schema and nothing
+else.
 
 ### The shared directory is why this works at all
 
