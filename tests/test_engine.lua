@@ -365,3 +365,32 @@ do
   H.eq(engine:suggest("maintainance", 6)[2].text, "maintenance",
        "and a real correction keeps the slot the split used to take")
 end
+
+H.suite("engine: which build is running")
+-- The question this answers cannot be answered from outside the process, and
+-- getting a stale answer is exactly the failure it exists to prevent -- so the
+-- first line has to come from a module the installer rewrites, not from a data
+-- file that would be re-read and report the version on disk.
+do
+  local out = engine:suggest("zzver", 20)
+  H.ok(#out >= 4, ("the version query answers: %d candidates"):format(#out))
+  H.ok(out[1].text:find("^spellless "), "first line names the build: " .. out[1].text)
+  H.ok(out[2].text:find("%d+ words"), "second line is read from the live corpus")
+  H.eq(out[#out].text, "zzver", "and the literal input is still last")
+  H.eq(out[#out].raw, true)
+
+  -- Case-insensitive, because it is typed in a hurry.
+  H.eq(engine:suggest("ZZVER", 20)[1].text, out[1].text, "capitals reach it too")
+
+  -- It must not be reachable by guessing.  Nothing near it may fire, or a
+  -- diagnostic ends up in somebody's document.
+  for _, near in ipairs({ "zzve", "zzverr", "zver", "zzver's", "version" }) do
+    local first = engine:suggest(near, 20)[1]
+    H.ok(not first.text:find("^spellless %w"),
+         ("%q does not reach it (got %q)"):format(near, first.text))
+  end
+
+  local off = assert(Engine.new{ data_dir = DATA, config = { version_query = "" } })
+  H.ok(not off:suggest("zzver", 20)[1].text:find("^spellless "),
+       "and an empty version_query removes it entirely")
+end

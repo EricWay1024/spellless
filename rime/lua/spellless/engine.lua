@@ -7,6 +7,7 @@
 local Corpus = require("spellless.corpus")
 local UserDB = require("spellless.userdb")
 local cue = require("spellless.cue")
+local version = require("spellless.version")
 local Shortcuts = require("spellless.shortcuts")
 local split = require("spellless.split")
 local config = require("spellless.config")
@@ -280,10 +281,48 @@ local function find_split(self, query)
   }
 end
 
+--- What is actually running, as candidates.
+---
+--- Typing the word answers one question -- "am I testing the build I just
+--- deployed, or the one Rime loaded twenty minutes ago" -- which from outside
+--- the process is otherwise unanswerable, and has more than once cost an
+--- afternoon.  The first line comes from a module the installer overwrites, so
+--- it reports what this process *loaded*; the rest is read from the live
+--- corpus and the live configuration, so it cannot be stale by construction.
+function Engine:describe()
+  local cfg, corpus = self.cfg, self.corpus
+  local built = version.revision or "?"
+  if version.installed then built = built .. " installed " .. version.installed
+  else built = built .. " (not installed -- running from the working tree)" end
+
+  local forms = 0
+  for _ in pairs(corpus.forms) do forms = forms + 1 end
+
+  local slip = cfg.cue_slip_cost > 0 and ("slip " .. cfg.cue_slip_cost) or "slip off"
+  return {
+    "spellless " .. built,
+    ("%d words, %d forms, %d shortcuts"):format(corpus.n, forms, self.shortcuts.count),
+    ("cue %s/%s, %s, learn %s"):format(cfg.base_cue, cfg.cue_cost_scale, slip,
+                                       cfg.learn and "on" or "off"),
+  }
+end
+
 function Engine:suggest(raw, limit, opts)
   local cfg = self.cfg
   local stats = {}
   if raw == "" then return {}, stats end
+  -- Before anything else, and never as a guess: an exact match on the whole
+  -- input or nothing.  The word is not English and is not in the dictionary,
+  -- so nothing else can reach this branch by accident.
+  if cfg.version_query ~= "" and raw:lower() == cfg.version_query then
+    local out = {}
+    for i, line in ipairs(self:describe()) do
+      out[i] = { text = line, source = "version", score = 0, cost = 0 }
+    end
+    out[#out + 1] = { text = raw, source = "raw", score = 0, cost = 0, raw = true }
+    stats.candidates = #out
+    return out, stats
+  end
   local style = effective_style(case_style(raw), opts and opts.sentence_start)
   local query = raw:lower()
   limit = limit or cfg.limit

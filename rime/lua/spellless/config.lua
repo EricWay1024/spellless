@@ -345,6 +345,14 @@ M.defaults = {
   -- immediately, and always did.
   confirm_literal   = true,
   limit             = 20,   -- candidates handed to Rime
+  -- Type this and the candidate list says which build is running, which words
+  -- it loaded and how it is configured.  Nothing else answers that question
+  -- from outside the process, and "am I testing the build I just deployed"
+  -- has cost more time on this project than any bug in it.
+  --
+  -- Not English, not in the dictionary, and matched on the whole input only,
+  -- so it cannot fire by accident.  Set to "" to remove it.
+  version_query     = "zzver",
   -- 1-based slot for the "commit exactly what I typed" candidate.  Defaults to
   -- the last slot of the first page so it is one keystroke away without ever
   -- displacing a useful suggestion.  Set to 1 to always offer it first.

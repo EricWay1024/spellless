@@ -1152,6 +1152,12 @@ lua bench/tune.lua 1 --exclude generated_cues   # ... leave-one-file-out
 lua bench/context.lua                       # score a class table (§8.1)
 ```
 
+Typing `zzver` into the input method itself reports the running build — the
+revision, the install time, the loaded dictionary and the live configuration.
+The first line comes from a module the installer rewrites rather than a data
+file, so it names what the *process* loaded rather than what is on disk, which
+is the only version of the question worth asking.
+
 The matcher is pure Lua with no dependencies and knows nothing about the input
 method: `rime/lua/spellless/` is the algorithm, `rime/lua/spellless.lua` is the
 adapter that wires it to Rime, and `tests/` and `bench/` exercise exactly the

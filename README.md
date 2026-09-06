@@ -199,6 +199,17 @@ default, or first when nothing plausible was found — so pressing space on
 never seen also takes two presses of the space bar rather than one, because the
 moment worth interrupting you is the moment you were about to be wrong.
 
+**Type `zzver` to see which build you are running.** The candidate list answers
+with the revision, when it was installed, how many words it loaded and how it
+is configured — so "am I testing what I just deployed, or what Rime loaded
+twenty minutes ago" stops being a guess.
+
+```
+zzver  →  spellless 41223bf installed 2026-09-06 12:34
+          83095 words, 580 forms, 3 shortcuts
+          cue 70/9.0, slip 10.0, learn on
+```
+
 ---
 
 ## Your own vocabulary
