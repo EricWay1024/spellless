@@ -29,8 +29,9 @@ confidently, while you look away.
 
 It is a [Rime](https://rime.im) schema for Windows: English arranged the way
 Chinese input methods have worked for decades, where you type an approximation,
-candidates appear, and you pick one. **The word you meant is first 90.4% of the
-time and on the first page 99.1%**, at about 2.5 ms per keystroke.
+candidates appear, and you pick one. **The word you meant is first 89.9% of the
+time and on the first page 99.1%** — measured on cases the tuning never saw —
+at about 2.3 ms per keystroke.
 [EVALUATION.md](EVALUATION.md) has the numbers, including what it gets wrong.
 
 ### Why not autocorrect?
@@ -339,7 +340,7 @@ three on with `spellless/reclaim_space`, `spellless/absorb_fragment` and
 
 ```bash
 make            # dictionary + indexes + test set
-make test       # 1868 assertions
+make test       # 1977 assertions
 make bench      # accuracy and latency over tests/cases/
 make install
 ```
@@ -352,7 +353,7 @@ spellless/
 ├── scripts/       dictionary build, index build, test-set build, installer
 ├── data/          vendored corpus, supplemental vocabulary, surface forms
 ├── generated/     build output (1.3 MB) — what gets deployed
-├── tests/         1868 assertions + the evaluation cases
+├── tests/         1977 assertions + the evaluation cases
 └── bench/         evaluate.lua, tune.lua, naive.lua
 ```
 

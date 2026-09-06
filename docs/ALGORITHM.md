@@ -11,6 +11,13 @@ problems, which is the reason this document exists.
 Source: <https://github.com/EricWay1024/spellless>.
 Reproduce every number with `make test && make bench`.
 
+**Revised after review.** An expert read the first version and answered it;
+that answer is in `prompt/expert-review.md`, verbatim, and four of its
+suggestions were implemented and measured. Where this document now contradicts
+the version they read, §5.1 and §8 say so. Two of their points corrected claims
+made here, one of their proposals turned out not to work, and one of them
+turned out to be worth ten points.
+
 ---
 
 ## 1. The problem
@@ -75,7 +82,7 @@ than an application of a known technique.
 | | |
 | --- | --- |
 | **Latency** | Runs on every keystroke inside the IME process. ~2.5 ms mean, under 10 ms at p95. Single-threaded interpreted Lua 5.4, no JIT. |
-| **Scale of the budget** | A naive weighted edit distance against all 83,095 words, *with* the budget and early abort, costs **144 ms per query**. The budget is therefore about 1/60th of a full scan. |
+| **Scale of the budget** | A naive weighted edit distance against all 83,095 words, *with* the budget and early abort, costs **165 ms per query**. The budget is therefore under 1/70th of a full scan. |
 | **Memory** | ~17 MB resident, ~100 ms to load, once per process. |
 | **Dependencies** | None. Pure Lua, no compiled extension, no network, no GPU. The shipped data is 1.3 MB. |
 | **No context** | One composition is one word. The preceding word is available only as an unreliable string of what the IME itself last committed — a mouse click that moves the caret is invisible. There is no sentence, no document, no application state. |
@@ -212,21 +219,25 @@ The clearest statement of why there are four cost models rather than one. Each
 column is the same pair of strings under a different one, against that model's
 budget; the bold figure is the one that actually finds the word.
 
-| query | word | typo ≤1.35 | skeleton ≤1.30 | elastic ≤1.70 | cue ≤2.10 |
+| query | word | typo ≤1.35 | skeleton ≤1.30 | elastic ≤1.70 | cue ≤12 nats |
 | --- | --- | --- | --- | --- | --- |
 | `teh` | the | **0.45** | 0.00 | 0.45 | — |
 | `recieve` | receive | **0.45** | 0.00 | 0.45 | — |
-| `commited` | committed | **0.55** | 0.55 | 0.55 | 0.35 |
-| `dont` | don't | **0.15** | 0.15 | 0.15 | 0.04 |
-| `mthmtcs` | mathematics | 2.80 | 0.00 | **0.40** | 0.16 |
+| `commited` | committed | **0.55** | 0.55 | 0.55 | 0.50 |
+| `dont` | don't | **0.15** | 0.15 | 0.15 | 0.16 |
+| `mthmtcs` | mathematics | 2.80 | 0.00 | **0.40** | 0.26 |
 | `mthmtcs` | mathematical | 4.50 | 1.00 | **1.10** | — |
-| `ppl` | people | 2.10 | 0.00 | **0.20** | 0.12 |
+| `ppl` | people | 2.10 | 0.00 | **0.20** | 0.15 |
 | `alghrith` | algorithm | 2.00 | 2.00 * | **1.00** | — |
-| `satfcatn` | stratification | 4.80 | 2.00 | 2.40 | **0.86** |
-| `gvmnt` | government | 4.10 | 2.00 | 2.20 | **0.82** |
-| `tnk` | think | 1.70 | 1.00 | 1.10 | **0.39** |
-| `tnk` | tank | 0.70 | **0.00** | 0.10 | 0.04 |
+| `satfcatn` | stratification | 4.80 | 2.00 | 2.40 | **0.64** |
+| `gvmnt` | government | 4.10 | 2.00 | 2.20 | **0.43** |
+| `tnk` | think | 1.70 | 1.00 | 1.10 | **0.22** |
+| `tnk` | tank | 0.70 | **0.00** | 0.10 | 0.09 |
 | `mathe` | mouth | 2.15 | 0.00 | 1.60 | — |
+
+The cue column is a log-likelihood divided by a units constant (§4.5), so it is
+not on the same scale as the other three; only its ordering within the column
+means anything.
 
 `—` means the channel cannot express the relationship at all: the query is not
 a subsequence of the word. The skeleton column is a full skeleton-to-skeleton
@@ -304,7 +315,7 @@ keeps precision: generation may be loose, but scoring sees the vowels.
 
 ### 4.5 Source 5: syllable cues
 
-This is the newest channel and the one most worth attacking.
+The newest channel, and the one the review changed most.
 
 The observation: for a long word, people neither spell it nor write all its
 consonants. They say it to themselves and type one or two letters that feel
@@ -320,55 +331,94 @@ consonants of `strtfctn`. Before this channel existed, `satfcatn` returned
 nothing at all.
 
 What every such input *does* have is that **the letters typed appear in the
-word, in order**. So the query is aligned as a subsequence, and the whole
-question becomes what the skipped characters were worth:
+word, in order**. So the query is aligned as a subsequence — and the question
+becomes not what the skipped characters cost, but how likely a person was to
+keep each one.
 
-| Skipped character | Cost | Because |
+Every character of the word is either kept or dropped. Give each character
+class a **keep probability**, charge `−log p` when the typist kept it and
+`−log(1 − p)` when they dropped it, and the alignment cost is a log-likelihood
+in nats that normalises itself over the word:
+
+| Character of the word | Kept with probability | Because |
 | --- | --- | --- |
-| a vowel | 0.04 | nobody spells out the vowels |
-| a consonant adjacent to another consonant | 0.35 | clusters, codas and doubled letters: the `h` of `think`, the `r` of `strat`, the `n` of `-nk`, one `t` of `cattle` |
-| a consonant between two vowels | 0.60 | that is a syllable's onset — the one letter a shorthand typist keeps |
+| a vowel | 0.32 | nobody spells out the vowels |
+| a consonant adjacent to another consonant | 0.76 | clusters, codas and doubled letters: the `h` of `think`, the `r` of `strat`, one `t` of `cattle` |
+| a consonant between two vowels | 0.86 | that is a syllable's onset — the letter a shorthand typist keeps |
 
-Three prices. **No syllabifier, no pronunciation dictionary, no codebook.** A
-consonant sitting between two vowels begins an English syllable often enough
-to be worth pricing, and being wrong about it costs a little score rather than
-a candidate. The user-facing instruction is "type what feels representative of
-each syllable", and nothing more precise than that is needed.
+In English: *a shorthand typist types about a third of the vowels, three
+consonants in four when they sit beside another consonant, and six in seven of
+the consonants that begin a syllable.* Three numbers. No syllabifier, no
+pronunciation dictionary, no codebook.
 
-The alignment is a straightforward DP over `f[i] =` cheapest way to have
-matched `q[1..i]` and skipped everything else in `w[1..j]` so far:
+**And they are counted, not chosen.** The alignment itself says which
+characters each known (shorthand, word) pair kept, so class-wise keep rates are
+closed-form counts. Hard EM over the 342 pairs in the case files converges in
+two iterations to 0.39 / 0.68 / 0.89; coordinate descent then moves them to the
+shipped values and gains 0.002 of objective doing it — which is to say the
+maximum-likelihood numbers were already right.
+
+That is the part worth taking away, and it is not the accuracy. **These three
+numbers are countable from one user's own committed pairs.** The store §8.7
+wants for learning is the training data §8.2 says does not exist — per typist,
+a table of counts, therefore inspectable and undoable.
+
+The recurrence, with `c(j)` the class of `w[j]`:
 
 ```
-require w[1] = q[1],  f[1] = 0,  f[i>1] = ∞
+require w[1] = q[1],   f[1] = −log p_{c(1)},   f[i>1] = ∞
 for j = 2 … m:
-    for i = min(n,j) … 2:                     # descending, so f[i-1] is row j-1
-        f[i] ← min( f[i] + skip(w,j),
-                    f[i-1]  if w[j] = q[i] )
-    f[1] ← f[1] + skip(w,j)
-    abort if min(f) > budget                  # costs only accumulate
-answer = f[n]
+    for i = min(n,j) … 2:                      # descending, so f[i-1] is row j-1
+        f[i] ← min( f[i] + −log(1 − p_{c(j)}) ,          drop w[j]
+                    f[i-1] + −log p_{c(j)}  if w[j] = q[i] )   keep it
+    f[1] ← f[1] + −log(1 − p_{c(j)})
+    abort if min(f) > budget
+answer = f[n] / cue_cost_scale
 ```
 
-Three design decisions do the real work, and each was arrived at by getting it
-wrong first:
+Both prices are strictly positive, so the row minimum is non-decreasing and the
+early abort stays sound. That is asserted rather than argued: 6,000 random
+(word, subsequence) pairs, checking that no budget ever changes the cost
+reported or refuses what a smaller budget afforded.
 
-**The first letter must match.** It is the one character a shorthand typist
-does not drop, and requiring it is what stops a three-letter query proposing
-half the dictionary.
+**Three things this model does not fix.**
 
-**The tail is charged too** — everything the query did not land on, *including*
-the characters past the last match. Shorthand runs to the end of a word; nobody
-types cues syllable by syllable and then stops two syllables early. So a word
-with an untouched tail is being *completed*, which other channels answer. This
-single rule is what separates `embarass → embarrass` (0.35, nothing left over)
-from `embarass → embarrassed` (0.99, a whole syllable nobody typed). Without
-it the second led.
+*The tail still has to be charged*, and now it is, structurally — every
+character is kept or dropped, including the ones past the last match, so there
+is no special case any more. But it is not *unnecessary*: forcing the model to
+stop charging past the last match still costs 1.6 points of top-1 and puts
+`embarass` back behind `embarrassed`. The hand-won rule was the correct
+normaliser, and the model absorbs it rather than replacing it.
 
-**A doubled letter gets no cheap rule of its own.** It had one at first, on the
-theory that `cattle → ctl` drops nothing real. But dropping *one* half of a
-double while keeping the other is a misspelling, not shorthand, and at a cheap
-price the cue reading undercut the edit channel on its own ground: `embarass`
-led with `embarrassed` and `adn` led with `adding` rather than `and`.
+*A doubled letter still gets no class of its own*, for the same reason as
+before: dropping one half of a double while keeping the other is a misspelling,
+not shorthand.
+
+*And the units are still hand-set.* `cue_cost_scale` — nats per unit of the
+ranker's `cost` — is the one number in the channel with no probabilistic
+meaning, and the normalised model does **not** beat the hand-tuned prices
+without it. At the naive calibration it scores *below* the old model. This is
+the "consistent units" half of the diagnosis and the model does not answer it.
+
+It is also, in practice, the dial between this channel and the consonant
+skeleton: raise it and the cost term flattens so frequency decides and a
+commoner longer word wins; lower it and an exact-skeleton reading wins. Held
+out over ten fresh generator seeds the two move against each other about two to
+one, and the aggregate is flat:
+
+```
+  cue_cost_scale      5      7      9     10     12
+  generated_cues   69.8   83.4   88.5   90.1   91.9
+  generated_skels  91.6   90.6   89.3   88.5   87.6
+  TOTAL top-1      85.8   88.7   89.5   89.6   89.6
+```
+
+**One letter of the shorthand may be the wrong key**, at a fixed extra cost —
+a substitution transition in the same DP, with the letter-set filter relaxed
+from "every letter appears" to "at most one does not". It takes 252 corrupted
+shorthands from 25.4% to 89.7% top-5 and it ships **off**, because it costs
+0.4 ms on every keystroke and 1.3 ms at p95 for a compound error rarer than
+either of its halves. See §8.9.
 
 **Generation** cannot use an index — a subsequence has no prefix to binary
 search on, and the skeleton permutation is exactly what these queries fail to
@@ -442,12 +492,34 @@ entirely of dictionary words.
 Current constants:
 
 ```
-base_exact 100   base_typo 75    base_split  70    form_bonus       70
-base_prefix 74   base_skeleton 62  base_cue  70    unknown_penalty  25
+base_exact 100   base_typo 75    base_cue    70    form_bonus       70
+base_prefix 74   base_skeleton 62                  unknown_penalty  25
 w_f 34   w_u 18   w_c 16   w_e 8   V_skeleton 10   V_cue 10
 ```
 
-Three of these encode a principle rather than a tuning result:
+**Two of those are not really there.** The score has an exact one-parameter
+gauge freedom: multiply every constant above by any λ and the evaluation is
+identical to six decimal places, because a score is only ever compared with
+another score. The single exception is `confidence_floor` (§4.9), which is the
+only place in the codebase a score meets a constant rather than another score —
+scale everything but it and what breaks is precisely the literal-input
+guarantee. And a fifteenth constant, a base score for the word split, was dead:
+a split is *placed* rather than ranked (§4.6) and never reaches this function at
+all, so setting it to 0 or to 1000 left every case file bit-identical. It has
+been removed. **Thirteen real degrees of freedom, not fifteen** — and the tuner
+searches nine of them.
+
+**What the units mean.** The dictionary's log-frequency range is 14.41 nats, so
+`w_f` buys 2.36 points per nat and one unit of edit cost is priced at 6.78 nats,
+about 880:1. But that is not the number that governs anything. A repair must
+also cross `base_exact − base_typo = 25`, and 41 points is 17.4 nats against a
+corpus whose entire dynamic range is 14.4 — so **a full-price repair never beats
+an exact dictionary match at any frequency.** It is a veto, not a price, and
+checking the 2,500 commonest words confirms the exact reading leads in every
+one. In the rank band people actually type, the whole frequency spread available
+is 4.7 nats: enough to overturn a cost gap of 0.69, never a whole edit.
+
+Three of the constants encode a principle rather than a tuning result:
 
 - **`w_u = 18`, deliberately small.** The dictionary is measured English; the
   personal store is a handful of counts from whatever was typed lately,
@@ -489,7 +561,7 @@ word and exactly wrong when it is a misspelling.
 
 ## 5. Evaluation
 
-### 5.1 Method
+### 5.1 Method, and what is wrong with it
 
 1,484 cases in `tests/cases/*.tsv`, each a triple *(input, expected, max rank)*.
 
@@ -500,59 +572,101 @@ guarantees; dropped apostrophes and abbreviations; 57 syllabic shorthands.
 
 **Generated (1,200)**, from a fixed seed, over words ranked 150–12,000 (what
 people actually type; deeper into the tail one measures the corpus, not the
-matcher):
+matcher): 500 single plausible slips, 400 consonant skeletons, 300 syllabic
+shorthands.
 
-- 500 single plausible slips — transposition, deletion, doubling, neighbouring
-  key. Corruptions that are themselves dictionary words are excluded.
-- 400 consonant skeletons of words ≥ 6 letters, excluding skeletons that are
-  themselves words.
-- 300 syllabic shorthands: the word is cut into rough syllables orthographically
-  and one or two letters taken from each, biased towards the first.
+**Three filters keep the generated sets honest**, and all three ask about the
+strings and the frequency list only — none consults the matcher, which is what
+makes discarding a case defensible rather than a way of raising the score.
 
-The 300 syllabic cases carry two ambiguity filters, and both matter for the
-honesty of the number. A word with a commoner word as a prefix is skipped —
-shorthand for `productions` is shorthand for `product` too. And a shorthand is
-skipped unless its target is the **most frequent** word whose letters it
-appears in, in order; otherwise `untl` would be scored against `untitled` while
-`until` sits right there. Neither filter consults the matcher: both use only
-the property the generator guarantees.
+1. A target with a *commoner word as a prefix* is skipped: shorthand for
+   `productions` is shorthand for `product` too.
+2. A shorthand is skipped unless its target is the **most frequent** word whose
+   letters it contains in order — otherwise `untl` is scored against `untitled`
+   while `until` sits right there.
+3. A shorthand is skipped when some word explains it **better**: if there is a
+   `w'` with `q ⊆ w' ⊂ w`, then `w'` skips strictly fewer characters under any
+   pricing whatsoever. This one was added after review, and it was catching a
+   real fault — `rgulator` had stood as a case for `regulatory` when
+   `regulator` is that string with one letter put back, and `amrc` demanded
+   `american` over `america`. It moves the generated top-1 up 2.8 points on the
+   shorthand set and 1.2 on the skeleton set. The rank bound matters: without
+   it the corpus tail does the dominating (`brach` over `breach`) and 7% of the
+   skeleton set disappears for no reason anyone would recognise.
+
+**The weights are fitted on these same cases.** That is the largest
+methodological problem here and it is a consequence of having no real data
+(§2). But the generated portion comes from a *seeded* generator, so a fresh
+seed is a free held-out set — and the answer is much sharper than "the numbers
+are optimistic":
+
+```
+                        shipped seed    25 fresh draws    gap    draws ≥ shipped
+  generated_typos           92.2%           92.0%        +0.2       11 / 25
+  generated_skeletons       93.0%           92.2%        +0.8        9 / 25
+  generated_cues            85.7%           78.0%        +7.7        0 / 25
+  top-5, pooled             99.2%           99.2%        −0.0
+```
+
+**The entire overfit lived in one file** — the syllabic shorthand set, whose
+five constants were fitted on 300 cases — and **top-5 has no gap anywhere**.
+Leave-one-file-out agrees from a completely different direction: tuning with
+the shorthand file excluded and scoring on it gives 80.3%, against a fresh-seed
+mean of 78.0%. Every other file's leave-one-out optimism is 0.00.
+
+Two things this does *not* measure, and they are the larger uncertainties. A
+fresh seed re-samples from the same generator against the same dictionary, so
+it says nothing about whether `make_testset.py`'s model of how people abbreviate
+resembles how people actually abbreviate. And the 284 hand-written cases have no
+held-out version and cannot have one.
 
 ### 5.2 Current results
 
+Every number below is **held out** unless it says otherwise: the generated
+files are the mean of ten fresh generator seeds, and a further ten seeds, never
+looked at during any tuning or selection, agree to within 0.4 points.
+
 ```
-file                          cases   top-1   top-5 in-rank
+file                          cases   top-1   top-5      (held-out where generated)
 ------------------------------------------------------------
-ambiguity.tsv                    16   50.0%  100.0%  100.0%
-common_typos.tsv                 68   97.1%  100.0%  100.0%
-forms.tsv                        42   76.2%  100.0%  100.0%
-generated_cues.tsv              300   85.7%   98.3%   98.3%
-generated_skeletons.tsv         400   93.0%  100.0%  100.0%
-generated_typos.tsv             500   92.2%   99.0%   99.0%
-literal.tsv                      24  100.0%  100.0%  100.0%
-prefix.tsv                       16   93.8%  100.0%  100.0%
-raw.tsv                          14   71.4%   85.7%  100.0%
-skeletons.tsv                    31  100.0%  100.0%  100.0%
-spec_examples.tsv                16   75.0%   87.5%  100.0%
-syllables.tsv                    57   93.0%  100.0%  100.0%
+ambiguity.tsv                    16   50.0%  100.0%      hand-written, training
+common_typos.tsv                 68   97.1%  100.0%      hand-written, training
+forms.tsv                        42   76.2%  100.0%      hand-written, training
+generated_cues.tsv              300   92.0%   ~99%       held out, 10 seeds
+generated_skeletons.tsv         400   87.6%  ~100%       held out, 10 seeds
+generated_typos.tsv             500   90.0%   ~99%       held out, 10 seeds
+literal.tsv                      24  100.0%  100.0%      hand-written, training
+prefix.tsv                       16   93.8%  100.0%      hand-written, training
+raw.tsv                          14   71.4%   85.7%      hand-written, training
+skeletons.tsv                    31  100.0%  100.0%      hand-written, training
+spec_examples.tsv                16   75.0%   87.5%      hand-written, training
+syllables.tsv                    57   98.2%  100.0%      hand-written, training
 ------------------------------------------------------------
-TOTAL                          1484   90.4%   99.1%   99.3%
+TOTAL                          1484   89.7%   99.1%      held out
+                                      90.1%   99.1%      second held-out set
+                                      91.5%   99.0%      training seed
 ```
+
+**Top-1 ≈ 89.9% held out, top-5 ≈ 99.1%.** The training seed reads 91.5%, so
+the honest gap is about 1.6 points, and it is concentrated where §5.1 says.
 
 Three files have a deliberately low top-1. `spec_examples.tsv` asks for
 `mathematics`, `mathematical` **and** `mathematician` from the same input, so
 at most one can be first. Half of `raw.tsv` asks for the literal to be on the
-first page *while a correction leads*. Most of `forms.tsv` is inputs like
-`its`, `were`, `cant` that are real words in their own right: those must come
-first, with the contraction immediately behind, and both halves are asserted.
+first page *while a correction leads* — its "top-5 misses" are the literal
+sitting in slot 7, which is exactly where the design puts it. Most of
+`forms.tsv` is inputs like `its`, `were`, `cant` that are real words in their
+own right: those must come first, with the contraction immediately behind, and
+both halves are asserted.
 
-By error class:
+By error class, on the shipped seed:
 
 ```
                               cases   top-1   top-5
   transpose                     117   95.7%  100.0%
-  insert (doubled letter)       126   96.8%  100.0%
-  substitute (neighbour key)    130   94.6%   98.5%
-  delete                        127   81.9%   97.6%
+  insert (doubled letter)       126   96.0%  100.0%
+  substitute (neighbour key)    130   93.8%   97.7%
+  delete                        127   80.3%   97.6%
 ```
 
 A harsher probe than the case files, since those are built from *plausible*
@@ -570,59 +684,91 @@ letters at random.
 
 ```
 over all 1,484 evaluation queries
-  mean 3.13 ms   median 2.03 ms   p95 9.15 ms
+  mean 3.15 ms   median 2.10 ms   p95 8.9 ms
 
 typing nine words out, one keystroke at a time (86 keystrokes)
-  mean 2.45 ms
-  by input length (ms)
-    1: 1.0   2: 1.0   3: 1.2   4: 3.4   5: 1.9   6: 1.6   7: 2.2
-    8: 5.0   9: 5.0  10: 3.4  11: 2.9  12: 2.7  13: 3.0  14: 2.0
+  mean 2.3 ms
+
+startup   ~100 ms, once per process (memoised across engines)
+memory    13.9 MB after loading, 16.8 MB steady state
 ```
 
-The second block is the number that matters: it is what a keystroke costs while
-a word is actually being typed. The peak at 8–9 characters is where the length
-buckets are fullest and every scan runs at once. Against 144 ms for a naive
-full scan, the bucketing and prefilters do that work *and* three other searches
-in about 2.5 ms.
+The second block is what a keystroke costs while a word is actually being
+typed, and it is the number that matters. Against 165 ms for a naive full scan,
+the bucketing and prefilters do that work *and* three other searches in about
+2.3 ms.
+
+Two features that would improve recall are **off** because of this budget, and
+they have the same shape: `scan_first_neighbours` takes an unreachable input
+class (a wrong first key that is not a QWERTY neighbour) from 1.6% to 98.2% on
+the first page, and slip-tolerant shorthand takes corrupted abbreviations from
+25.4% to 89.7% top-5. Each costs a quarter to a fifth of the per-keystroke
+budget, paid on *every* query, for an input class that is rare. See §8.9.
 
 ### 5.4 How the weights were chosen, and why that is a weakness
 
 `bench/tune.lua` runs coordinate descent over the ranking weights and edit
 budgets, maximising a macro average of `2·top-1 + top-5 + in-rank` across the
-case files (macro rather than micro, so 1,200 generated cases do not drown out
-284 hand-written ones).
+case files. Macro rather than micro, so the 1,200 generated cases do not drown
+out the 284 hand-written ones.
 
-**There is no held-out set.** The weights are fitted on the same 1,484 cases
-that report the accuracy above. The generated portion is re-derived from a
-fixed seed and was never inspected case by case, which limits the damage, but
-the numbers in §5.2 should be read as *training* accuracy. This is the largest
-methodological weakness in the project and it is entirely a consequence of
-having no real data (§2).
+**How much of that is real?** Starting the descent from the middle of every
+grid — the point someone would pick knowing only the plausible ranges — and
+scoring on fresh seeds:
+
+```
+                        train      held-out    surviving
+  untuned start         79.7%        79.5%
+  one descent pass      89.9%        88.0%        84%
+```
+
+**84% of the tuning gain survives on unseen cases.** The tuning does real work;
+the optimism is 1.65 points and all of it is the shorthand channel. Coordinate
+descent alone does not reproduce the shipped weights — one pass from a neutral
+start lands 1.0 points worse held out and breaks two `forms.tsv` cases — so the
+shipped values carry hand judgement as well.
 
 Changes found by *hand* have consistently mattered more than the tuning:
 pricing a miscounted double letter at 0.55; scoring skeleton candidates by an
-asymmetric elastic alignment against the original query rather than
-skeleton-to-skeleton; pricing a dropped apostrophe at 0.15; charging the tail
-in the cue channel. Each of those moved more than any weight sweep.
+asymmetric elastic alignment against the original query; pricing a dropped
+apostrophe at 0.15; charging the tail in the shorthand channel. Each moved more
+than any weight sweep.
 
----
+And the tuner has a structural blind spot worth naming. Its grid omits four
+constants (`base_exact`, `form_bonus`, `unknown_word_penalty`, and the split
+base that turned out to be dead), which accidentally pins the gauge freedom of
+§4.8 — that is *why* the descent converges at all rather than drifting along a
+flat direction. But it also means the tuner cannot express "everything matters
+more relative to `base_exact`" except as a simultaneous move of eleven
+coordinates, which coordinate descent cannot make. Making that move by hand is
+worth more objective than two full passes found — and it is not taken, because
+what it buys is three `forms.tsv` cases where the objective's `2·top-1`
+weighting exploits an asymmetry, and it costs `inform` → `information`, which
+is a real regression the objective cannot see.
 
 ## 6. Where it fails now
 
 Almost every remaining loss is a real ambiguity rather than a search failure.
-Across all 1,484 cases, 143 (9.6%) do not lead, and of those:
+Across all 1,484 cases, 126 (8.5%) do not lead, and of those:
 
 ```
-  intended word at rank 2        89   62% of misses
-                  at rank 3–5    40   28%
-                  at rank 6–20   14   10%
-                  not offered     0    0%
+  intended word at rank 2        78   62% of misses
+                  at rank 3–5    33   26%
+                  at rank 6–20   14   11%
+                  not offered     1    1%
 ```
 
-**Nothing is ever missing.** The whole residual is ordering, and 62% of it is
-ordering between two readings that are both defensible. In 27% of misses the
-winning word shares a four-character prefix with the target — a morphological
-sibling. The classes, from a full sweep of the case files:
+**Almost nothing is ever missing** — one case in 1,484, and it is worth naming
+because it used to be zero: `disr` (a corruption of `dist`) now returns eight
+`dis-` completions and no `dist`, because a fuller candidate list can crowd a
+weak target off the end of it. That is the price of the stronger shorthand
+channel, and it is one case.
+
+The rest of the residual is ordering, and 62% of it is ordering between two
+readings that are both defensible. In 24% of misses the winning word shares a
+four-character prefix with the target — a morphological sibling. **That number
+looks more actionable than it is; §8.1 has the measurement.** The classes, from
+a full sweep of the case files:
 
 **Morphological siblings — the largest class.** The input under-determines the
 suffix, and the commoner sibling wins.
@@ -689,6 +835,23 @@ Recorded because they are the obvious first ideas.
   pairs produced by a dictionary-backed translator; candidates here are
   synthesised, so there is nothing for it to memorise.
 
+Four more, added after the review, each of which was implemented and measured
+before being abandoned:
+
+- **A cost–frequency interaction**, `w_c · cost · (1 + β(1−f(w)))`, on the
+  theory that a large repair to a common word is more believable than the same
+  repair to a rare one. The predicted direction is monotonically *wrong* —
+  `β = +1.0` costs 30 cases at rank 1 — and the shallow optimum at `β = −0.45`
+  turns out to be `w_c` in disguise: it vanishes once `w_c` is 13. Coordinate
+  descent leaves it at −0.15, worth one case in 1,484. **They do not interact.**
+- **A part-of-speech class bigram** on the previous word (§8.1). Loses on every
+  previous word it has an opinion about.
+- **Deleting the tail charge** from the shorthand channel once the model was
+  normalised, on the theory that the normaliser made it redundant. It did not:
+  1.6 points of top-1.
+- **Recalibrating `w_c` to the measured optimum** (16 → 13). Raises the
+  training objective and is worth −0.12 ± 0.15 points held out. Left alone.
+
 ---
 
 ## 8. Open problems
@@ -713,40 +876,104 @@ Stated up front because they rule out otherwise attractive designs:
 5. **Explainable and undoable.** A user must be able to see why a candidate is
    there and remove anything the system learned by accident.
 
-### 8.1 Context
+### 8.1 Context — and why it is worth less than it looks
 
-**The single biggest lever, and currently unavailable.** A bigram or trigram
-over the preceding words would settle both of the largest failure classes in
-§6: `wanted regulatory` and `wanted motions` are decidable from context and
-from nothing else in the input.
+This was listed first, as "the single biggest lever". **It was built and
+measured, and the honest answer is that one previous word is worth about 0.4
+points of top-1.** The reasoning that got it wrong is worth spelling out,
+because the same mistake is easy to make about the rest of this list.
 
-What blocks it is not modelling but plumbing: one composition is one word, and
-the IME cannot reliably see the document. A companion frontend build now reads
-32 characters in front of the caret, which makes the *previous word* available
-as a string. So the question is: what is the best use of one previous word,
-under 1 ms, with no training corpus of this task's inputs, and no model larger
-than a few megabytes? A count-based bigram over a public corpus is the obvious
-answer; whether it is affordable, and how to combine `log P(w | prev)` with an
-additive score whose other terms are not log-probabilities, is not obvious.
+The chain was: morphological siblings are 24% of misses → siblings differ in
+part of speech → the previous word predicts part of speech. Each link leaks:
 
-### 8.2 The scoring function is linear, hand-designed, and fitted without a held-out set
+```
+  40 of 126 misses are morphological siblings           24% of misses
+  ... that differ in part of speech at all             ~10   25% of those
+  ... decidable from the word on the LEFT               ~6   14% of those
+```
 
-Fifteen constants, chosen by coordinate descent over the same 1,484 cases it is
-evaluated on (§5.4). Two directions:
+The first drop is a bad classifier: most "siblings" differ by *number*
+(`effects`/`effect`), by *tense* (`observed`/`observe`), or not at all
+(`calendar`/`calender`). The second drop is **structural and no classifier
+fixes it**: a determiner precedes an adjective exactly as happily as a noun.
+"The regulatory framework" and "the regulator" are both ordinary English, so
+every determiner-ambiguous pair is undecidable from one *preceding* word,
+however good the table. What survives is noun/verb pairs that `to` versus `the`
+separates, and degree adverbs.
+
+The prototype confirms it. A class function (closed-class list plus 44 suffix
+rules), a zero-centred `w_ctx · PMI(c(w); c(prev))` term, gated on the previous
+token being a dictionary word, applied only within a margin of the leader.
+Scored over all 1,484 cases under six fixed previous words — nothing chosen
+after the fact:
+
+```
+  prev    fixed  broken   net
+  the         9      30   −21
+  of          8      34   −26
+  very       10      78   −68
+  and         0       0     0     ← the NEUTRAL row, behaving as designed
+```
+
+Sweeping the weight and the margin does not rescue it; the only weight that
+does not lose is zero.
+
+**The diagnosis generalises beyond this feature.** Two classifiers were
+involved and only one of them was ever measured. The PMI table was written
+about parts of speech; the suffix rules select *endings*. "VERB" here means
+*ends in -ed, -ing or -ate*, and `P(that | "the")` is nothing like
+`P(verb | "the")` — "the building", "the greeting", "the finished draft". So
+`DET→VERB = −1.50` demotes precisely the words determiners most often precede,
+and 21 of the 30 breaks after "the" are an `-ed`/`-ing` word losing to an
+`-s`/`-er`/`-or` noun.
+
+The scaffolding survives its own test and ships disabled: zero-centred so an
+unknown previous word contributes exactly nothing, a margin derived from the
+data rather than guessed (every sibling sits within 9.8 points of the word that
+beat it; every *exact* match that beat its sibling leads by at least 19.7), and
+points-per-nat matched to the frequency term. `lua bench/context.lua` scores a
+replacement table in one command.
+
+**So what is still open.** A counted class table from a tagged lexicon, which
+would fix the classifier half. A real word bigram, which is the only thing that
+touches the vowel-identity class (`motions`/`meetings`, `blocks`/`blacks`) —
+those are noun against noun and no class model can help. And the word on the
+*right*, which is where most of the remaining sibling evidence actually lives
+and which an input method could in principle see, since the user types it a
+moment later.
+
+### 8.2 The scoring function is linear, hand-designed, and fitted on the set it is scored on
+
+Two of the three questions here now have answers, and both were negative.
+
+**Do cost and frequency interact?** No — see §7. One constant, swept and then
+put through coordinate descent, lands at zero. The linear form was fine.
+
+**Are the units consistent?** No, and it matters more than the interaction did.
+§4.8 has the numbers: the exact-versus-repair decision is decided by a gap
+larger than the corpus's whole dynamic range, so it is a veto rather than a
+price; and the score has an exact gauge freedom with `confidence_floor` as its
+only anchor. Neither was visible before someone asked what a point was worth in
+nats.
+
+**What remains is the real one: there is still no data.** The weights are
+fitted on the same cases they are scored on, and while §5.1 now bounds the
+damage, bounding is not fixing. Two directions:
 
 - **Get real data.** A keystroke log of (what was typed, what was committed)
-  would turn this into an ordinary learning-to-rank problem. Collecting it is a
-  product question — the data is intimate — but even one consenting user
-  produces thousands of pairs a day.
-- **Replace the linear form.** The terms are not obviously additive. Cost and
-  frequency plausibly interact: a large repair to a very common word is
-  believable, a large repair to a rare one is not, and the current form cannot
-  say that. Is there a principled probabilistic formulation — a noisy-channel
-  model `P(w | q) ∝ P(q | w) P(w)` where `P(q | w)` is a generative model of
-  how a person abbreviates — that both fits the constraints and beats the
-  hand-tuned linear score? The five channels would become five mixture
-  components of `P(q | w)`, which is intellectually much more satisfying, but
-  it needs the data from the previous bullet to fit.
+  turns this into ordinary learning-to-rank. §4.5 is a proof that this works at
+  small scale: three of the shorthand channel's numbers are now *counted* from
+  known pairs rather than chosen, and coordinate descent agrees with the counts.
+  The same trick does not obviously extend to the base scores, which are
+  mixture weights over channels and need pairs labelled by which channel was
+  right.
+- **A fully probabilistic form.** §4.5 shows what this buys and what it does
+  not. Normalising one channel removed two hand-built rules and gained ten
+  points of held-out accuracy on its own file — but it needed a units constant
+  with no probabilistic meaning to beat the hand-tuned version at all, and that
+  constant then turned out to be the most consequential dial in the channel.
+  A principled treatment has to normalise *across* channels too, which means
+  the base scores become real mixture weights and `max` becomes a sum.
 
 ### 8.3 One generation model instead of five channels
 
@@ -757,13 +984,26 @@ each is a separate index strategy.
 Is there a single index and a single search that covers exact, prefix, typo,
 skeleton and subsequence readings? Some candidates:
 
-- **An FST / trie with edit-distance-bounded traversal**, where the cost model
-  varies by position and character class. This subsumes typo and prefix
-  naturally, and skeleton and cue become cost profiles rather than separate
-  channels. Cost: 83k words in a trie, in Lua, within 17 MB and 2.5 ms.
+- **The alphabetical permutation is already an implicit trie**, which is the
+  cheapest version of this idea: the words extending a prefix form a contiguous
+  range, and extending the prefix by one character is a binary search that
+  narrows it. A best-first search over states `(range, DP column, cost so far)`
+  is a Levenshtein automaton without the automaton, in *zero* extra memory, and
+  it subsumes exact, prefix and typo in one pass with the cost profile as a
+  parameter. (Building an actual trie in Lua tables would blow the memory
+  budget at ~100 bytes a node — this avoids that entirely.)
+- It is unlikely to reach the shorthand channel, though: with vowel skips that
+  cheap the search fans out over every vowel of every word, and a bucketed scan
+  with a letter-set test is the honest structure for subsequence matching.
 - **A learned or hashed sketch** — SymSpell-style deletion neighbourhoods, or
   an LSH over character n-grams — as a recall stage feeding an exact re-ranking
-  stage. The current bit-mask prefilter is a crude version of exactly this.
+  stage. The current bit-mask prefilter is a crude version of exactly this, and
+  there is a cheap sharpening available: **per-first-letter bitsets**, 26 of
+  them over each bucket, one per letter, saying which words contain it. Lua 5.4
+  has 64-bit integers, so a 3,000-word bucket is ~50 integers per letter and
+  the whole structure is tens of kilobytes. The letter-set test becomes `|q|`
+  ANDs of 50 integers instead of a 3,000-word walk — which is also what would
+  make relaxing the first-letter requirement affordable.
 - Note the asymmetry that makes standard techniques awkward. In plain
   Levenshtein terms the intended answers sit at distance 6 (`satfcatn` →
   stratification), 5 (`gvmnt` → government), 4 (`mthmtcs` → mathematics) — well
@@ -775,45 +1015,112 @@ skeleton and subsequence readings? Some candidates:
 
 ### 8.4 Fuzzy composition
 
-Make `exctlyrght → exactly right` work, and make a slip inside shorthand
-non-fatal. The obvious formulation is a lattice: run the fuzzy search at every
-split point and find the best path. The obvious problem is cost — the current
-split is a word-break DP with an O(1) dictionary lookup per (position, length)
-pair, and replacing that lookup with a bounded fuzzy search multiplies it by
-several hundred. Tight budgets and a gate would be needed. Whether there is a
-formulation that shares work between overlapping searches is open.
+Two things were hiding in this item and **one of them is now done**. A slip
+*inside* shorthand needed only a substitution transition in the subsequence DP
+and a letter-set test relaxed from "every letter appears" to "at most one does
+not" — same scan, same budget structure. It takes corrupted shorthands from
+25.4% to 89.7% top-5 and ships off for latency (§8.9), not because it does not
+work.
+
+Fuzzy *segmentation* is the expensive half and is still open: `exctlyrght` →
+`exactly right`. The obvious formulation is a lattice — run the fuzzy search at
+every split point, take the best path — and the obvious problem is that the
+current word-break DP does an O(1) dictionary lookup per (position, length)
+pair, and a bounded fuzzy search is several hundred times that.
+
+There is a reuse trick that makes it tractable. Align a dictionary word against
+the query with the *query* as the DP's row index, and the final column gives the
+cost of that word explaining every prefix `q[1..i]` **at once** — so one DP per
+candidate word yields all of its split points. A two-word lattice then needs one
+bounded search from position 1 plus one from each surviving split point, gated
+on the single-word channels having found nothing trustworthy, which §4.9 already
+computes. Most keystrokes never pay.
 
 ### 8.5 Better frequency data
 
 The corpus is Google-Books-derived: it skews old and literary and keeps proper
 nouns as ordinary lowercase tokens, so `mathew`, `mather` and `mathews` all
-compete with `mathematics` for the input `mathe`. Blending in a modern subtitle
-or web corpus, or demoting capitalised-in-corpus tokens at build time, is
-probably worth more top-1 than any further weight tuning — but it is a data
+compete with `mathematics` for the input `mathe`. `wordfreq` (a blend of subtitles, web,
+Wikipedia and news) and the OpenSubtitles frequency lists are both open and both
+fix this directly, because names are rare in speech-like text. Blend in the log
+or Zipf domain rather than in counts, so scale differences do not matter. And
+treat capitalised-in-corpus tokens as their own *class* rather than demoting
+them — those tokens are exactly what somebody typing a surname wants. This is
+probably worth more top-1 than any further weight tuning, but it is a data
 problem, not an algorithm problem, and it is easy to make worse.
 
-A related question with no good answer yet: the frequency term uses a
-*normalised log* frequency in [0,1], which compresses the difference between
-rank 100 and rank 10,000 into very little score. That is deliberate (a
-linear-in-count term would make `the` unbeatable) but it is not principled.
+A related question that now has half an answer: the frequency term uses a
+*normalised log* frequency in [0,1], which compresses rank 100 against rank
+10,000 into very little score. That is deliberate — a linear-in-count term
+would make `the` unbeatable — and §4.8 shows what the compression actually
+costs: across the band people type, the entire frequency spread is 4.7 nats,
+which cannot buy a single full-price edit. Using Zipf units directly and letting
+the points-per-nat calibration set the weight is the principled version.
 
 ### 8.6 Incremental search
 
 Consecutive keystrokes re-search from scratch. Restricting the next scan to the
-previous candidate set plus one edit should cut typical latency several-fold,
-which would buy the headroom that §8.1 and §8.4 both need. The complication is
-that the candidate set for `mathe` is not a superset of the candidate set for
-`math` under any of the four cost models — a cheap alignment can become
-expensive when one more character arrives, and vice versa.
+previous candidate set plus one edit should cut typical latency several-fold —
+and that is now the headroom that §8.9, §8.4 and any use of §8.1 all need.
+
+The non-monotonicity noted here originally is real for the *budget-cut* set but
+not for a **slack** set, which is the way through. Appending one character
+changes a word's alignment cost by at most one edit's worth, `Δ`, so every word
+inside budget for `q + c` was inside `budget + Δ` for `q` — *provided it was
+visited at all*, and that proviso is the only real work: widen the length window
+by one at generation time, keep the slack pool along with its DP rows, extend
+every kept row by one character per keystroke, and re-generate only for the
+newly admissible length bucket. For the shorthand channel it is cleaner still,
+since both the subsequence property and the letter-set test are monotone in `q`
+— the pool only ever shrinks, apart from the growing length ceiling.
 
 ### 8.7 Remember the input, not just the word
 
 Store `(typed, committed)` pairs and score an exact match on the typed form
 highly. Every correction the user makes once becomes permanent. This is a
-contained change and probably the cheapest real win on the list — the open part
-is how to age and bound the store, and how not to let one accident become
-permanent (there is an explicit "forget" key, but relying on the user to press
-it is a poor design).
+contained change and probably the cheapest real win on the list.
+
+The design every CJK input method converged on answers the "one accident
+becomes permanent" worry without asking the user to press anything: store
+`(typed, committed, count, last used)`, treat an exact match on `typed` as a
+source with a high base, but let it **lead** only once `count` reaches 2. One
+selection earns a bonus that cannot overturn the leader; the second promotes
+it. Decrement when the stored candidate is shown and not chosen, and cap the
+file by least-recently-used. It also removes the `eys`/`eyes` pathology from
+the general vocabulary term, because the misspelling is then tied to the input
+that produced it rather than raised everywhere.
+
+And it is the same store §4.5 needs: the pairs it holds are exactly what the
+shorthand channel's keep probabilities are counted from, which makes this the
+one item on this list that two others depend on.
+
+### 8.8 A tagged lexicon, or any counted table
+
+Three separate items above (§8.1's class table, §8.5's name class, §8.3's
+sketch) are blocked on the same thing: a source of word-level annotation that
+is not somebody's intuition. §8.1 is the cautionary tale — a hand-written table
+of 44 suffix rules produced a classifier whose classes did not mean what the
+table assumed, and *both halves came from the same head*, which is the honest
+reason to distrust anything positive it could have reported.
+
+### 8.9 The gate that two features are waiting for
+
+Twice now the answer to "this is real recall at a cost on every keystroke" has
+been the same, and nobody has built it:
+
+| feature | what it buys | what it costs |
+| --- | --- | --- |
+| `scan_first_neighbours` | a wrong first key, 1.6% → 98.2% on page 1 | +27% per keystroke, p95 over budget |
+| slip-tolerant shorthand | corrupted shorthand, 25.4% → 89.7% top-5 | +0.4 ms per keystroke, +1.3 ms p95 |
+
+Both are off. Both are one schema line from being on. And both would be free
+almost all the time if they ran as a **second pass, gated on
+`Engine:trustworthy` finding nothing worth putting under the space bar** — a
+predicate that already exists and is already computed (§4.9). The common
+keystroke, where the first pass succeeds, would pay nothing at all.
+
+This is a small piece of work with two features behind it, and §8.6 would make
+it cheaper still.
 
 ---
 
@@ -822,10 +1129,18 @@ it is a poor design).
 ```bash
 git clone https://github.com/EricWay1024/spellless && cd spellless
 make            # rebuild dictionary, indexes and generated test sets
-make test       # 1,868 assertions, including every hand-written case
+make test       # 1,977 assertions, including every hand-written case
 make bench      # the accuracy and latency tables in §5
-lua bench/tune.lua 3            # the coordinate descent in §5.4
 lua bench/try.lua --debug mthmtcs satfcatn tnk     # ask it anything
+
+# the held-out measurement of §5.1 -- the generator is seeded, so this is free
+python3 scripts/make_testset.py --seed 12345 --out /tmp/fresh
+lua bench/evaluate.lua --cases /tmp/fresh
+
+lua bench/tune.lua 3                        # the coordinate descent of §5.4
+lua bench/tune.lua 1 --start midgrid        # ... from a neutral start
+lua bench/tune.lua 1 --exclude generated_cues   # ... leave-one-file-out
+lua bench/context.lua                       # score a class table (§8.1)
 ```
 
 The matcher is pure Lua with no dependencies and knows nothing about the input
@@ -836,3 +1151,8 @@ code the IME runs.
 `DESIGN.md` covers the input-method side — spacing, capitalisation, what the
 frontend can do that a schema cannot. `EVALUATION.md` is the long-form version
 of §5. `data/README.md` documents the corpus and its preprocessing.
+`prompt/expert-review.md` is the review this document was revised against.
+
+Most of what is worth knowing about a constant is written next to it in
+`rime/lua/spellless/config.lua`, including the sweeps that were run and not
+acted on.

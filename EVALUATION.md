@@ -74,21 +74,38 @@ file                          cases   top-1   top-5 in-rank
 ambiguity.tsv                    16   50.0%  100.0%  100.0%
 common_typos.tsv                 68   97.1%  100.0%  100.0%
 forms.tsv                        42   76.2%  100.0%  100.0%
-generated_cues.tsv              300   85.7%   98.3%   98.3%
-generated_skeletons.tsv         400   93.0%  100.0%  100.0%
-generated_typos.tsv             500   92.2%   99.0%   99.0%
+generated_cues.tsv              300   96.3%   99.3%   99.3%
+generated_skeletons.tsv         400   90.2%   99.8%   99.8%
+generated_typos.tsv             500   90.8%   98.6%   98.6%
 literal.tsv                      24  100.0%  100.0%  100.0%
 prefix.tsv                       16   93.8%  100.0%  100.0%
 raw.tsv                          14   71.4%   85.7%  100.0%
 skeletons.tsv                    31  100.0%  100.0%  100.0%
 spec_examples.tsv                16   75.0%   87.5%  100.0%
-syllables.tsv                    57   93.0%  100.0%  100.0%
+syllables.tsv                    57   98.2%  100.0%  100.0%
 ------------------------------------------------------------
-TOTAL                          1484   90.4%   99.1%   99.3%
+TOTAL                          1484   91.5%   99.0%   99.3%   <- training seed
+
+held out, mean of ten fresh generator seeds:
+generated_cues.tsv              300   92.0%
+generated_skeletons.tsv         400   87.6%
+generated_typos.tsv             500   90.0%
+------------------------------------------------------------
+TOTAL                          1484   89.7%   99.1%          <- held out
+                                      90.1%   99.1%   <- ten further seeds, never
+                                                         used for tuning or selection
 ```
 
-**Top-1 90.4%, top-5 99.1%, every case within its budget 99.3%** — and every
-one of the 284 hand-written cases passes.
+**Top-1 89.9%, top-5 99.1%** — held out, and every one of the 284 hand-written
+cases passes.
+
+Those are the *out-of-sample* figures, which is a change from earlier versions
+of this file. The generated sets come from a seeded generator, so a fresh seed
+is a free held-out set; the numbers above are the mean of ten, and a further
+ten held back from all tuning and selection agree to within 0.4 points. On the
+seed the weights were actually fitted to, the same table reads **91.5% / 99.0%**
+— a gap of about 1.6 points, and §"Held out" says where all of it lives.
+docs/ALGORITHM.md §5 is the short version of everything below.
 
 Three files deserve a footnote, because their low top-1 is the *intended*
 result. `spec_examples.tsv` asks for `mathematics`, `mathematical` **and**
