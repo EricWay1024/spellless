@@ -60,8 +60,9 @@ engine:
     - selector
     - navigator
     # express_editor binds Return to "commit raw input", which is how
-    # "I can always commit exactly what I typed" is satisfied natively -- and
-    # literally, so Enter adds no trailing space.
+    # "I can always commit exactly what I typed" is satisfied natively.  The
+    # processor above takes the key over to add the automatic space, and hands
+    # it back here whenever `enter_space` or `auto_space` is off.
     - express_editor
   segmentors:
     - ascii_segmentor

@@ -115,7 +115,7 @@ noether's        →  Noether's      psdfnctr  →  pseudofunctor
 
 It is a [Rime](https://rime.im) schema for Windows, and **the word you meant is
 first 89.9% of the time, in the top five 99.1%** — measured on cases the tuning
-never saw. About 2.5 ms per keystroke. 2,123 assertions say it still behaves.
+never saw. About 2.5 ms per keystroke. 2,131 assertions say it still behaves.
 [EVALUATION.md](EVALUATION.md) has the numbers, including the cases it gets
 wrong and why.
 
@@ -183,7 +183,8 @@ two places to look.
 | --- | --- |
 | <kbd>1</kbd>…<kbd>7</kbd> | select a candidate |
 | <kbd>Space</kbd> | commit the highlighted candidate — twice, if it is a word the dictionary does not have |
-| <kbd>Enter</kbd> | **commit exactly what you typed**, at once |
+| <kbd>Enter</kbd> | **commit exactly what you typed**, at once, with the automatic space after it |
+| <kbd>↑</kbd> / <kbd>↓</kbd> | move the highlight — <kbd>Enter</kbd> then commits *that* candidate |
 | <kbd>Esc</kbd> | cancel the composition |
 | <kbd>PgUp</kbd> / <kbd>PgDn</kbd> | page through candidates |
 | <kbd>Shift</kbd> (tapped on its own) | leave Spellless and type straight through; tap again to come back |
@@ -407,6 +408,7 @@ patch:
   spellless/show_debug_comments: true  # where each candidate came from, and what it scored
   spellless/learn: false               # stop learning
   spellless/auto_space: false          # type your own spaces
+  spellless/enter_space: false         # or keep them, except after Enter
   spellless/auto_capitalize: false     # and your own capitals
   menu/page_size: 9                    # a bigger window (the literal slot follows it)
 ```
@@ -439,9 +441,9 @@ and the reasons behind each.
    method committed rather than from the document — a mouse click that moves
    the caret is invisible — so you will occasionally get a stray space or
    capital. Backspace re-syncs it, and either can be turned off.
-7. **Rime cannot retract committed text.** Commit a word with the space bar and
-   *then* type punctuation and you get `mathew .`, because the word's space was
-   already written. Typing the punctuation while the word is still being
+7. **Rime cannot retract committed text.** Commit a word with the space bar or
+   <kbd>Enter</kbd> and *then* type punctuation and you get `mathew .`, because
+   the word's space was already written. Typing the punctuation while the word is still being
    composed — the normal way — is right.
 
 The last two are limits of where a schema sits, and the fork below lifts both.
@@ -510,7 +512,7 @@ frontend, then type `zzver` and check the revision.
 
 ```bash
 make            # dictionary + indexes + test set
-make test       # 2,123 assertions
+make test       # 2,131 assertions
 make bench      # accuracy and latency over tests/cases/
 make install
 ```
@@ -523,7 +525,7 @@ spellless/
 ├── scripts/       dictionary build, index build, test-set build, icon, installer
 ├── data/          vendored corpus, supplemental vocabulary, surface forms
 ├── generated/     build output (1.3 MB) — what gets deployed
-├── tests/         2,123 assertions + the evaluation cases
+├── tests/         2,131 assertions + the evaluation cases
 ├── bench/         evaluate.lua, tune.lua, naive.lua
 └── docs/          the algorithm in full, deployment, the typing bench
 ```

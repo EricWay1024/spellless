@@ -71,6 +71,7 @@ keystroke
    +-- selector         number keys, paging                        [Rime]
    +-- spellless        Enter, when a leading space is due     [Spellless]
    +-- express_editor   Space = confirm, Enter = commit raw input  [Rime]
+                           (Enter first passes our processor, for the space)
               |
               v
         segment tagged "abc"
@@ -607,12 +608,34 @@ and `ends_sentence` consults it first.
 
 ### Enter, and what the processor actually owns
 
-Enter needs no special handling: `express_editor` commits the raw input, which
-fires the commit notifier, which learns it. It commits the input literally, so
-no trailing space — Enter is the "exactly what I typed" escape and stays that
-way. An earlier version intercepted Return to prepend a space, which then had
-to be careful not to swallow Shift+Return (the soft newline in Slack and
-Zulip); that whole branch is gone.
+`express_editor` commits the raw input, which is what makes Enter the "exactly
+what I typed" escape, and it commits the letters alone — a schema-level editor
+knows nothing about our spacing. So the processor takes Return over for one
+reason: to add the trailing space every other commit carries (`enter_space`,
+which needs `auto_space`). The letters are still exactly the ones typed; only
+the separator that follows them is new, and a word finished with Enter needs it
+as much as one picked with the space bar.
+
+Taking it over pays for a second thing. The arrow keys are how you disagree
+with the ranking without counting lines, and having disagreed, Return is the
+key already under the finger — where committing the raw input would throw the
+choice away and hand back the letters that were wrong enough to go looking. So
+with `segment.selected_index > 0` Return calls `Context:commit()`, the same
+call `express_editor` makes for the space bar, which takes the highlighted
+candidate and the space it carries. The test is the highlight rather than a
+note that an arrow key was pressed: a fresh composition and one arrowed back to
+the top are the same thing, so the literal reading stays one press of Return
+away. It counts as a deliberate choice, unlike the space bar (§7) — two keys
+aimed at one line cannot be muscle memory.
+
+Taking the key over means doing by hand what the editor did for free: the
+commit is ours, so the notifier never fires, so the word is counted here. It is
+counted and no more — committing the raw input is a refusal to choose between
+readings rather than a choice, so no input-to-word pair is stored (§7).
+Shift+Return keeps the bare word: it is the soft newline in Slack and Zulip,
+and a space in front of a line break separates nothing. Keypad Enter is Enter
+and carries the space. With `enter_space` off the branch is skipped entirely
+and `express_editor` does exactly what it did before.
 
 What the processor does own is small: ending a word when punctuation arrives,
 the sentence note below, and `Control+Shift+A`. That last one commits the composition before
@@ -651,7 +674,7 @@ first, its one-letter exception returned before the capitals test ever ran, and
 `spellless`, `kubectl`, `argmax`, `x`, `cm` and `PDE` all lead with themselves;
 `recieve`, `mthmtcs`, `i`, `eg` and `th` do not.
 
-And, independently of both, `Enter` commits the raw input natively (§2).
+And, independently of both, `Enter` commits the raw input (§5.5).
 
 snake_case identifiers get a third mechanism. librime's `recognizer` processor
 pushes a character into the input whenever `input + char` matches one of its

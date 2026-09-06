@@ -102,6 +102,16 @@ function M.install(opts)
         set_option = function(self, key, value) self.options[key] = value end,
         -- the highlighted candidate of the current segment
         get_selected_candidate = function(self) return M.selected end,
+        -- Context::Commit: what express_editor's space binding calls.  It
+        -- commits the composed text -- the highlighted candidate -- through the
+        -- commit notifier, then clears the context.
+        commit = function(self)
+          local text = M.selected and M.selected.text or self.input
+          M.commit_text = text
+          M.committed[#M.committed + 1] = text
+          if M.commit_handler then M.commit_handler(self) end
+          self.input = ""
+        end,
         -- librime-lua exposes Context::PushInput; the absorb processor uses it
         -- to put a word taken back out of the document into the composition.
         refresh_non_confirmed_composition = function(self)
@@ -114,6 +124,14 @@ function M.install(opts)
         -- One segment covering the whole input unless a test says otherwise.
         composition = {
           empty = function() return M.segments == 0 end,
+          -- Composition::back and Segment::selected_index, both registered in
+          -- librime-lua's types.cc.  The highlight is 0 until an arrow key or
+          -- a page key moves it.
+          back = function()
+            if M.segments == 0 then return nil end
+            return { selected_index = M.selected_index or 0,
+                     get_selected_candidate = function() return M.selected end }
+          end,
           toSegmentation = function()
             return {
               size = M.segments or 1,

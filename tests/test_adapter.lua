@@ -478,8 +478,64 @@ H.suite("adapter: keypad Enter is Enter")
 mock.history:clear()
 env.engine.context.input = "hello"
 H.eq(spellless.processor.func(mock.key(0xff8d), env), 1, "handled, not passed on")
-H.eq(mock.committed[#mock.committed], "hello", "committing what was typed")
+H.eq(mock.committed[#mock.committed], "hello ", "committing what was typed, spaced")
 H.eq(env.engine.context.input, "", "and the composition is finished")
+
+H.suite("adapter: Return commits what was typed and separates it from the next")
+-- The letters are exactly the ones typed -- that is the promise -- and the
+-- space is the same one every other commit carries, so the word after it does
+-- not have to be un-run-together by hand.
+mock.history:clear()
+env.engine.context.input = "kubectl"
+local counted = env.spellless.user:count("kubectl")
+H.eq(spellless.processor.func(mock.key(XK_Return), env), 1, "handled here, not by the editor")
+H.eq(mock.committed[#mock.committed], "kubectl ", "exactly what was typed, plus the space")
+H.eq(env.engine.context.input, "", "and the composition is finished")
+H.eq(env.spellless.user:count("kubectl"), counted + 1,
+     "counted, because our own commit never reaches the notifier")
+-- A refusal to choose between readings is not a choice: nothing is recorded
+-- about what this input meant.
+H.eq(env.spellless.user:choices_for("kubectl"), nil, "and no input-to-word pair is stored")
+
+H.suite("adapter: Return on a candidate you arrowed to commits that candidate")
+-- Having disagreed with the ranking by moving the highlight, Return is the key
+-- under the finger; committing the letters that sent you looking would throw
+-- the choice away.
+mock.history:clear()
+env.engine.context.input = "recieve"
+mock.selected = { text = "receive ", type = "typo" }
+mock.selected_index = 2
+local before = #mock.committed
+H.eq(spellless.processor.func(mock.key(XK_Return), env), 1, "handled here")
+H.eq(mock.committed[#mock.committed], "receive ", "the highlighted candidate, with its space")
+H.eq(#mock.committed, before + 1, "committed once")
+H.eq(env.engine.context.get_property(env.engine.context, "spellless_picked"), "1",
+     "and counted as the deliberate choice it is")
+H.eq(env.spellless.user:choices_for("recieve")[1].text, "receive",
+     "so the input-to-word pair is stored")
+
+H.suite("adapter: on the first candidate Return is still the literal escape")
+-- The promise survives the feature above: a fresh composition and one arrowed
+-- back to the top are the same thing, and both commit what was typed.
+mock.history:clear()
+env.engine.context.input = "kubectl"
+mock.selected = { text = "kubectl ", type = "raw" }
+mock.selected_index = 0
+H.eq(spellless.processor.func(mock.key(XK_Return), env), 1, "handled here")
+H.eq(mock.committed[#mock.committed], "kubectl ", "exactly what was typed")
+H.eq(env.spellless.user:choices_for("kubectl"), nil, "and no choice is recorded")
+mock.selected = nil
+mock.selected_index = 0
+
+H.suite("adapter: Return without the automatic space is express_editor's again")
+env.spellless.cfg.enter_space = false
+mock.history:clear()
+env.engine.context.input = "kubectl"
+local before = #mock.committed
+H.eq(spellless.processor.func(mock.key(XK_Return), env), 2, "passed on")
+H.eq(#mock.committed, before, "committing nothing itself")
+H.eq(env.engine.context.input, "kubectl", "and leaving the composition alone")
+env.spellless.cfg.enter_space = true
 
 H.suite("adapter: a number is not split by its own spacing")
 -- "3" then "." commits ". " because nothing yet says a digit is coming.  The

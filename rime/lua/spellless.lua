@@ -558,22 +558,23 @@ end
 
 --- Wire in as `lua_processor@*spellless*processor`, before express_editor.
 ---
---- Return already commits the raw input -- that is express_editor's own
---- binding, and it is the promise that you can always commit exactly what you
---- typed.  The one thing it cannot know about is the automatic space, so this
---- processor handles Return only when a leading space is due, and otherwise
---- gets out of the way and lets the editor do exactly what it did before.
+--- express_editor owns Return -- committing the raw input is the promise that
+--- you can always commit exactly what you typed -- and this processor takes it
+--- over only to add the automatic space, which a schema-level editor knows
+--- nothing about.  With `enter_space` or `auto_space` off it gets out of the
+--- way and the editor does exactly what it did before.
+---
 --- It also owns the spaces between words, and watches Return and Backspace
 --- outside a composition -- the only way to tell a new line from a correction
 --- after Rime has cleared its commit history for both.
 ---
---- The space is committed when the *next word starts*, not when the previous
---- one ends.  Rime cannot retract committed text -- `key_binder`'s `send:`
+--- A word carries its own trailing space, so whichever key commits it puts the
+--- space in too.  Punctuation is the exception that needs no retraction: it
+--- ends the word before the space is ever written and supplies the following
+--- one itself.  Rime cannot take committed text back -- `key_binder`'s `send:`
 --- re-processes a key inside the engine and drops it if nothing handles it, so
---- a synthetic Backspace never reaches the application -- which rules out
---- committing a trailing space and deleting it before punctuation.  Deferring
---- it by one keystroke gets the same result without needing to: punctuation
---- simply never triggers the space, because only a letter does.
+--- a synthetic Backspace never reaches the application -- which is why the
+--- frontend fork exists for the cases where something has to come back.
 M.processor = {}
 
 function M.processor.init(env)
@@ -668,7 +669,12 @@ function M.processor.func(key, env)
   if composing and (code == XK_KP_Enter
                     or (code == XK_Return and key:shift())) then
     local text = context.input
-    env.engine:commit_text(text)
+    -- Keypad Enter is Enter, so it carries the automatic space with it.
+    -- Shift+Return does not: a space in front of a line break separates
+    -- nothing from nothing.
+    local trail = (code == XK_KP_Enter and engine and engine.cfg.auto_space
+                   and engine.cfg.enter_space) and " " or ""
+    env.engine:commit_text(text .. trail)
     if engine then engine:learn(text) end
     context:set_property(SENTENCE, "")
     context:clear()
@@ -677,6 +683,58 @@ function M.processor.func(key, env)
     -- to the application, which is what it was asking for all along.
     if code == XK_KP_Enter then return kAccepted end
     return kNoop
+  end
+
+  -- Return on a candidate you moved to: commit that candidate.
+  --
+  -- The arrow keys are how you disagree with the ranking without counting
+  -- lines, and having disagreed, Return is the key already under the finger.
+  -- Committing the raw input there would throw the choice away and give back
+  -- the letters that were wrong enough to go looking -- so with the highlight
+  -- moved, Return does what the space bar does: `Context:commit()`, the same
+  -- call express_editor makes, which takes the highlighted candidate with the
+  -- space it carries.
+  --
+  -- On the first candidate Return still commits exactly what you typed.  That
+  -- is the promise, and it is why the test is the highlight rather than "was
+  -- an arrow key pressed": a fresh composition and one you arrowed back to the
+  -- top of look the same because they are the same, and the literal reading is
+  -- always one press of Return away.
+  --
+  -- Counted as a deliberate choice, which the space bar is not: the space bar
+  -- takes whatever is first on muscle memory, and this took two keys aimed at
+  -- one line.
+  if composing and code == XK_Return and not key:shift() then
+    local segment = context.composition and context.composition:back()
+    if segment and (segment.selected_index or 0) > 0 then
+      context:set_property(PICKED, "1")
+      context:commit()
+      return kAccepted
+    end
+  end
+
+  -- Return, carrying the automatic space.
+  --
+  -- express_editor commits the raw input, which is the promise that you can
+  -- always commit exactly what you typed -- and it commits the letters alone,
+  -- because a schema-level editor knows nothing about our spacing.  A word
+  -- finished with Return is as finished as one picked with the space bar
+  -- though, and the next word has to be separated from it either way, so the
+  -- space rides along here as it does on every candidate.  The letters are
+  -- still exactly the ones typed.
+  --
+  -- Handled here rather than left to the editor, and learned by hand: this
+  -- commit is ours, so the notifier the translator connected never sees it.
+  -- It is a refusal to choose between readings rather than a choice, so the
+  -- word is counted and no input-to-word pair is recorded.
+  if composing and code == XK_Return and engine
+     and engine.cfg.auto_space and engine.cfg.enter_space then
+    local text = context.input
+    env.engine:commit_text(text .. " ")
+    engine:learn(text)
+    context:set_property(SENTENCE, "")
+    context:clear()
+    return kAccepted
   end
 
   -- A number our own spacing would otherwise split.  "3" then "." commits
@@ -819,8 +877,8 @@ function M.processor.func(key, env)
     return kNoop
   end
 
-  -- Return needs no special handling: express_editor commits the raw input,
-  -- which fires the commit notifier, which learns it.
+  -- Return with the space turned off needs no handling: express_editor commits
+  -- the raw input, which fires the commit notifier, which learns it.
   return kNoop
 end
 

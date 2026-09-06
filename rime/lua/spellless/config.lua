@@ -322,6 +322,13 @@ M.defaults = {
   -- the space in too.  Punctuation ends the word without it and supplies the
   -- space that follows instead, so "you" + "." is "you. ".
   auto_space        = true,
+  -- Return carries that space too.  It commits exactly the letters you typed,
+  -- which is the promise, and a word committed with Return is as finished as
+  -- one picked with the space bar -- the next word still needs separating from
+  -- it.  Turn this off to have Return commit the bare word and nothing else;
+  -- `auto_space` off takes it away regardless, since there is no automatic
+  -- space to carry.
+  enter_space       = true,
   -- Applications that may not have text taken back out of them, by name, comma
   -- separated.  The three features below all work by removing characters the
   -- application has already been given, and that only works where the text is
