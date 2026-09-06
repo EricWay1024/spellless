@@ -853,6 +853,16 @@ do
     H.eq(got[1].count, 1, "counted once, which is not yet enough to lead")
   end
 
+  -- A digit past the end of the page selects nothing, so whatever the frontend
+  -- does with it is not a choice of the line that happened to be highlighted.
+  ctx.input = "mathe"
+  mock.selected = { text = "mathematical " }
+  mock.commit_text = "mathematical "
+  sp.absorb.func(mock.key(0x38), own)          -- "8", with a page of seven
+  mock.commit_handler(ctx)
+  local after = store:choices_for("mathe")
+  H.eq(#after, 1, "a digit past the end of the page is not aimed at anything")
+
   sp.fini(own)
   mock.selected, mock.commit_text = nil, nil
   -- Put the module and the environment the rest of the file uses back.

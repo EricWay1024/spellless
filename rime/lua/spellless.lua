@@ -552,8 +552,15 @@ function M.absorb.func(key, env)
   -- guess, and a wrong one entrenches itself the second time you fail to
   -- notice it.  A number key is aimed at a particular line and means what it
   -- says.
+  --
+  -- Only the digits that actually select something: the page holds seven
+  -- candidates, so `8` and `9` name nothing, and whatever the frontend then
+  -- does with the keystroke must not be recorded as a choice of the line that
+  -- happened to be highlighted at the time.
+  local page = env.engine.schema.page_size or 9
+  if page > 9 then page = 9 end
   local picked = context:is_composing()
-      and key.keycode >= 0x31 and key.keycode <= 0x39
+      and key.keycode >= 0x31 and key.keycode <= 0x30 + page
       and not (key:ctrl() or key:alt() or key:super())
   context:set_property(PICKED, picked and "1" or "")
 
