@@ -11,7 +11,7 @@ local engine = assert(Engine.new{ data_dir = _G.SPELLLESS_ROOT .. "/generated" }
 -- Hand-written files: every single case has to pass.
 local STRICT = { "spec_examples.tsv", "common_typos.tsv", "skeletons.tsv",
                  "prefix.tsv", "ambiguity.tsv", "raw.tsv", "forms.tsv", "literal.tsv",
-                 "syllables.tsv" }
+                 "syllables.tsv", "rare_words.tsv" }
 
 -- Generated files: floors, a few points below what the shipped weights score,
 -- so ordinary tuning does not trip the build but a real regression does.

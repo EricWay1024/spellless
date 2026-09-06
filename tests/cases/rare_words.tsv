@@ -1,0 +1,75 @@
+# When the thing you typed is itself a word -- just a much rarer one.
+#
+# Drop the last letter of "contrast" and you have written "contras", which is
+# in the dictionary at rank 49,136 while "contrast" sits at 3,862.  For a long
+# time the exact match won anyway, because base_exact stood 26 points above
+# base_prefix and the frequency term spans only 34 points across the whole
+# corpus -- so no completion, however common, could ever overtake a word you
+# had actually typed.
+#
+# The cost of being wrong here is symmetric: whichever reading loses sits at
+# rank 2, one keystroke away.  So the commoner one should lead, and these cases
+# pin that in both directions, because bench/evaluate.lua cannot see any of it
+# -- its generated inputs are misspellings, and a misspelling that lands on
+# another real word is exactly what the generator filters out.
+#
+# The blockers below are a mixture on purpose.  Some are real English (`wit`,
+# `sear`, `numb`, `fro`, `contras`); most are Google Books tokenisation
+# artefacts (`hel`, `trave`, `foll`, `syst`, `pleas`, `phon`).  That mixture is
+# why this is fixed in the ranking rather than by deleting entries: a filter
+# aggressive enough to remove `trave` also removes `wit`.
+
+# The commoner reading leads.
+contras	contrast	1
+sear	search	1
+wit	with	1
+numb	number	1
+fro	from	1
+firs	first	1
+hel	help	1
+trave	travel	1
+jus	just	1
+bes	best	1
+phon	phone	1
+syst	system	1
+pleas	please	1
+foll	following	1
+vie	view	1
+lis	list	1
+
+# And the word you typed is still right there, one key away.  This half is the
+# guard: it is what stops anyone "fixing" the cases above by lowering
+# base_exact until the exact match stops mattering at all.
+contras	contras	2
+wit	wit	2
+sear	sear	2
+numb	numb	2
+
+# The other direction, which is the failure this trades against.  A rare word
+# that nothing much commoner completes must still lead, or typing an ordinary
+# word stops working.  `tat` and `rom` are the historical pair: raising
+# base_exact once made every rare word unbeatable, and lowering it too far
+# makes every rare word unreachable.
+heal	heal	1
+plea	plea	1
+boa	boa	1
+gall	gall	1
+compute	compute	1
+tat	tat	1
+rom	rom	1
+art	art	1
+ion	ion	1
+sine	sine	1
+dam	dam	1
+pants	pants	1
+bit	bit	1
+cos	cos	1
+form	form	1
+inform	inform	1
+
+# Contractions are the deliberate exception and stay as they were: the bare
+# word is a word in its own right and comes first, with the contraction
+# immediately behind.  See forms.tsv.
+its	its	1
+were	were	1
+cant	cant	1

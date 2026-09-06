@@ -193,7 +193,31 @@ M.defaults = {
   -- Base score per source.  The gaps encode the intended broad priority:
   -- exact > plausible completion > close typo > skeleton reconstruction.
   --
-  base_exact        = 100,
+  -- Was 100, which meant an exact match could not lose to a completion of
+  -- itself however rare it was and however common the completion.  The gap to
+  -- base_prefix was 26 points, and freq_weight spans 34 over the whole
+  -- dictionary, so beating an exact match needed a frequency gap of three
+  -- quarters of the entire corpus range: unreachable in practice.
+  --
+  -- That is too strong for a matcher whose users drop trailing letters all day
+  -- and land on tail words: `sear`, `firs`, `hel`, `trave`, `jus`, `phon`,
+  -- `syst`, `pleas`, `foll`, `wit`, `fro`, `numb` and `contras` all led over
+  -- `search`, `first`, `help`, `travel`, `just`, `phone`, `system`, `please`,
+  -- `following`, `with`, `from`, `number` and `contrast`, which are between 13
+  -- and 900 times commoner.  Most of the blockers are corpus artefacts nobody
+  -- would type on purpose; enough of them are real words that no dictionary
+  -- filter can fix it without deleting `wit` and `hi`.
+  --
+  -- The cost of getting this wrong is symmetric -- the loser sits at rank 2
+  -- either way -- so the commoner reading should lead, which is what the
+  -- frequency term is for.  84 is where that starts happening and is also
+  -- where it stops being free: 23 of 27 known blockers are corrected, the
+  -- benchmark does not move on the shipped seed or on four held-out ones, no
+  -- word in the top 5,000 stops giving itself back, and three in ranks
+  -- 5,000-20,000 do (`rae`, `cit`, `ina`, none of them English).  At 82 it
+  -- starts costing real words -- `compute`, `heal`, `plea`, `boa`, `gall` --
+  -- which is the `tat`/`eys` failure below, approached from the other side.
+  base_exact        = 84,
   -- An exact match on a key that carries a *written form* is different in kind
   -- from an exact match on an ordinary word.  Someone put "sth -> something"
   -- and "im -> I'm" in a file on purpose; there is nothing to second-guess, and
