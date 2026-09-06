@@ -7,3 +7,6 @@ __pycache__/
 
 # Machine-specific notes, deliberately not shared
 LOCAL.md
+
+# Release archives, built by scripts/package.py
+dist/

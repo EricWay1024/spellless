@@ -167,6 +167,59 @@ with tempfile.TemporaryDirectory() as tmp:
     check(not (user_dir / "spellless.schema.yaml").exists(),
           "and nothing was copied into the Rime directory")
 
+print("package: a release archive installs without git")
+# The archive is what someone else actually gets, and it differs from a
+# checkout in the one way that matters here: no git.  The version stamp has to
+# survive that, or `zzver` -- whose entire job is saying what is running --
+# reports "unknown" to every user who did not clone the repository.
+import zipfile
+
+with tempfile.TemporaryDirectory() as tmp:
+    out = Path(tmp) / "dist"
+    result = subprocess.run(
+        [sys.executable, str(REPO / "scripts" / "package.py"),
+         "--version", "9.9.9", "--out", str(out), "--allow-dirty"],
+        capture_output=True, text=True, cwd=REPO)
+    check(result.returncode == 0, f"package.py runs: {result.stderr[-300:]}")
+    archive = out / "spellless-9.9.9.zip"
+    check(archive.exists(), "it writes the archive it says it does")
+
+    if archive.exists():
+        unpacked = Path(tmp) / "unpacked"
+        with zipfile.ZipFile(archive) as zf:
+            names = zf.namelist()
+            zf.extractall(unpacked)
+        for needed in ("spellless-9.9.9/scripts/install.py",
+                       "spellless-9.9.9/rime/spellless.schema.yaml",
+                       "spellless-9.9.9/generated/spellless.words",
+                       "spellless-9.9.9/README.md",
+                       "spellless-9.9.9/LICENSE"):
+            check(needed in names, f"the archive carries {needed}")
+
+        root = unpacked / "spellless-9.9.9"
+        stamped = (root / "rime/lua/spellless/version.lua").read_text(encoding="utf-8")
+        check('"9.9.9"' in stamped, "and version.lua names the release")
+
+        # No git here: the archive is not a repository, and the temp directory
+        # it is unpacked into is not inside one either.
+        user_dir = Path(tmp) / "rime"
+        user_dir.mkdir()
+        result = subprocess.run(
+            [sys.executable, str(root / "scripts" / "install.py"),
+             "--user-dir", str(user_dir)],
+            capture_output=True, text=True, cwd=tmp)
+        check(result.returncode == 0, f"it installs: {result.stderr[-300:]}")
+        installed = user_dir / "lua" / "spellless" / "version.lua"
+        text = installed.read_text(encoding="utf-8") if installed.exists() else ""
+        check('"9.9.9"' in text,
+              f"and the release version survives the install: {text!r}")
+        check("unknown" not in text, "rather than being overwritten with 'unknown'")
+
+print("package: a checkout without git still admits it does not know")
+import install as installer
+check(installer.read_stamped_version(REPO / "rime/lua/spellless/version.lua") is None,
+      "the repository's own version.lua is not mistaken for a release")
+
 print("build: the shipped generated/ is internally consistent")
 gen = REPO / "generated"
 words = gen / "spellless.words"

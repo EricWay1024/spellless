@@ -128,13 +128,21 @@ wrong and why.
 
 ## Install
 
-**Windows 11 with [Weasel](https://github.com/rime/weasel) 0.16 or newer**, and
-**Python 3.8+** to run the installer (and only for that). Lua support is
-already there — official librime release builds bundle `librime-lua`, and
-Weasel ships those builds — so there is nothing to compile, no plugin to
-install and no administrator rights needed.
+Everything in this repository is data and Lua, so it runs wherever Rime does:
+**Weasel** on Windows, **Squirrel** on macOS, `ibus-rime` or `fcitx5-rime` on
+Linux. You need **Python 3.8+** to run the installer, and only for that. Lua
+support is already there — official librime release builds bundle
+`librime-lua` and every frontend above ships those builds — so there is nothing
+to compile, no plugin to install and no administrator rights needed.
 
-**Consider installing
+Either take a release archive from
+[Releases](https://github.com/EricWay1024/spellless/releases) and run the
+installer inside it, or clone this repository and run `make && make test`
+first. On Windows there is also a single installer that carries Spellless and
+a Rime frontend together; [docs/RELEASING.md](docs/RELEASING.md) says what is
+in each, and why there is no bundled build for macOS.
+
+**On Windows, consider installing
 [spellless-weasel](https://github.com/EricWay1024/spellless-weasel) first.** It
 is Weasel with one convention added, it is what this project is developed on,
 and it buys the three features [below](#the-other-half-spellless-weasel) that no
@@ -147,11 +155,17 @@ input-method list. The schema install here is the same either way.
 python scripts\install.py
 ```
 
-From WSL, run `python3 scripts/install.py` instead — it finds the Windows-side
-Rime directory itself. Then right-click the Weasel tray icon → **Deploy**
-(「重新部署」), press <kbd>F4</kbd> and choose **Spellless**. The tray icon and
-the language-bar button turn into an **S**, and tapping Shift into plain typing
-brings back Weasel's **A**.
+or `python3 scripts/install.py` on macOS, Linux, and from WSL — where it finds
+the Windows-side Rime directory by itself. It knows where each frontend keeps
+its user directory: the registry on Windows, `~/Library/Rime` on macOS,
+`~/.config/ibus/rime` or `~/.local/share/fcitx5/rime` on Linux.
+
+Then **redeploy the frontend** — the Weasel tray icon → **Deploy**
+(「重新部署」), the Squirrel menu-bar icon → **Deploy**, or `ibus restart` —
+press <kbd>F4</kbd> and choose **Spellless**. On Windows the tray icon and the
+language-bar button turn into an **S**, and tapping Shift into plain typing
+brings back Weasel's **A**. Type `zzver` in any text box to see which build is
+actually running.
 
 | Flag | |
 | --- | --- |
@@ -532,6 +546,10 @@ good score as "I copy quickly".
 how to tell whether it actually did, and the ways it silently does not. Short
 version: `make && make test && python3 scripts/install.py`, redeploy the
 frontend, then type `zzver` and check the revision.
+
+[docs/RELEASING.md](docs/RELEASING.md) — how to cut the two release products:
+the schema archive, which runs on every platform Rime does, and the bundled
+Windows installer. `make release VERSION=0.1.0` builds the first.
 
 ---
 
