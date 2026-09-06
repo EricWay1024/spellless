@@ -10,10 +10,11 @@ lua bench/evaluate.lua                 # the table below
 lua bench/evaluate.lua skeletons       # one file
 SHOW_FAILURES=40 lua bench/evaluate.lua
 lua bench/tune.lua 2                   # coordinate descent over the weights
+lua bench/probe.lua                    # the two harsher probes below
 ```
 
 Numbers below are from a single-threaded Lua 5.4.7 build on WSL2
-(x86-64 laptop), dictionary of 82,880 words.
+(x86-64 laptop), dictionary of 83,137 words.
 
 ---
 
@@ -71,40 +72,38 @@ information for one answer.
 ```
 file                          cases   top-1   top-5 in-rank
 ------------------------------------------------------------
-ambiguity.tsv                    16   50.0%  100.0%  100.0%
+ambiguity.tsv                    16   50.0%   93.8%  100.0%
 common_typos.tsv                 68   97.1%  100.0%  100.0%
 forms.tsv                        42   76.2%  100.0%  100.0%
-generated_cues.tsv              300   96.3%   99.3%   99.3%
-generated_skeletons.tsv         400   90.2%   99.8%   99.8%
-generated_typos.tsv             500   90.8%   98.6%   98.6%
+generated_cues.tsv              300   88.0%   99.3%   99.3%
+generated_skeletons.tsv         400   88.5%   99.2%   99.2%
+generated_typos.tsv             500   91.4%   99.2%   99.2%
 literal.tsv                      24  100.0%  100.0%  100.0%
 prefix.tsv                       16   93.8%  100.0%  100.0%
-raw.tsv                          14   71.4%   85.7%  100.0%
+raw.tsv                          14   71.4%   78.6%  100.0%
 skeletons.tsv                    31  100.0%  100.0%  100.0%
 spec_examples.tsv                16   75.0%   87.5%  100.0%
 syllables.tsv                    57   98.2%  100.0%  100.0%
 ------------------------------------------------------------
-TOTAL                          1484   91.5%   99.0%   99.3%   <- training seed
+TOTAL                          1484   89.6%   99.0%   99.4%   <- shipped seed
 
 held out, mean of ten fresh generator seeds:
-generated_cues.tsv              300   92.0%
-generated_skeletons.tsv         400   87.6%
-generated_typos.tsv             500   90.0%
+generated_cues.tsv              300   88.1%   99.0%
+generated_skeletons.tsv         400   89.8%   99.8%
+generated_typos.tsv             500   91.0%   98.9%
 ------------------------------------------------------------
-TOTAL                          1484   89.7%   99.1%          <- held out
-                                      90.1%   99.1%   <- ten further seeds, never
-                                                         used for tuning or selection
+TOTAL                          1484   89.9%   99.3%          <- held out
 ```
 
-**Top-1 89.9%, top-5 99.1%** — held out, and every one of the 284 hand-written
+**Top-1 89.9%, top-5 99.3%** — held out, and every one of the 284 hand-written
 cases passes.
 
-Those are the *out-of-sample* figures, which is a change from earlier versions
-of this file. The generated sets come from a seeded generator, so a fresh seed
-is a free held-out set; the numbers above are the mean of ten, and a further
-ten held back from all tuning and selection agree to within 0.4 points. On the
-seed the weights were actually fitted to, the same table reads **91.5% / 99.0%**
-— a gap of about 1.6 points, and §"Held out" says where all of it lives.
+The generated sets come from a seeded generator, so a fresh seed is a free
+held-out set; the second block is the mean of ten. On the seed the weights were
+originally fitted to, the same table reads **89.6% / 99.0%** — *below* the
+held-out mean, by less than a third of the seed-to-seed standard deviation.
+There is no in-sample optimism left to correct for, which was not true when
+this file was first written; docs/ALGORITHM.md §5.1 has what changed and why.
 docs/ALGORITHM.md §5 is the short version of everything below.
 
 Three files deserve a footnote, because their low top-1 is the *intended*
@@ -162,19 +161,31 @@ nothing else.
 
 ```
                         without cues        with cues
-  generated_cues (300)  38.7% / 45.7%    85.7% /  98.3%     top-1 / top-5
-  syllables      (57)   59.6% / 77.2%    93.0% / 100.0%
+  generated_cues (300)  36.7% / 45.0%    88.0% /  99.3%     top-1 / top-5
+  syllables      (57)   59.6% / 77.2%    98.2% / 100.0%
 ```
 
 A harsher probe, because the case files are built from plausible shorthand
 rather than desperate shorthand: take 261 corpus words of seven letters or
-more and delete two letters at random.
+more and delete two letters at random. `lua bench/probe.lua`, seeded, so it can
+be re-run rather than believed.
 
 ```
                         without cues        with cues
-  nothing offered at all      9.2%             0.0%
-  right word first           28.4%            73.2%
-  right word on page 1       43.7%            93.5%
+  nothing offered at all      8.8%             0.0%
+  right word first           23.8%            68.2%
+  right word on page 1       45.2%            93.1%
+```
+
+The same script's second probe takes the cue case file — input the matcher
+answers at 88% — and mistypes one letter of each, which is the class slip
+tolerance exists for:
+
+```
+                        slip off            slip on
+  nothing offered at all     27.3%             0.0%
+  right word first           20.0%            22.4%
+  right word on page 1       28.3%            85.4%
 ```
 
 The first row is the one that changed the project. An input that offers
@@ -224,16 +235,16 @@ These are in `ambiguity.tsv`, and passing them means *not* being over-confident:
 
 ```
 over all 1,484 evaluation queries
-  mean 3.13 ms   median 2.03 ms   p95 9.15 ms
+  mean 2.9 ms   median 2.2 ms   p95 7.8 ms
 
 typing nine words out, one keystroke at a time (86 keystrokes)
-  mean 2.45 ms
+  mean 2.3 ms
   by input length (ms)
-    1: 1.0   2: 1.0   3: 1.2   4: 3.4   5: 1.9   6: 1.6   7: 2.2
-    8: 5.0   9: 5.0  10: 3.4  11: 2.9  12: 2.7  13: 3.0  14: 2.0
+    1: 0.9   2: 0.8   3: 0.9   4: 1.9   5: 4.7   6: 2.3   7: 2.2
+    8: 3.6   9: 4.1  10: 3.5  11: 2.5  12: 2.5  13: 2.5  14: 1.5
 
 startup   104 ms, once per process (memoised across engines)
-memory    13.9 MB after loading, 16.8 MB steady state
+memory    13.9 MB after loading, 17.6 MB steady state
 ```
 
 The second block is the number that matters: it is what a keystroke costs while
@@ -248,7 +259,7 @@ skipped entirely whenever the query is itself a word — which is most of what
 anyone types.
 
 For scale: running just the typo source naively — weighted edit distance
-against all 82,880 words, no buckets, no prefilter — measures **105–115 ms per
+against all 83,137 words, no buckets, no prefilter — measures **105–115 ms per
 query** in the same Lua build (`bench/naive.lua`). The bucketing and prefilters
 described in DESIGN.md §4.5 do that work *and* the skeleton and cue searches in
 about 2.5 ms, roughly a 40× reduction with no measured loss of recall.
@@ -316,6 +327,6 @@ Changes found by *hand* mattered considerably more than the tuning itself:
 
 ## Regression protection
 
-`tests/run.lua` runs 1868 assertions, and `tests/test_install.py` another 44, including every hand-written case at its
+`tests/run.lua` runs 2125 assertions, and `tests/test_install.py` another 50, including every hand-written case at its
 stated budget and accuracy floors a few points below the numbers above for the
 generated sets. Ordinary tuning does not trip it; a real regression does.

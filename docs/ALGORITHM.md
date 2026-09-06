@@ -26,7 +26,7 @@ A person knows a word and cannot reliably produce its spelling at the speed
 they think. They type an approximation. The system must return a short ranked
 list containing the word they meant, fast enough that typing does not stutter.
 
-**Formally.** A dictionary `D` of `N = 83,095` English words, each carrying a
+**Formally.** A dictionary `D` of `N = 83,137` English words, each carrying a
 normalised log-frequency `f(w) ∈ [0,1]`. A query `q ∈ Σ*` where
 `Σ = {a…z, '}`. Return an ordered list `C = (c₁ … c_k)`, `k ≤ 20`, of strings,
 with `q` itself guaranteed to appear somewhere in it. Maximise
@@ -82,7 +82,7 @@ than an application of a known technique.
 | | |
 | --- | --- |
 | **Latency** | Runs on every keystroke inside the IME process. ~2.5 ms mean, under 10 ms at p95. Single-threaded interpreted Lua 5.4, no JIT. |
-| **Scale of the budget** | A naive weighted edit distance against all 83,095 words, *with* the budget and early abort, costs **165 ms per query**. The budget is therefore under 1/70th of a full scan. |
+| **Scale of the budget** | A naive weighted edit distance against all 83,137 words, *with* the budget and early abort, costs **165 ms per query**. The budget is therefore under 1/70th of a full scan. |
 | **Memory** | ~17 MB resident, ~100 ms to load, once per process. |
 | **Dependencies** | None. Pure Lua, no compiled extension, no network, no GPU. The shipped data is 1.3 MB. |
 | **No context** | One composition is one word. The preceding word is available only as an unreliable string of what the IME itself last committed — a mouse click that moves the caret is invisible. There is no sentence, no document, no application state. |
@@ -102,7 +102,7 @@ what remains is a search problem with a hand-built scoring function.
 SCOWL, MIT-licensed, 82,834 entries as vendored), filtered to `[a-z]+` plus
 genuine contractions, merged with 771 hand-added entries — technical
 vocabulary, proper nouns, given names, multi-word phrases, deliberate
-shorthand. **83,095 entries.**
+shorthand. **83,137 entries.**
 
 One preprocessing step is worth noting because it is a general hazard: the
 corpus gives all 64 contractions the same tail count, which is an artefact of
@@ -219,31 +219,44 @@ The clearest statement of why there are four cost models rather than one. Each
 column is the same pair of strings under a different one, against that model's
 budget; the bold figure is the one that actually finds the word.
 
-| query | word | typo ≤1.35 | skeleton ≤1.30 | elastic ≤1.70 | cue ≤12 nats |
+| query | word | typo ≤1.35 | skeleton ≤1.30 | elastic ≤1.70 | cue ≤1.33 (2.44 †) |
 | --- | --- | --- | --- | --- | --- |
 | `teh` | the | **0.45** | 0.00 | 0.45 | — |
 | `recieve` | receive | **0.45** | 0.00 | 0.45 | — |
-| `commited` | committed | **0.55** | 0.55 | 0.55 | 0.50 |
-| `dont` | don't | **0.15** | 0.15 | 0.15 | 0.16 |
-| `mthmtcs` | mathematics | 2.80 | 0.00 | **0.40** | 0.26 |
-| `mthmtcs` | mathematical | 4.50 | 1.00 | **1.10** | — |
-| `ppl` | people | 2.10 | 0.00 | **0.20** | 0.15 |
-| `alghrith` | algorithm | 2.00 | 2.00 * | **1.00** | — |
-| `satfcatn` | stratification | 4.80 | 2.00 | 2.40 | **0.64** |
-| `gvmnt` | government | 4.10 | 2.00 | 2.20 | **0.43** |
-| `tnk` | think | 1.70 | 1.00 | 1.10 | **0.22** |
-| `tnk` | tank | 0.70 | **0.00** | 0.10 | 0.09 |
+| `commited` | committed | **0.55** | 0.55 | 0.55 | 0.66 |
+| `dont` | don't | **0.15** | 0.15 | 0.15 | 0.22 |
+| `mthmtcs` | mathematics | 2.80 | 0.00 | **0.40** | 0.34 |
+| `mthmtcs` | mathematical | 4.50 | 1.00 | **1.10** | 1.47 † |
+| `ppl` | people | 2.10 | 0.00 | **0.20** | 0.21 |
+| `alghrith` | algorithm | 2.00 | 2.00 * | **1.00** | 1.79 † |
+| `satfcatn` | stratification | 4.80 | 2.00 | 2.40 | **0.86** |
+| `gvmnt` | government | 4.10 | 2.00 | 2.20 | **0.57** |
+| `tnk` | think | 1.70 | 1.00 | 1.10 | **0.29** |
+| `tnk` | tank | 0.70 | **0.00** | 0.10 | 0.12 |
 | `mathe` | mouth | 2.15 | 0.00 | 1.60 | — |
 
-The cue column is a log-likelihood divided by a units constant (§4.5), so it is
-not on the same scale as the other three; only its ordering within the column
-means anything.
+The cue column is a log-likelihood in nats divided by a units constant (§4.5),
+so it is not on the same scale as the other three; only its ordering within the
+column means anything. It is shown in those units rather than in nats, which is
+why the budget reads 1.33 rather than the 12 nats the configuration names —
+`cue.align` divides by `cue_cost_scale = 9` before returning. To reproduce a
+row:
+
+```lua
+package.path = "rime/lua/?.lua;" .. package.path
+local cue, cfg = require("spellless.cue"), require("spellless.config").defaults
+print(cue.align("gvmnt", "government", cfg.cue_budget, cfg))   --> 0.57
+```
 
 `—` means the channel cannot express the relationship at all: the query is not
-a subsequence of the word. The skeleton column is a full skeleton-to-skeleton
-comparison; `*` marks where the shipped code compares against a *prefix* of the
-word's skeleton instead (§4.4), which is what brings `alghrith` inside budget
-for generation — the elastic column is what then prices it.
+a subsequence of the word, nor a subsequence with one character mistyped.
+`†` marks the readings that need that slip, which is why they cost so much: a
+slip is charged `cue_slip_cost = 10` nats *and* granted that much extra budget
+(§4.5), so a slipped reading can be found up to 2.44 and still lands far below
+anything clean. The skeleton column is a full skeleton-to-skeleton comparison;
+`*` marks where the shipped code compares against a *prefix* of the word's
+skeleton instead (§4.4), which is what brings `alghrith` inside budget for
+generation — the elastic column is what then prices it.
 
 The last row is the instructive one. `mathe` and `mouth` have the same
 skeleton, so a skeleton-to-skeleton comparison calls them a perfect match, and
@@ -423,7 +436,7 @@ held-out top-1.
 **One letter of the shorthand may be the wrong key**, at a fixed extra cost —
 a substitution transition in the same DP, with the letter-set filter relaxed
 from "every letter appears" to "at most one does not". It takes 252 corrupted
-shorthands from 25.4% to 89.7% top-5, for about 0.35 ms per keystroke. Note
+shorthands from 28% to 85% on the first page, for about 0.35 ms per keystroke. Note
 that **no case file can see this at all** — not one of them contains a
 corrupted shorthand — so it is a feature whose entire value sits outside the
 benchmark, which is worth remembering when reading §5.
@@ -605,22 +618,44 @@ makes discarding a case defensible rather than a way of raising the score.
 **The weights are fitted on these same cases.** That is the largest
 methodological problem here and it is a consequence of having no real data
 (§2). But the generated portion comes from a *seeded* generator, so a fresh
-seed is a free held-out set — and the answer is much sharper than "the numbers
-are optimistic":
+seed is a free held-out set, and it can be asked directly how optimistic the
+shipped number is:
 
 ```
-                        shipped seed    25 fresh draws    gap    draws ≥ shipped
-  generated_typos           92.2%           92.0%        +0.2       11 / 25
-  generated_skeletons       93.0%           92.2%        +0.8        9 / 25
-  generated_cues            85.7%           78.0%        +7.7        0 / 25
-  top-5, pooled             99.2%           99.2%        −0.0
+                        shipped seed   10 fresh draws    gap    draws ≥ shipped
+  generated_typos           91.4%      91.0% ± 0.9      +0.4        5 / 10
+  generated_skeletons       88.5%      89.8% ± 1.9      −1.3        7 / 10
+  generated_cues            88.0%      88.1% ± 2.7      −0.1        6 / 10
+  TOTAL top-1               89.6%      89.9% ± 0.9      −0.3        7 / 10
+  TOTAL top-5               99.0%      99.3% ± 0.3      −0.3
 ```
 
-**The entire overfit lived in one file** — the syllabic shorthand set, whose
-five constants were fitted on 300 cases — and **top-5 has no gap anywhere**.
-Leave-one-file-out agrees from a completely different direction: tuning with
-the shorthand file excluded and scoring on it gives 80.3%, against a fresh-seed
-mean of 78.0%. Every other file's leave-one-out optimism is 0.00.
+**There is no measurable optimism left, on any file.** Every gap is inside one
+standard deviation of the seed-to-seed spread, the shipped seed sits *below*
+the held-out mean overall, and about half the fresh draws beat it on each file
+— which is what a set of weights that has not been fitted to a particular draw
+looks like.
+
+It did not read that way when this section was first written, and how it
+changed is the useful part. The measurement then was:
+
+```
+                        shipped seed    25 fresh draws    gap
+  generated_typos           92.2%           92.0%        +0.2
+  generated_skeletons       93.0%           92.2%        +0.8
+  generated_cues            85.7%           78.0%        +7.7      ← all of it
+```
+
+The entire overfit lived in the syllabic shorthand set, whose five constants
+had been fitted by coordinate descent on those 300 cases. What removed it was
+not a better fitting procedure but **abandoning the fit**: the channel was
+rewritten as a normalised generative model (§4.5), its keep probabilities were
+set from what the letter classes mean rather than from a sweep, and
+`cue_cost_scale` was then set by hand — a single dial, chosen on how the
+candidate lists read, not on this file's score. The cue set's accuracy on the
+shipped seed fell 85.7 → 88.0 by the seed's own reckoning while the held-out
+mean rose 78.0 → 88.1. The lesson is worth keeping: five free constants over
+300 cases were buying about eight points of nothing.
 
 Two things this does *not* measure, and they are the larger uncertainties. A
 fresh seed re-samples from the same generator against the same dictionary, so
@@ -642,33 +677,33 @@ fix: real data from real composition.
 
 ### 5.2 Current results
 
-Every number below is **held out** unless it says otherwise: the generated
-files are the mean of ten fresh generator seeds, and a further ten seeds, never
-looked at during any tuning or selection, agree to within 0.4 points.
+The shipped seed, which is what `lua bench/evaluate.lua` prints, with the
+held-out mean beside the generated files. §5.1 has the reason the two columns
+now agree.
 
 ```
-file                          cases   top-1   top-5      (held-out where generated)
+file                          cases   top-1   top-5      held out (10 seeds)
 ------------------------------------------------------------
-ambiguity.tsv                    16   50.0%  100.0%      hand-written, training
-common_typos.tsv                 68   97.1%  100.0%      hand-written, training
-forms.tsv                        42   76.2%  100.0%      hand-written, training
-generated_cues.tsv              300   92.0%   ~99%       held out, 10 seeds
-generated_skeletons.tsv         400   87.6%  ~100%       held out, 10 seeds
-generated_typos.tsv             500   90.0%   ~99%       held out, 10 seeds
-literal.tsv                      24  100.0%  100.0%      hand-written, training
-prefix.tsv                       16   93.8%  100.0%      hand-written, training
-raw.tsv                          14   71.4%   85.7%      hand-written, training
-skeletons.tsv                    31  100.0%  100.0%      hand-written, training
-spec_examples.tsv                16   75.0%   87.5%      hand-written, training
-syllables.tsv                    57   98.2%  100.0%      hand-written, training
+ambiguity.tsv                    16   50.0%   93.8%      hand-written, no held-out set
+common_typos.tsv                 68   97.1%  100.0%      hand-written, no held-out set
+forms.tsv                        42   76.2%  100.0%      hand-written, no held-out set
+generated_cues.tsv              300   88.0%   99.3%      88.1% / 99.0%
+generated_skeletons.tsv         400   88.5%   99.2%      89.8% / 99.8%
+generated_typos.tsv             500   91.4%   99.2%      91.0% / 98.9%
+literal.tsv                      24  100.0%  100.0%      hand-written, no held-out set
+prefix.tsv                       16   93.8%  100.0%      hand-written, no held-out set
+raw.tsv                          14   71.4%   78.6%      hand-written, no held-out set
+skeletons.tsv                    31  100.0%  100.0%      hand-written, no held-out set
+spec_examples.tsv                16   75.0%   87.5%      hand-written, no held-out set
+syllables.tsv                    57   98.2%  100.0%      hand-written, no held-out set
 ------------------------------------------------------------
-TOTAL                          1484   89.7%   99.1%      held out
-                                      90.1%   99.1%      second held-out set
-                                      91.5%   99.0%      training seed
+TOTAL                          1484   89.6%   99.0%      shipped seed
+                                      89.9%   99.3%      mean of 10 fresh seeds
 ```
 
-**Top-1 ≈ 89.9% held out, top-5 ≈ 99.1%.** The training seed reads 91.5%, so
-the honest gap is about 1.6 points, and it is concentrated where §5.1 says.
+**Top-1 ≈ 89.9% held out, top-5 ≈ 99.3%**, and the shipped seed reads 89.6% —
+*below* the held-out mean, by less than a third of the seed-to-seed standard
+deviation. There is no gap left to correct for.
 
 Three files have a deliberately low top-1. `spec_examples.tsv` asks for
 `mathematics`, `mathematical` **and** `mathematician` from the same input, so
@@ -683,34 +718,60 @@ By error class, on the shipped seed:
 
 ```
                               cases   top-1   top-5
-  transpose                     117   95.7%  100.0%
-  insert (doubled letter)       126   96.0%  100.0%
-  substitute (neighbour key)    130   93.8%   97.7%
-  delete                        127   80.3%   97.6%
+  transpose                     123   94.3%  100.0%
+  insert (doubled letter)       127   97.6%  100.0%
+  substitute (neighbour key)    129   95.3%  100.0%
+  delete                        121   77.7%   96.7%
 ```
 
-A harsher probe than the case files, since those are built from *plausible*
-shorthand: take 261 corpus words of seven letters or more and delete two
-letters at random.
+Deletion is the hard class and always has been: a deleted letter leaves less
+information than any of the others, and a query that is a subsequence of its
+target is a subsequence of several.
+
+Two harsher probes than the case files, since those are built from *plausible*
+input. Both are `lua bench/probe.lua`, seeded, so they can be re-run rather
+than believed; the figures move a couple of points between seeds and the
+conclusions do not.
+
+Take 261 corpus words of seven letters or more and delete two letters at
+random. Nothing about the result respects a syllable, so this is the shorthand
+channel working outside the model it was built on.
 
 ```
                         cue channel off      cue channel on
-  nothing offered at all      9.2%                0.0%
-  right word first           28.4%               73.2%
-  right word on page 1       43.7%               93.5%
+  nothing offered at all      8.8%                0.0%
+  right word first           23.8%               68.2%
+  right word on page 1       45.2%               93.1%
 ```
+
+Then take the cue case file — inputs the matcher answers at 88% — and mistype
+one letter of each. This is the class slip tolerance (§4.5) exists for, and the
+one the case files cannot contain, because a generator that produced them would
+be generating noise rather than shorthand.
+
+```
+                        slip tolerance off   slip tolerance on
+  nothing offered at all     27.3%                0.0%
+  right word first           20.0%               22.4%
+  right word on page 1       28.3%               85.4%
+```
+
+Note which row moves. Slip tolerance barely changes what leads — a corrupted
+abbreviation is genuinely ambiguous and the matcher is right not to be
+confident about it — and takes the first page from a third to six in seven.
+That is the shape of a recall feature, and it is why it is judged on top-5.
 
 ### 5.3 Latency
 
 ```
 over all 1,484 evaluation queries
-  mean 3.15 ms   median 2.10 ms   p95 8.9 ms
+  mean 2.9 ms   median 2.2 ms   p95 7.8 ms
 
 typing nine words out, one keystroke at a time (86 keystrokes)
   mean 2.3 ms
 
 startup   ~100 ms, once per process (memoised across engines)
-memory    13.9 MB after loading, 16.8 MB steady state
+memory    13.9 MB after loading, 17.6 MB steady state
 ```
 
 The second block is what a keystroke costs while a word is actually being
@@ -721,9 +782,17 @@ the bucketing and prefilters do that work *and* three other searches in about
 Two features that improve recall have the same shape: they cost a fifth to a
 quarter of the per-keystroke budget, paid on *every* query, for an input class
 that is rare. Slip-tolerant shorthand is **on** and takes corrupted
-abbreviations from 25.4% to 89.7% top-5; `scan_first_neighbours` is **off** and
+abbreviations from 28% to 85% on the first page; `scan_first_neighbours` is **off** and
 would take a wrong first key from 1.6% to 98.2% on the first page. There is not
 room for both. See §8.9.
+
+**A warning about reading the table above.** Three shipped features are
+invisible to it. `lua bench/evaluate.lua -- affix_words=false` returns
+bit-identical accuracy, because no case file contains a coined word; slip
+tolerance and the correction store are the same shape. So the 1,484 cases
+measure the four matching channels and nothing else, and a change that only
+touches the rest can be neither validated nor caught here. `bench/probe.lua`
+covers two of the three; the correction store has only its unit tests.
 
 ### 5.4 How the weights were chosen, and why that is a weakness
 
@@ -742,8 +811,10 @@ scoring on fresh seeds:
   one descent pass      89.9%        88.0%        84%
 ```
 
-**84% of the tuning gain survives on unseen cases.** The tuning does real work;
-the optimism is 1.65 points and all of it is the shorthand channel. Coordinate
+**84% of the tuning gain survives on unseen cases.** The tuning does real work,
+and the 1.65 points that did not survive were all the shorthand channel —
+whose five fitted constants have since been replaced by a model with none
+(§4.5), which is why §5.1 can no longer measure any optimism at all. Coordinate
 descent alone does not reproduce the shipped weights — one pass from a neutral
 start lands 1.0 points worse held out and breaks two `forms.tsv` cases — so the
 shipped values carry hand judgement as well.
@@ -755,8 +826,9 @@ apostrophe at 0.15; charging the tail in the shorthand channel. Each moved more
 than any weight sweep.
 
 And the tuner has a structural blind spot worth naming. Its grid omits four
-constants (`base_exact`, `form_bonus`, `unknown_word_penalty`, and the split
-base that turned out to be dead), which accidentally pins the gauge freedom of
+constants (`base_exact`, `form_bonus`, `unknown_word_penalty`, and a split base
+that turned out to be dead and has since been deleted), which accidentally pins
+the gauge freedom of
 §4.8 — that is *why* the descent converges at all rather than drifting along a
 flat direction. But it also means the tuner cannot express "everything matters
 more relative to `base_exact`" except as a simultaneous move of eleven
@@ -769,20 +841,19 @@ is a real regression the objective cannot see.
 ## 6. Where it fails now
 
 Almost every remaining loss is a real ambiguity rather than a search failure.
-Across all 1,484 cases, 126 (8.5%) do not lead, and of those:
+Across all 1,484 cases, 155 (10.4%) do not lead, and of those:
 
 ```
-  intended word at rank 2        78   62% of misses
-                  at rank 3–5    33   26%
-                  at rank 6–20   14   11%
+  intended word at rank 2       102   66% of misses
+                  at rank 3–5    38   25%
+                  at rank 6–20   14    9%
                   not offered     1    1%
 ```
 
 **Almost nothing is ever missing** — one case in 1,484, and it is worth naming
-because it used to be zero: `disr` (a corruption of `dist`) now returns eight
-`dis-` completions and no `dist`, because a fuller candidate list can crowd a
-weak target off the end of it. That is the price of the stronger shorthand
-channel, and it is one case.
+because it used to be zero: `lan`, wanted for `lawn`, which is three letters
+against a page of commoner words that explain them. That is the price of a
+fuller candidate list, and it is one case.
 
 The rest of the residual is ordering, and 62% of it is ordering between two
 readings that are both defensible. In 24% of misses the winning word shares a
@@ -820,15 +891,14 @@ And two structural gaps:
 
 **The fuzzy readings do not compose.** Splitting is exact only:
 `exactlyright → exactly right` works, but `exctlyrght` finds nothing, because
-every part would need the full fuzzy search at every split point. Shorthand has
-the same shape of limit — the cue channel requires every letter typed to appear
-in the word, in order, so a slip *inside* an abbreviation (`stfxctn` for
-`stratification`) falls back to channels that cannot span that far. One missing
-capability, met twice: running a fuzzy search inside a fuzzy segmentation.
+every part would need the full fuzzy search at every split point. The missing
+capability is running a fuzzy search inside a fuzzy segmentation.
 
-**Learning remembers the word, not the input that found it.** Selecting
-`recommendation` for `rcmmndtn` raises `recommendation` everywhere; it does not
-record that *this* abbreviation meant *that* word.
+Shorthand used to have the same limit from the other end — the cue channel
+requires every letter typed to appear in the word, in order — and slip
+tolerance (§4.5) closed it: `stfxctn` now finds `stratification` at rank 3.
+That is one wrong letter, not two, and not a wrong first letter; the general
+case is still open (§8.9).
 
 ---
 
@@ -907,9 +977,9 @@ The chain was: morphological siblings are 24% of misses → siblings differ in
 part of speech → the previous word predicts part of speech. Each link leaks:
 
 ```
-  40 of 126 misses are morphological siblings           24% of misses
-  ... that differ in part of speech at all             ~10   25% of those
-  ... decidable from the word on the LEFT               ~6   14% of those
+  36 of 155 misses are morphological siblings           23% of misses
+  ... that differ in part of speech at all              ~9   25% of those
+  ... decidable from the word on the LEFT               ~5   14% of those
 ```
 
 The first drop is a bad classifier: most "siblings" differ by *number*
@@ -929,9 +999,9 @@ after the fact:
 
 ```
   prev    fixed  broken   net
-  the         9      30   −21
-  of          8      34   −26
-  very       10      78   −68
+  the        13      31   −18
+  of         11      37   −26
+  very       11     108   −97
   and         0       0     0     ← the NEUTRAL row, behaving as designed
 ```
 
@@ -944,8 +1014,8 @@ about parts of speech; the suffix rules select *endings*. "VERB" here means
 *ends in -ed, -ing or -ate*, and `P(that | "the")` is nothing like
 `P(verb | "the")` — "the building", "the greeting", "the finished draft". So
 `DET→VERB = −1.50` demotes precisely the words determiners most often precede,
-and 21 of the 30 breaks after "the" are an `-ed`/`-ing` word losing to an
-`-s`/`-er`/`-or` noun.
+and about two thirds of the breaks after "the" are an `-ed`/`-ing` word losing
+to an `-s`/`-er`/`-or` noun.
 
 The scaffolding survives its own test and ships disabled: zero-centred so an
 unknown previous word contributes exactly nothing, a margin derived from the
@@ -1039,7 +1109,7 @@ Two things were hiding in this item and **one of them is now done**. A slip
 *inside* shorthand needed only a substitution transition in the subsequence DP
 and a letter-set test relaxed from "every letter appears" to "at most one does
 not" — same scan, same budget structure. It takes corrupted shorthands from
-25.4% to 89.7% top-5 and ships off for latency (§8.9), not because it does not
+28% to 85% on the first page and ships off for latency (§8.9), not because it does not
 work.
 
 Fuzzy *segmentation* is the expensive half and is still open: `exctlyrght` →
@@ -1131,7 +1201,7 @@ been the same, and nobody has built it:
 | feature | what it buys | what it costs |
 | --- | --- | --- |
 | `scan_first_neighbours` | a wrong first key, 1.6% → 98.2% on page 1 | +27% per keystroke, p95 over budget |
-| slip-tolerant shorthand | corrupted shorthand, 25.4% → 89.7% top-5 | +0.35 ms per keystroke |
+| slip-tolerant shorthand | corrupted shorthand, 28% → 85% on page 1 | +0.35 ms per keystroke |
 
 The second is now **on**, which spends about a third of the remaining p95
 headroom on it; the first is still off, and would spend the rest. Both would be free
@@ -1150,7 +1220,7 @@ it cheaper still.
 ```bash
 git clone https://github.com/EricWay1024/spellless && cd spellless
 make            # rebuild dictionary, indexes and generated test sets
-make test       # 1,977 assertions, including every hand-written case
+make test       # 2,125 assertions, including every hand-written case
 make bench      # the accuracy and latency tables in §5
 lua bench/try.lua --debug mthmtcs satfcatn tnk     # ask it anything
 
@@ -1162,6 +1232,7 @@ lua bench/tune.lua 3                        # the coordinate descent of §5.4
 lua bench/tune.lua 1 --start midgrid        # ... from a neutral start
 lua bench/tune.lua 1 --exclude generated_cues   # ... leave-one-file-out
 lua bench/context.lua                       # score a class table (§8.1)
+lua bench/probe.lua                         # the harsher probes of §5.2
 ```
 
 Typing `zzver` into the input method itself reports the running build — the

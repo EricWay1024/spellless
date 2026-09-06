@@ -23,7 +23,7 @@ and then, in any text box, **type `zzver`**:
 
 ```
 zzver  →  spellless 0848769 installed 2026-09-06 12:10
-          83095 words, 580 forms, 3 shortcuts
+          83137 words, 622 forms, 3 shortcuts
           cue 70/9.0, slip 10.0, learn on
 ```
 

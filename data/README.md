@@ -45,13 +45,16 @@ has an unambiguous permissive licence.
    tail count, which is an artefact of how it was tokenised rather than a fact
    about English — `don't` is not really rarer than the 37,000th word. Without
    this, a dropped apostrophe finds nothing;
+4c. adds the apostrophe-free spelling of a contraction whenever that spelling
+   is not itself a word — `youll`, `dont`, `ive` — because the apostrophe is
+   the key nobody reaches for at speed. `ive` resolves to `I've`, not `ive`;
 5. sorts by descending frequency, so a word's line number is its frequency
    rank;
 6. writes the words, and one byte per word holding
    `round(255 · (log f − log f_min) / (log f_max − log f_min))`.
 
-Rejected: 1 entry. Result: **82,880 entries** (82,833 kept + 47 new from the
-supplemental file).
+Rejected: 1 entry. Result: **83,137 entries** (82,833 kept + 262 new from the
+supplemental files + 42 apostrophe-free contraction spellings).
 
 ### Known weaknesses of this corpus
 
