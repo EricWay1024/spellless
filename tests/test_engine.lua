@@ -507,9 +507,15 @@ do
   H.ok(l:find(" resembling ") and l:find(" resampling ", 1, true) > l:find(" resembling ", 1, true),
        "a coinage sits behind the readings the dictionary can account for")
 
+  -- Switched off means gone from the *list*, not merely off the second line:
+  -- the coinage sits behind the ordinary readings, so looking at one slot
+  -- passed whether or not the flag did anything.
   local off = assert(Engine.new{ data_dir = DATA, config = { affix_words = false } })
-  H.ok(not (" " .. off:suggest("resmplng", 8)[2].text .. " "):find("resampling"),
-       "and it can be switched off")
+  local none = {}
+  for i, c in ipairs(off:suggest("resmplng", 8)) do none[i] = c.text:gsub("%s+$", "") end
+  none = " " .. table.concat(none, " ") .. " "
+  H.ok(not none:find(" resampling ", 1, true),
+       "and it can be switched off: " .. none)
 end
 
 H.suite("engine: hyphenated compounds are typed a word at a time")

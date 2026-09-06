@@ -18,6 +18,10 @@ local STRICT = { "spec_examples.tsv", "common_typos.tsv", "skeletons.tsv",
 local FLOORS = {
   ["generated_typos.tsv"]     = { top1 = 0.80, top5 = 0.94 },
   ["generated_skeletons.tsv"] = { top1 = 0.80, top5 = 0.95 },
+  -- The syllable-cue file was the one generated set with no floor at all, so
+  -- the newest and least constrained channel was the only one `make test`
+  -- could not notice a regression in.
+  ["generated_cues.tsv"]      = { top1 = 0.80, top5 = 0.94 },
 }
 
 local function evaluate(name)
