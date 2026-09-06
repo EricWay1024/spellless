@@ -413,12 +413,20 @@ one, and the aggregate is flat:
   TOTAL top-1      85.8   88.7   89.5   89.6   89.6
 ```
 
+The aggregate is flat, so the data does not choose and the setting is a
+statement about who is typing. It ships at **9**, favouring the skeleton
+reading, because at 12 the exact-skeleton cases were visibly losing — `wrkr`
+gave *workers* before *worker*, `mlcl` *molecular* before *molecule* — and a
+consonant skeleton is the commoner way to type here. It costs 0.24 points of
+held-out top-1.
+
 **One letter of the shorthand may be the wrong key**, at a fixed extra cost —
 a substitution transition in the same DP, with the letter-set filter relaxed
 from "every letter appears" to "at most one does not". It takes 252 corrupted
-shorthands from 25.4% to 89.7% top-5 and it ships **off**, because it costs
-0.4 ms on every keystroke and 1.3 ms at p95 for a compound error rarer than
-either of its halves. See §8.9.
+shorthands from 25.4% to 89.7% top-5, for about 0.35 ms per keystroke. Note
+that **no case file can see this at all** — not one of them contains a
+corrupted shorthand — so it is a feature whose entire value sits outside the
+benchmark, which is worth remembering when reading §5.
 
 **Generation** cannot use an index — a subsequence has no prefix to binary
 search on, and the skeleton permutation is exactly what these queries fail to
@@ -698,12 +706,12 @@ typed, and it is the number that matters. Against 165 ms for a naive full scan,
 the bucketing and prefilters do that work *and* three other searches in about
 2.3 ms.
 
-Two features that would improve recall are **off** because of this budget, and
-they have the same shape: `scan_first_neighbours` takes an unreachable input
-class (a wrong first key that is not a QWERTY neighbour) from 1.6% to 98.2% on
-the first page, and slip-tolerant shorthand takes corrupted abbreviations from
-25.4% to 89.7% top-5. Each costs a quarter to a fifth of the per-keystroke
-budget, paid on *every* query, for an input class that is rare. See §8.9.
+Two features that improve recall have the same shape: they cost a fifth to a
+quarter of the per-keystroke budget, paid on *every* query, for an input class
+that is rare. Slip-tolerant shorthand is **on** and takes corrupted
+abbreviations from 25.4% to 89.7% top-5; `scan_first_neighbours` is **off** and
+would take a wrong first key from 1.6% to 98.2% on the first page. There is not
+room for both. See §8.9.
 
 ### 5.4 How the weights were chosen, and why that is a weakness
 
@@ -1111,9 +1119,10 @@ been the same, and nobody has built it:
 | feature | what it buys | what it costs |
 | --- | --- | --- |
 | `scan_first_neighbours` | a wrong first key, 1.6% → 98.2% on page 1 | +27% per keystroke, p95 over budget |
-| slip-tolerant shorthand | corrupted shorthand, 25.4% → 89.7% top-5 | +0.4 ms per keystroke, +1.3 ms p95 |
+| slip-tolerant shorthand | corrupted shorthand, 25.4% → 89.7% top-5 | +0.35 ms per keystroke |
 
-Both are off. Both are one schema line from being on. And both would be free
+The second is now **on**, which spends about a third of the remaining p95
+headroom on it; the first is still off, and would spend the rest. Both would be free
 almost all the time if they ran as a **second pass, gated on
 `Engine:trustworthy` finding nothing worth putting under the space bar** — a
 predicate that already exists and is already computed (§4.9). The common

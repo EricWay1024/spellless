@@ -69,7 +69,7 @@ M.defaults = {
   -- top-5 at 10 did not replicate on ten further seeds held back for exactly
   -- that check, so 12 stands: the difference is where the accuracy sits, not
   -- how much of it there is.
-  cue_cost_scale    = 12.0,
+  cue_cost_scale    = 9.0,
   -- One letter of the shorthand may be the wrong key, at this many nats on top
   -- of what keeping it costs.  Without it a slip *inside* an abbreviation is
   -- fatal rather than merely expensive: the letters no longer appear in the
@@ -77,22 +77,26 @@ M.defaults = {
   -- Nothing counts the slips -- two cost twice as much and the budget refuses
   -- them -- which is the same structure as every other channel here.
   --
-  -- **Off**, at 0, and it is a close thing.  It works: over 252 shorthands with
-  -- one letter corrupted it takes top-5 from 25.4% to 89.7%, and eleven of a
-  -- dozen hand-built cases lead.  It costs +0.5 ms mean, +0.4 ms per keystroke
-  -- and **+1.3 ms at p95**, which lands on the 10 ms wall this project holds
-  -- itself to -- on a development machine, for a compound error (shorthand
-  -- *and* a slip) that is rarer than either half, paid on every keystroke that
-  -- has neither.
+  -- **On**, at the value the sweep chose; 8 buys more recall for three
+  -- case-file regressions.  Over 252 shorthands with one letter corrupted it
+  -- takes top-5 from 25.4% to 89.7%, and eleven of a dozen hand-built cases
+  -- lead: "algrthn" gives algorithm, "gvrnmxt" government, "mthmxcs"
+  -- mathematics.  The case files cannot see any of that -- not one of them
+  -- contains a corrupted shorthand -- so the accuracy table is unmoved either
+  -- way, and this is a feature whose whole value is outside the benchmark.
   --
-  -- Set it to 10.0 in the schema to turn it on; that is the value the sweep
-  -- chose, and 8 buys more recall for three case-file regressions.  The shape
-  -- that would earn it by default is the one scan_first_neighbours wants too: a
-  -- second pass, run only when Engine:trustworthy says the first found nothing
-  -- worth putting under the space bar.  Twice now the answer to "this is real
-  -- recall at a cost on every query" has been the same gate, and nobody has
+  -- It costs about 0.35 ms per keystroke and 0.5 ms at p95, affordable here
+  -- only because cue_cost_scale came down to 9 at the same time and gave some
+  -- of that back: p95 sits at 9.3-9.8 ms against the 10 ms this project holds
+  -- itself to.  Set it to 0 on a machine with less headroom; that is a
+  -- supported configuration and tests/test_cue.lua asserts it.
+  --
+  -- The shape that would make it free is the one scan_first_neighbours wants
+  -- too: a second pass, run only when Engine:trustworthy says the first found
+  -- nothing worth putting under the space bar.  Twice now the answer to "real
+  -- recall at a cost on every query" has been that same gate, and nobody has
   -- built it.
-  cue_slip_cost     = 0.0,
+  cue_slip_cost     = 10.0,
   -- Below this length a wrong letter is not a slip, it is a different word:
   -- "tnk" with one letter wrong could be shorthand for anything, and letting
   -- it be turns a three-letter query back into a scan of the dictionary.

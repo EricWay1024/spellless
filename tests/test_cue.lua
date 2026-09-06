@@ -59,18 +59,18 @@ H.ok(cost("tnk", "thinking") > cost("tnk", "think"),
      "and so does a completion of it")
 
 H.suite("cue: one letter of the shorthand may be the wrong key")
--- Off by default -- it costs 1.3 ms at p95, see config.lua -- so these use a
--- configuration that turns it on.  The feature is tested whether or not it
--- ships enabled; what the default controls is who pays for it.
-local slipcfg = config.build{ cue_slip_cost = 10.0 }
+-- On by default, and the shipped configuration is what these use.  The
+-- switched-off case is asserted separately below, because turning it off is a
+-- supported thing to do when a machine has no latency headroom.
+local slipcfg = cfg
 local SLIP = slipcfg.cue_slip_cost / slipcfg.cue_cost_scale
 local function slipcost(query, word, budget)
   return cue.align(query, word, budget or BIG, slipcfg)
 end
-H.eq(cost("stfxctn", "stratification"), nil,
-     "off by default: a slip inside an abbreviation is fatal")
 H.ok(slipcost("stfxctn", "stratification") ~= nil,
-     "switched on, it is expensive rather than fatal")
+     "a slip inside an abbreviation is expensive, not fatal")
+H.eq(cue.align("stfxctn", "stratification", 99, config.build{ cue_slip_cost = 0 }), nil,
+     "and setting the cost to zero switches the whole thing off again")
 H.near(slipcost("gvrnmxt", "government") - slipcost("gvrnmnt", "government"),
        SLIP, 1e-9, "and it costs exactly one slip more than getting it right")
 H.eq(slipcost("stfxxtn", "stratification"), nil,
