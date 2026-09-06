@@ -221,6 +221,23 @@ check(installer.read_stamped_version(REPO / "rime/lua/spellless/version.lua") is
       "the repository's own version.lua is not mistaken for a release")
 
 print("build: the shipped generated/ is internally consistent")
+# The metadata has to describe the dictionary beside it.  It got committed one
+# build behind once -- saying 83,151 entries next to a file holding 83,169, and
+# omitting the source that added them -- and nothing noticed, because every
+# other check here compares the binary files with each other.
+import json
+
+meta_path = REPO / "generated" / "spellless.build.json"
+if meta_path.exists() and (REPO / "generated" / "spellless.words").exists():
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    n_words = sum(1 for _ in (REPO / "generated" / "spellless.words").open(encoding="utf-8"))
+    check(meta.get("entries") == n_words,
+          f"build.json entries ({meta.get('entries')}) matches the word list ({n_words})")
+    listed = {src["path"] for src in meta.get("sources", [])}
+    on_disk = {f"data/vocab/{p.name}" for p in (REPO / "data" / "vocab").glob("*.txt")}
+    check(on_disk <= listed,
+          f"and every vocabulary file is recorded: missing {sorted(on_disk - listed)}")
+
 gen = REPO / "generated"
 words = gen / "spellless.words"
 if words.exists():
