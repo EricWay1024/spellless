@@ -63,19 +63,31 @@ def windows_env(name: str) -> str | None:
         return None
 
 
-def windows_registry_user_dir(reg_cmd: list[str]) -> str | None:
-    """Weasel stores an overridden user directory in the registry.
+def windows_registry_user_dir(reg_cmd: list[str], product: str = "Weasel") -> str | None:
+    r"""A Weasel-family frontend stores its user directory in the registry.
 
     HKCU only, deliberately: Weasel's own `WeaselUserDataPath()` opens
     HKEY_CURRENT_USER and falls back to ``%APPDATA%\\Rime``, and never consults
     HKLM.  Reading HKLM too would let a stale machine-wide value send the
     install to a directory the IME does not load, and report success.
+
+    `product` is the key under HKCU\Software\Rime.  The Spellless build of
+    Weasel is a second, separately-branded frontend that registers itself as
+    "Spellless" and defaults to %APPDATA%\Spellless -- see WeaselConstants.h in
+    EricWay1024/spellless-weasel.  Both are real installs and a machine can run
+    either, so both are looked up.
     """
-    try:
-        out = subprocess.run(
-            reg_cmd + ["query", r"HKCU\Software\Rime\Weasel", "/v", "RimeUserDir"],
-            capture_output=True, text=True, timeout=15)
-    except (OSError, subprocess.SubprocessError):
+    # reg.exe is not always on PATH under WSL; the absolute path always works.
+    for cmd in (reg_cmd, ["/mnt/c/Windows/System32/reg.exe"]):
+        try:
+            out = subprocess.run(
+                cmd + ["query", rf"HKCU\Software\Rime\{product}", "/v", "RimeUserDir"],
+                capture_output=True, text=True, timeout=15)
+        except (OSError, subprocess.SubprocessError):
+            continue
+        if out.returncode == 0:
+            break
+    else:
         return None
     m = re.search(r"RimeUserDir\s+REG_\w+\s+(.+)", out.stdout)
     return m.group(1).strip() if m and m.group(1).strip() else None
@@ -98,29 +110,39 @@ def to_wsl_path(win_path: str) -> Path | None:
     return Path("/mnt") / drive / PurePosixPath(rest)
 
 
+# Weasel-family frontends, and the directory each defaults to.  Spellless first:
+# a machine that has it is running it, and it is the build the document-reading
+# features need.  Both are installed side by side on purpose.
+PRODUCTS = [("Spellless", "Spellless"), ("Weasel", "Rime")]
+
+
 def candidate_user_dirs() -> list[tuple[Path, str]]:
     """Plausible Rime user directories, best guess first, with a label."""
     out: list[tuple[Path, str]] = []
     system = platform.system()
 
     if system == "Windows":
-        reg = windows_registry_user_dir(["reg"])
-        if reg:
-            out.append((Path(reg), "Weasel registry RimeUserDir"))
-        appdata = os.environ.get("APPDATA")
-        if appdata:
-            out.append((Path(appdata) / "Rime", "Weasel default (%APPDATA%\\Rime)"))
+        for product, default in PRODUCTS:
+            reg = windows_registry_user_dir(["reg"], product)
+            if reg:
+                out.append((Path(reg), f"{product} registry RimeUserDir"))
+            appdata = os.environ.get("APPDATA")
+            if appdata:
+                out.append((Path(appdata) / default,
+                            f"{product} default (%APPDATA%\\{default})"))
     elif is_wsl():
-        reg = windows_registry_user_dir(["reg.exe"])
-        if reg:
-            p = to_wsl_path(reg)
-            if p:
-                out.append((p, "Weasel registry RimeUserDir, via /mnt"))
-        appdata = windows_env("APPDATA")
-        if appdata:
-            p = to_wsl_path(appdata)
-            if p:
-                out.append((p / "Rime", "Weasel default (%APPDATA%\\Rime), via /mnt"))
+        for product, default in PRODUCTS:
+            reg = windows_registry_user_dir(["reg.exe"], product)
+            if reg:
+                p = to_wsl_path(reg)
+                if p:
+                    out.append((p, f"{product} registry RimeUserDir, via /mnt"))
+            appdata = windows_env("APPDATA")
+            if appdata:
+                p = to_wsl_path(appdata)
+                if p:
+                    out.append((p / default,
+                                f"{product} default (%APPDATA%\\{default}), via /mnt"))
         # Fall back to scanning /mnt/*/Users/*/AppData if cmd.exe was unavailable.
         # Other people's profiles are unreadable from WSL; skip them quietly.
         try:
@@ -515,17 +537,33 @@ def main() -> int:
             print(f"{'[exists] ' if safe_is_dir(path) else '[missing]'} {path}   ({why})")
         return 0
 
-    user_dir, why = resolve_user_dir(args.user_dir)
-    print(f"Rime user directory: {user_dir}\n  detected via: {why}\n")
+    # Every directory that exists, not just the best guess.
+    #
+    # This machine runs two Weasel-family frontends side by side, each with its
+    # own user directory, and installing into only the first one silently left
+    # the other running a build from the previous day -- for a whole session,
+    # while both of us read the changes as having no effect.  Keeping them in
+    # sync costs a directory copy; not keeping them in sync costs an afternoon.
+    if args.user_dir:
+        targets = [(Path(args.user_dir).expanduser(), "given on the command line")]
+    else:
+        targets = [(p, why) for p, why in candidate_user_dirs() if safe_is_dir(p)]
 
-    if args.uninstall:
-        uninstall(user_dir, args.dry_run)
-        return 0
-
-    if not safe_is_dir(user_dir):
-        print(f"{user_dir} does not exist.")
+    if not targets:
+        path, why = resolve_user_dir(None)
+        print(f"No Rime user directory found (best guess: {path}, {why}).")
         print("Start Weasel once (or pass --user-dir) so the directory is created.")
         return 1
+
+    print("Installing into:")
+    for path, why in targets:
+        print(f"  {path}   ({why})")
+    print()
+
+    if args.uninstall:
+        for path, _ in targets:
+            uninstall(path, args.dry_run)
+        return 0
 
     problem = check_payload()
     if problem:
@@ -533,15 +571,17 @@ def main() -> int:
         print("Run `make` (or scripts/build_dictionary.py then build_indexes.py) first.")
         return 1
 
-    print("Copying:")
-    copy_payload(user_dir, args.dry_run)
+    for user_dir, why in targets:
+        print(f"=== {user_dir} ===")
+        print("Copying:")
+        copy_payload(user_dir, args.dry_run)
 
-    if not args.no_enable:
-        print("\nEnabling the schema:")
-        enable_schema(user_dir, args.dry_run)
+        if not args.no_enable:
+            print("\nEnabling the schema:")
+            enable_schema(user_dir, args.dry_run)
 
-    print("\nPreparing the next deploy:")
-    pin_schema(user_dir, args.dry_run)
+        print("\nPreparing the next deploy:")
+        pin_schema(user_dir, args.dry_run)
     if not invalidate_build(user_dir, args.dry_run):
         print("  nothing built yet, so nothing to mark stale")
 

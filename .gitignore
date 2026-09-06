@@ -4,3 +4,6 @@ __pycache__/
 # Agent worktrees and editor settings
 .claude/worktrees/
 .vscode/
+
+# Machine-specific notes, deliberately not shared
+LOCAL.md

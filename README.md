@@ -347,6 +347,15 @@ three on with `spellless/reclaim_space`, `spellless/absorb_fragment` and
 
 ---
 
+## Deploying and checking it took
+
+[docs/DEPLOYING.md](docs/DEPLOYING.md) — how a build reaches the input method,
+how to tell whether it actually did, and the ways it silently does not. Short
+version: `make && make test && python3 scripts/install.py`, redeploy the
+frontend, then type `zzver` and check the revision.
+
+---
+
 ## Building it yourself
 
 ```bash
