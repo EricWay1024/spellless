@@ -14,15 +14,15 @@ lua bench/probe.lua                    # the two harsher probes below
 ```
 
 Numbers below are from a single-threaded Lua 5.4.7 build on WSL2
-(x86-64 laptop), dictionary of 83,137 words.
+(x86-64 laptop), dictionary of 83,151 words.
 
 ---
 
 ## The test set
 
-1,523 cases in `tests/cases/`, in two kinds.
+1,535 cases in `tests/cases/`, in two kinds.
 
-**Hand-written (323 cases).** What the brief asks for, plus the failure modes
+**Hand-written (335 cases).** What the brief asks for, plus the failure modes
 worth guarding:
 
 | file | what it pins down |
@@ -76,28 +76,32 @@ file                          cases   top-1   top-5 in-rank
 ambiguity.tsv                    16   50.0%   93.8%  100.0%
 common_typos.tsv                 68   97.1%  100.0%  100.0%
 forms.tsv                        42   76.2%  100.0%  100.0%
-generated_cues.tsv              300   88.0%   99.3%   99.3%
-generated_skeletons.tsv         400   88.5%   99.2%   99.2%
-generated_typos.tsv             500   91.4%   99.2%   99.2%
+generated_cues.tsv              300   86.0%   98.3%   98.3%
+generated_skeletons.tsv         400   91.5%   99.5%   99.5%
+generated_typos.tsv             500   90.2%   99.2%   99.2%
 literal.tsv                      24  100.0%  100.0%  100.0%
-prefix.tsv                       16   93.8%  100.0%  100.0%
+prefix.tsv                       28   96.4%  100.0%  100.0%
+rare_words.tsv                   39   89.7%  100.0%  100.0%
 raw.tsv                          14   71.4%   78.6%  100.0%
 skeletons.tsv                    31  100.0%  100.0%  100.0%
 spec_examples.tsv                16   75.0%   87.5%  100.0%
 syllables.tsv                    57   98.2%  100.0%  100.0%
 ------------------------------------------------------------
-TOTAL                          1523   89.6%   99.0%   99.4%   <- shipped seed
+TOTAL                          1535   89.6%   98.9%   99.3%   <- shipped seed
 
-held out, mean of ten fresh generator seeds:
-generated_cues.tsv              300   88.1%   99.0%
-generated_skeletons.tsv         400   89.8%   99.8%
-generated_typos.tsv             500   91.0%   98.9%
+held out, five fresh generator seeds:
+                                      88.9%   98.9%
+                                      91.1%   99.5%
+                                      90.6%   99.6%
+                                      90.4%   99.2%
+                                      89.2%   99.1%
 ------------------------------------------------------------
-TOTAL                          1523   89.9%   99.3%          <- held out
+TOTAL                          1535   90.0%   99.3%          <- held out, mean
 ```
 
-**Top-1 89.9%, top-5 99.3%** — held out, and every one of the 323 hand-written
-cases passes.
+**Top-1 90.0%, top-5 99.3%** — held out, and every one of the 335 hand-written
+cases passes. The three generated rows swing two or three points against each
+other from one seed to the next while the total does not, so read the total.
 
 The generated sets come from a seeded generator, so a fresh seed is a free
 held-out set; the second block is the mean of ten. On the seed the weights were
@@ -235,7 +239,7 @@ These are in `ambiguity.tsv`, and passing them means *not* being over-confident:
 ## Latency
 
 ```
-over all 1,523 evaluation queries
+over all 1,535 evaluation queries
   mean 2.9 ms   median 2.2 ms   p95 7.8 ms
 
 typing nine words out, one keystroke at a time (86 keystrokes)
@@ -260,7 +264,7 @@ skipped entirely whenever the query is itself a word — which is most of what
 anyone types.
 
 For scale: running just the typo source naively — weighted edit distance
-against all 83,137 words, no buckets, no prefilter — measures **105–115 ms per
+against all 83,151 words, no buckets, no prefilter — measures **105–115 ms per
 query** in the same Lua build (`bench/naive.lua`). The bucketing and prefilters
 described in DESIGN.md §4.5 do that work *and* the skeleton and cue searches in
 about 2.5 ms, roughly a 40× reduction with no measured loss of recall.
@@ -272,7 +276,7 @@ about 2.5 ms, roughly a 40× reduction with no measured loss of recall.
 `bench/tune.lua` runs coordinate descent over the ranking weights and edit
 budgets, maximising a macro average of `2·top-1 + top-5 + in-rank` across the
 case files. Macro rather than micro, so the 1,200 generated cases do not drown
-out the 323 hand-written ones.
+out the 335 hand-written ones.
 
 The first round, before the syllable-cue channel existed, moved the objective
 from 3.4896 to 3.6002 and changed:

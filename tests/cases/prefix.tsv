@@ -15,3 +15,19 @@ gover	government|governor|governing	3
 diffeo	diffeomorphism|diffeomorphic	2
 bordi	bordism	2
 homoto	homotopy|homotopic	2
+
+# Short words the base frequency list lost entirely, restored in
+# data/vocab/interjections.txt.  Before that, typing "oh" offered "on", "of",
+# "how" and "the", and put "oh" itself in the literal slot at the bottom.
+oh	oh	1
+ah	ah	1
+eh	eh	1
+uh	uh	1
+um	um	1
+hm	hm	1
+ok	ok	1
+vs	vs	1
+mm	mm	1
+aw	aw	1
+cf	cf	1
+ya	ya	1

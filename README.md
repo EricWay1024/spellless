@@ -119,7 +119,7 @@ noether's        →  Noether's      psdfnctr  →  pseudofunctor
 ```
 
 It is a [Rime](https://rime.im) schema for Windows, and **the word you meant is
-first 89.9% of the time, in the top five 99.1%** — measured on cases the tuning
+first 90.0% of the time, in the top five 99.3%** — measured on cases the tuning
 never saw. About 2.5 ms per keystroke. 2,178 assertions say it still behaves.
 [EVALUATION.md](EVALUATION.md) has the numbers, including the cases it gets
 wrong and why.

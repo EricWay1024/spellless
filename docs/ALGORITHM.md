@@ -26,7 +26,7 @@ A person knows a word and cannot reliably produce its spelling at the speed
 they think. They type an approximation. The system must return a short ranked
 list containing the word they meant, fast enough that typing does not stutter.
 
-**Formally.** A dictionary `D` of `N = 83,137` English words, each carrying a
+**Formally.** A dictionary `D` of `N = 83,151` English words, each carrying a
 normalised log-frequency `f(w) ∈ [0,1]`. A query `q ∈ Σ*` where
 `Σ = {a…z, '}`. Return an ordered list `C = (c₁ … c_k)`, `k ≤ 20`, of strings,
 with `q` itself guaranteed to appear somewhere in it. Maximise
@@ -82,7 +82,7 @@ than an application of a known technique.
 | | |
 | --- | --- |
 | **Latency** | Runs on every keystroke inside the IME process. ~2.5 ms mean, under 10 ms at p95. Single-threaded interpreted Lua 5.4, no JIT. |
-| **Scale of the budget** | A naive weighted edit distance against all 83,137 words, *with* the budget and early abort, costs **165 ms per query**. The budget is therefore under 1/70th of a full scan. |
+| **Scale of the budget** | A naive weighted edit distance against all 83,151 words, *with* the budget and early abort, costs **165 ms per query**. The budget is therefore under 1/70th of a full scan. |
 | **Memory** | ~17 MB resident, ~100 ms to load, once per process. |
 | **Dependencies** | None. Pure Lua, no compiled extension, no network, no GPU. The shipped data is 1.3 MB. |
 | **No context** | One composition is one word. The preceding word is available only as an unreliable string of what the IME itself last committed — a mouse click that moves the caret is invisible. There is no sentence, no document, no application state. |
@@ -102,7 +102,7 @@ what remains is a search problem with a hand-built scoring function.
 SCOWL, MIT-licensed, 82,834 entries as vendored), filtered to `[a-z]+` plus
 genuine contractions, merged with 771 hand-added entries — technical
 vocabulary, proper nouns, given names, multi-word phrases, deliberate
-shorthand. **83,137 entries.**
+shorthand. **83,151 entries.**
 
 One preprocessing step is worth noting because it is a general hazard: the
 corpus gives all 64 contractions the same tail count, which is an artefact of
@@ -598,9 +598,9 @@ word and exactly wrong when it is a misspelling.
 
 ### 5.1 Method, and what is wrong with it
 
-1,523 cases in `tests/cases/*.tsv`, each a triple *(input, expected, max rank)*.
+1,535 cases in `tests/cases/*.tsv`, each a triple *(input, expected, max rank)*.
 
-**Hand-written (323).** Every example in the original brief; 68 well-known
+**Hand-written (335).** Every example in the original brief; 68 well-known
 English misspellings; consonant-only input including deliberately mistyped
 skeletons; ordinary correct typing; short ambiguous input; the literal-input
 guarantees; dropped apostrophes and abbreviations; 57 syllabic shorthands; and
@@ -676,7 +676,7 @@ mean rose 78.0 → 88.1. The lesson is worth keeping: five free constants over
 Two things this does *not* measure, and they are the larger uncertainties. A
 fresh seed re-samples from the same generator against the same dictionary, so
 it says nothing about whether `make_testset.py`'s model of how people abbreviate
-resembles how people actually abbreviate. And the 323 hand-written cases have no
+resembles how people actually abbreviate. And the 335 hand-written cases have no
 held-out version and cannot have one.
 
 There is a third, and it is worth stating because the obvious way to answer it
@@ -698,26 +698,31 @@ held-out mean beside the generated files. §5.1 has the reason the two columns
 now agree.
 
 ```
-file                          cases   top-1   top-5      held out (10 seeds)
+file                          cases   top-1   top-5      held out (5 seeds)
 ------------------------------------------------------------
 ambiguity.tsv                    16   50.0%   93.8%      hand-written, no held-out set
 common_typos.tsv                 68   97.1%  100.0%      hand-written, no held-out set
 forms.tsv                        42   76.2%  100.0%      hand-written, no held-out set
-generated_cues.tsv              300   88.0%   99.3%      88.1% / 99.0%
-generated_skeletons.tsv         400   88.5%   99.2%      89.8% / 99.8%
-generated_typos.tsv             500   91.4%   99.2%      91.0% / 98.9%
+generated_cues.tsv              300   86.0%   98.3%
+generated_skeletons.tsv         400   91.5%   99.5%
+generated_typos.tsv             500   90.2%   99.2%
 literal.tsv                      24  100.0%  100.0%      hand-written, no held-out set
-prefix.tsv                       16   93.8%  100.0%      hand-written, no held-out set
+prefix.tsv                       28   96.4%  100.0%      hand-written, no held-out set
+rare_words.tsv                   39   89.7%  100.0%      hand-written, no held-out set
 raw.tsv                          14   71.4%   78.6%      hand-written, no held-out set
 skeletons.tsv                    31  100.0%  100.0%      hand-written, no held-out set
 spec_examples.tsv                16   75.0%   87.5%      hand-written, no held-out set
 syllables.tsv                    57   98.2%  100.0%      hand-written, no held-out set
 ------------------------------------------------------------
-TOTAL                          1523   89.6%   99.0%      shipped seed
-                                      89.9%   99.3%      mean of 10 fresh seeds
+TOTAL                          1535   89.6%   98.9%      shipped seed
+                                      90.0%   99.3%      mean of 5 fresh seeds
 ```
 
-**Top-1 ≈ 89.9% held out, top-5 ≈ 99.3%**, and the shipped seed reads 89.6% —
+The three generated rows swing two or three points against each other from
+seed to seed and the total does not; read the total, and read it beside the
+held-out line rather than on its own.
+
+**Top-1 ≈ 90.0% held out, top-5 ≈ 99.3%**, and the shipped seed reads 89.6% —
 *below* the held-out mean, by less than a third of the seed-to-seed standard
 deviation. There is no gap left to correct for.
 
@@ -780,7 +785,7 @@ That is the shape of a recall feature, and it is why it is judged on top-5.
 ### 5.3 Latency
 
 ```
-over all 1,523 evaluation queries
+over all 1,535 evaluation queries
   mean 2.9 ms   median 2.2 ms   p95 7.8 ms
 
 typing nine words out, one keystroke at a time (86 keystrokes)
@@ -805,7 +810,7 @@ room for both. See §8.9.
 **A warning about reading the table above.** Three shipped features are
 invisible to it. `lua bench/evaluate.lua -- affix_words=false` returns
 bit-identical accuracy, because no case file contains a coined word; slip
-tolerance and the correction store are the same shape. So the 1,523 cases
+tolerance and the correction store are the same shape. So the 1,535 cases
 measure the four matching channels and nothing else, and a change that only
 touches the rest can be neither validated nor caught here. `bench/probe.lua`
 covers two of the three; the correction store has only its unit tests.
@@ -815,7 +820,7 @@ covers two of the three; the correction store has only its unit tests.
 `bench/tune.lua` runs coordinate descent over the ranking weights and edit
 budgets, maximising a macro average of `2·top-1 + top-5 + in-rank` across the
 case files. Macro rather than micro, so the 1,200 generated cases do not drown
-out the 323 hand-written ones.
+out the 335 hand-written ones.
 
 **How much of that is real?** Starting the descent from the middle of every
 grid — the point someone would pick knowing only the plausible ranges — and
@@ -857,22 +862,22 @@ is a real regression the objective cannot see.
 ## 6. Where it fails now
 
 Almost every remaining loss is a real ambiguity rather than a search failure.
-Across all 1,523 cases, 159 (10.4%) do not lead, and of those:
+Across all 1,535 cases, 159 (10.4%) do not lead, and of those:
 
 ```
-  intended word at rank 2       106   67% of misses
-                  at rank 3–5    38   24%
-                  at rank 6–20   14    9%
+  intended word at rank 2        97   61% of misses
+                  at rank 3–5    45   28%
+                  at rank 6–20   16   10%
                   not offered     1    1%
 ```
 
-**Almost nothing is ever missing** — one case in 1,523, and it is worth naming
-because it used to be zero: `lan`, wanted for `lawn`, which is three letters
+**Almost nothing is ever missing** — one case in 1,535, and it is worth naming
+because it used to be zero: `coa`, wanted for `coca`, which is three letters
 against a page of commoner words that explain them. That is the price of a
 fuller candidate list, and it is one case.
 
 The rest of the residual is ordering, and 62% of it is ordering between two
-readings that are both defensible. In 25% of misses the winning word shares a
+readings that are both defensible. In 26% of misses the winning word shares a
 four-character prefix with the target — a morphological sibling. **That number
 looks more actionable than it is; §8.1 has the measurement.** The classes, from
 a full sweep of the case files:
@@ -994,7 +999,7 @@ The chain was: morphological siblings are 24% of misses → siblings differ in
 part of speech → the previous word predicts part of speech. Each link leaks:
 
 ```
-  39 of 159 misses are morphological siblings           25% of misses
+  41 of 159 misses are morphological siblings           26% of misses
   ... that differ in part of speech at all              ~9   25% of those
   ... decidable from the word on the LEFT               ~5   14% of those
 ```
@@ -1011,7 +1016,7 @@ separates, and degree adverbs.
 The prototype confirms it. A class function (closed-class list plus 44 suffix
 rules), a zero-centred `w_ctx · PMI(c(w); c(prev))` term, gated on the previous
 token being a dictionary word, applied only within a margin of the leader.
-Scored over all 1,523 cases under six fixed previous words — nothing chosen
+Scored over all 1,535 cases under six fixed previous words — nothing chosen
 after the fact:
 
 ```

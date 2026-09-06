@@ -1,0 +1,50 @@
+# Short words the base frequency list simply does not contain.
+#
+# `oh` is not a rare word.  It is not in `frequency_dictionary_en_82_765.txt`
+# at all -- nor are `ah`, `eh`, `uh`, `um`, `hm`, `ok`, `ya` or `yo` -- while
+# `hey`, `yeah`, `wow`, `hmm`, `huh` and `okay` all are.  Whatever produced
+# that list dropped the two-letter interjections, and the effect on the matcher
+# is worse than a missing word usually is: with nothing to match exactly,
+# typing `oh` offered `on`, `of`, `how`, `the` and put `oh` itself in the
+# literal slot at the bottom of the page.
+#
+# So these are not new vocabulary, they are a gap being filled.  The ranks
+# below are set against words the corpus *does* carry -- `yeah` at 2,933,
+# `okay` at 4,323, `hmm` at 10,209 -- so that each entry sits about where it
+# would have sat had the list not lost it.
+#
+# What is deliberately not here: `lol`, `omg`, `btw`, `fyi`, `imo`, `tbh`.
+# Those are shorthand rather than words, and shorthand.txt says where personal
+# shorthand belongs -- your own spellless_shortcuts.txt, not the dictionary.
+
+#!rank 1200
+# The commonest interjection in written English by a wide margin.
+oh
+
+#!rank 3000
+ah
+ok
+
+#!rank 6000
+# "A vs B" is written without the stop at least as often as with it, and
+# academic prose is full of both.
+vs
+
+#!rank 10000
+eh
+uh
+um
+hm
+
+#!rank 18000
+mm
+ya
+yo
+aw
+cf
+
+#!rank 26000
+# `ew` and `oi` were tried here too and taken out again: at any rank that does
+# not distort them they lose to `we` and `oil`, so the entry buys nothing and
+# only adds a rival to other queries.
+yay
