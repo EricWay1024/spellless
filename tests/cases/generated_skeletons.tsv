@@ -57,7 +57,6 @@ opnns	opinions	5	len5
 rtngs	ratings	5	len5
 cvrs	covers	5	len4
 slctng	selecting	5	len6
-rmndr	remainder	5	len5
 prfts	profits	5	len5
 prcnt	percent	5	len5
 schms	schemes	5	len5
@@ -114,8 +113,6 @@ amnts	amenities	5	len5
 vctm	victim	5	len4
 accrdngly	accordingly	5	len9
 hrdr	harder	5	len4
-indn	indiana	5	len4
-wlls	willis	5	len4
 dnll	danielle	5	len4
 clllr	cellular	5	len5
 mthrbrds	motherboards	5	len8
@@ -262,7 +259,6 @@ jssc	jessica	5	len4
 mgcl	magical	5	len4
 rchmnd	richmond	5	len6
 cltch	clutch	5	len5
-spcs	species	5	len4
 frgmnt	fragment	5	len6
 wrrnts	warrants	5	len6
 inflnc	influence	5	len6
@@ -307,7 +303,6 @@ crlsn	carlson	5	len5
 trrfc	terrific	5	len5
 srvys	surveys	5	len5
 trppd	trapped	5	len5
-plnt	planet	5	len4
 wghts	weights	5	len5
 sddl	saddle	5	len4
 clsscl	classical	5	len6
@@ -401,3 +396,8 @@ atmtv	automotive	5	len5
 mrkp	markup	5	len4
 unfr	unfair	5	len4
 trrrsts	terrorists	5	len7
+spps	suppose	5	len4
+applctns	applications	5	len8
+prsnlts	personalities	5	len7
+cmpsd	composed	5	len5
+fllwshp	fellowship	5	len7

@@ -15,9 +15,13 @@ local BASE_KEY = {
   prefix   = "base_prefix",
   typo     = "base_typo",
   skeleton = "base_skeleton",
-  split    = "base_split",
   cue      = "base_cue",
 }
+-- No entry for "split" on purpose.  A split candidate is *placed* rather than
+-- ranked (see Engine:suggest) and never reaches this function, so a base score
+-- for it would be a number that could not do anything.  There was one for a
+-- long time, and it was dead the day the split stopped being ranked: setting it
+-- to 0 or to 1000 left every case file bit-identical.
 
 --- How much longer the candidate is than what was typed, normalised to [0,1].
 --- Only completions are penalised; a shorter word already paid through cost.

@@ -87,6 +87,19 @@ M.defaults = {
   -- second letter (which covers a slip on the very first key), optionally
   -- extended to the first letter's keyboard neighbours.
   len_window        = 2,
+  -- Also scan the QWERTY neighbours of the first letter, for a first key that
+  -- was simply the wrong key.  Off, and measured rather than assumed: it takes
+  -- that input class from 1.6% reachable to 98.2% on the first page, which is
+  -- the largest single recall gain available anywhere in this file -- and it
+  -- costs 27% of the per-keystroke budget on *every* query, pushing p95 over
+  -- 10 ms on a busy machine, for the slip type that is plausibly rarest (the
+  -- first key is typed after a pause, and it is what the whole lookup is
+  -- anchored on).  It also loses three cases to the extra rivals it admits.
+  --
+  -- The shape that would earn it is a second pass, run only when
+  -- Engine:trustworthy says the first pass found nothing worth putting under
+  -- the space bar -- a predicate that already exists.  Then the common
+  -- keystroke pays nothing.  Not built.
   scan_first_neighbours = false,
   -- Hard ceiling on edit-distance evaluations per scan.  Buckets are visited
   -- most-plausible-length first and are frequency ordered inside, so hitting
@@ -111,11 +124,6 @@ M.defaults = {
   base_prefix       = 74,
   base_typo         = 75,
   base_skeleton     = 62,
-  -- A run of letters cut back into words: "exactlyright" -> "exactly right".
-  -- Below an exact match, above a typo: it is only offered when the whole
-  -- string is not a word, so there is rarely much competition, but a close
-  -- misspelling of a real word is still the better guess.
-  base_split        = 70,
   -- Syllable cues.  This is the loosest reading of an input there is, and it
   -- started well below the other sources on that reasoning -- but its job is to
   -- make sure a real word is *on offer* for input the stricter channels cannot
@@ -148,6 +156,30 @@ M.defaults = {
   -- that a name you have actually adopted still wins when nothing else fits.
   unknown_word_penalty = 25,
   cost_weight       = 16,   -- x weighted edit distance
+  -- Calibration, since these two are the units of the whole score.  The
+  -- dictionary's log-frequency range is 14.41 nats, so freq_weight buys 2.36
+  -- points per nat and one unit of edit cost is priced at 6.78 nats, about
+  -- 880:1.  But that is not the number that governs anything: a repair also
+  -- has to cross base_exact - base_typo = 25, and 41 points is 17.4 nats,
+  -- while the entire dynamic range of the corpus is 14.4.  So a full-price
+  -- repair never beats an exact dictionary match at any frequency -- it is a
+  -- veto, not a price -- and in the rank band people actually type, the whole
+  -- frequency spread available is 4.7 nats, enough to overturn a cost gap of
+  -- 0.69 but never a whole edit.
+  --
+  -- A sweep says the optimum is cost_weight 13-14 rather than 16, worth 0.005
+  -- of tuning objective, three or four cases in 1,484 against a standard error
+  -- of eleven.  Not enough to move a shipped constant on the set that fitted
+  -- it.
+  --
+  -- The cost-frequency interaction the design notes wondered about --
+  -- cost_weight * cost * (1 + b(1 - freq)), so that a big repair to a common
+  -- word is cheaper than the same repair to a rare one -- was implemented and
+  -- swept.  The predicted direction is monotonically wrong (b = +1.0 costs 30
+  -- cases at rank 1), and the shallow optimum at b = -0.45 turns out to be
+  -- cost_weight in disguise: it vanishes once cost_weight is 13.  Coordinate
+  -- descent leaves b at -0.15, worth one case.  They do not interact; the
+  -- linear form is right.
   extra_weight      = 8,    -- x how much longer the completion is than the input
 
   -- A query with few vowels is far more likely to be an abbreviation than a

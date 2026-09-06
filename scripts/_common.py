@@ -54,10 +54,24 @@ def sha256_file(path: Path) -> str:
     return h.hexdigest()
 
 
+def _report(path: Path) -> str:
+    """How to name a written file in the build log.
+
+    Relative to the repository when it is inside it, which is the usual case
+    and much easier to read; absolute otherwise, because an output directory
+    elsewhere (a held-out test set in a scratch directory, say) is legitimate
+    and must not make the writer throw.
+    """
+    try:
+        return str(path.relative_to(REPO))
+    except ValueError:
+        return str(path)
+
+
 def write_bytes(path: Path, data: bytes) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(data)
-    print(f"  wrote {path.relative_to(REPO)}  ({len(data):,} bytes)")
+    print(f"  wrote {_report(path)}  ({len(data):,} bytes)")
 
 
 def write_text(path: Path, text: str) -> None:
@@ -65,4 +79,4 @@ def write_text(path: Path, text: str) -> None:
     # newline='\n' so the generated files are byte-identical on Windows.
     with path.open("w", encoding="utf-8", newline="\n") as fh:
         fh.write(text)
-    print(f"  wrote {path.relative_to(REPO)}  ({path.stat().st_size:,} bytes)")
+    print(f"  wrote {_report(path)}  ({path.stat().st_size:,} bytes)")

@@ -9,7 +9,7 @@ package.path = table.concat({
 _G.SPELLLESS_ROOT = root
 
 local H = require("harness")
-local suites = { "test_distance", "test_preceding", "test_skeleton", "test_cue", "test_userdb", "test_engine", "test_adapter", "test_cases" }
+local suites = { "test_distance", "test_distance_property", "test_preceding", "test_skeleton", "test_cue", "test_userdb", "test_engine", "test_adapter", "test_cases" }
 for _, name in ipairs(suites) do
   require(name)
 end

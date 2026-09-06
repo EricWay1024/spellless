@@ -3,9 +3,15 @@
 --     lua bench/evaluate.lua                 all case files
 --     lua bench/evaluate.lua skeletons       only files matching a pattern
 --     lua bench/evaluate.lua -- freq_weight=30 extra_weight=6
+--     lua bench/evaluate.lua --cases DIR     case files from somewhere else
 --
 -- Everything after `--` overrides spellless.config, which is how the shipped
 -- weights were chosen; see EVALUATION.md.
+--
+-- `--cases DIR` is what makes a held-out measurement possible at all: the
+-- weights were fitted on the seed-20260904 draw in tests/cases, so pointing
+-- this at a directory written by `make_testset.py --seed S --out DIR` for some
+-- other S scores the unchanged weights on cases they have never seen.
 
 local root = arg[0]:match("^(.*)/bench/evaluate%.lua$") or "."
 package.path = table.concat({
@@ -18,17 +24,27 @@ local Engine = require("spellless.engine")
 -- arguments
 -- ---------------------------------------------------------------------------
 local filter, overrides, after_dashes = nil, {}, false
-for i = 1, #arg do
+local cases_dir = root .. "/tests/cases"
+local i = 1
+while i <= #arg do
   local a = arg[i]
   if a == "--" then after_dashes = true
   elseif after_dashes then
     local k, v = a:match("^([%w_]+)=(.+)$")
     if not k then error("cannot parse override " .. a) end
     overrides[k] = tonumber(v) or (v == "true") or (v ~= "false" and v or false)
+  elseif a == "--cases" then
+    i = i + 1
+    cases_dir = arg[i] or error("--cases needs a directory")
   else
-    filter = a
+    local dir = a:match("^%-%-cases=(.+)$")
+    if dir then cases_dir = dir
+    elseif a:sub(1, 2) == "--" then error("unknown option " .. a)
+    else filter = a end
   end
+  i = i + 1
 end
+cases_dir = cases_dir:gsub("/+$", "")
 
 -- ---------------------------------------------------------------------------
 -- case files
@@ -37,7 +53,7 @@ local function case_files()
   local out = {}
   -- io.popen keeps this portable enough for a dev-machine benchmark; the test
   -- runner uses an explicit list instead.
-  local pipe = io.popen("ls " .. root .. "/tests/cases/*.tsv 2>/dev/null")
+  local pipe = io.popen("ls " .. cases_dir .. "/*.tsv 2>/dev/null")
   for line in pipe:lines() do
     if not filter or line:find(filter, 1, true) then out[#out + 1] = line end
   end
@@ -58,6 +74,7 @@ local totals = { n = 0, top1 = 0, top5 = 0, pass = 0 }
 local latencies = {}
 local groups, group_order = {}, {}
 
+if cases_dir ~= root .. "/tests/cases" then print("cases from " .. cases_dir) end
 print(("%-28s %6s %7s %7s %7s"):format("file", "cases", "top-1", "top-5", "in-rank"))
 print(("-"):rep(60))
 

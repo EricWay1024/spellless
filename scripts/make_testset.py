@@ -6,8 +6,15 @@ generated ones say how the matcher behaves across a few hundred words we did
 not choose, which is what makes the accuracy numbers in EVALUATION.md mean
 anything.  The seed is fixed, so re-running this produces the same file.
 
+The seed is also the only thing standing between the shipped weights and a
+held-out set: the weights were fitted on the seed below, so generating the
+same three files with a different --seed into a different --out directory and
+evaluating the unchanged weights on them is a genuine out-of-sample
+measurement (see bench/evaluate.lua --cases).
+
 Usage:
     python3 scripts/make_testset.py [--typos N] [--skeletons N] [--seed S]
+    python3 scripts/make_testset.py --seed 12345 --out /tmp/seed-12345
 """
 
 from __future__ import annotations
@@ -158,7 +165,14 @@ def main() -> int:
     # tail measures the corpus, not the matcher.
     ap.add_argument("--from-rank", type=int, default=150)
     ap.add_argument("--to-rank", type=int, default=12000)
+    # Where the three files land.  The default is the set the build ships and
+    # the test suite reads; anything else is a held-out draw, which is what
+    # --seed is for.
+    ap.add_argument("--out", type=Path, default=CASES,
+                    help="directory to write the three .tsv files into "
+                         "(default: tests/cases)")
     args = ap.parse_args()
+    out = args.out
 
     words = load_words()
     forms = load_forms()
@@ -180,29 +194,13 @@ def main() -> int:
         seen.add(typo)
         typo_lines.append(f"{typo}\t{forms.get(word, word)}\t5\t{kind}")
 
-    skel_lines, seen = [], set()
-    candidates = [w for w in pool if len(w) >= 6 and w.isalpha()]
-    rng.shuffle(candidates)
-    for word in candidates:
-        if len(skel_lines) >= args.skeletons:
-            break
-        s = skeleton(word)
-        # Skip skeletons that are ordinary words: those inputs are exact
-        # matches first and abbreviations second, which is the right behaviour
-        # but not what this file is measuring.
-        if len(s) < 4 or s in vocabulary or s in seen:
-            continue
-        seen.add(s)
-        skel_lines.append(f"{s}\t{forms.get(word, word)}\t5\tlen{min(len(s), 9)}")
-
-    cue_lines, seen = [], set()
-    # Six letters up: shorthand for a short word is not shorthand, it is a typo,
-    # and tests/cases/generated_typos.tsv already measures those.
+    # ---------------------------------------------------------------------
+    # Ambiguity filters, shared by the skeleton and shorthand sets.
     #
-    # Words with a commoner word as a prefix are left out entirely.  Shorthand
-    # for "productions" is shorthand for "product" as well, and no matcher
-    # should be marked down for reading it as the word people actually type --
-    # the case is genuinely ambiguous, so it says nothing about accuracy.
+    # All three ask about the strings and the frequency list only; none of them
+    # consults the matcher.  That is what makes dropping a case defensible
+    # rather than a way of raising the score.
+    # ---------------------------------------------------------------------
     rank = {w: i for i, w in enumerate(words)}
 
     def has_commoner_stem(word: str) -> bool:
@@ -235,6 +233,59 @@ def main() -> int:
                 return False
         return True
 
+    def has_better_reading(cue: str, word: str) -> bool:
+        """Does a shorter word explain this shorthand with strictly fewer
+        skipped letters?
+
+        `commonest_reading` asks whether anything *commoner* fits as well.
+        This asks whether anything fits *better*, which is a different
+        question, and the one that let "rgulator" stand as a case for
+        "regulatory" when "regulator" is that string with one letter put back.
+
+        No cost model is consulted, and none is needed: if the cue is a
+        subsequence of `other` and `other` is a proper subsequence of `word`,
+        then `other` skips strictly fewer characters than `word` does under
+        *any* pricing whatsoever.  The case is ambiguous as a matter of the
+        strings alone, and asking for `word` measures nothing.
+
+        Bounded by --to-rank, the same window the targets themselves are drawn
+        from, so this is not a new knob.  Without it the corpus tail does the
+        dominating -- "brach" over "breach", "terran" over "terrain" -- which
+        is a fact about Google Books, not an ambiguity anybody would meet.
+        """
+        for other in by_letter.get(cue[0], ()):
+            if rank[other] > args.to_rank:
+                break            # frequency ordered; everything later is rarer
+            if (other != word and len(other) < len(word)
+                    and is_subsequence(cue, other)
+                    and is_subsequence(other, word)):
+                return True
+        return False
+
+
+    skel_lines, seen = [], set()
+    candidates = [w for w in pool if len(w) >= 6 and w.isalpha()]
+    rng.shuffle(candidates)
+    for word in candidates:
+        if len(skel_lines) >= args.skeletons:
+            break
+        s = skeleton(word)
+        # Skip skeletons that are ordinary words: those inputs are exact
+        # matches first and abbreviations second, which is the right behaviour
+        # but not what this file is measuring.
+        if len(s) < 4 or s in vocabulary or s in seen:
+            continue
+        # A skeleton can be dominated in exactly the same way: "spcs" is the
+        # skeleton of "species", but "specs" is a word that the same letters
+        # spell with nothing skipped at all.
+        if has_better_reading(s, word):
+            continue
+        seen.add(s)
+        skel_lines.append(f"{s}\t{forms.get(word, word)}\t5\tlen{min(len(s), 9)}")
+
+    cue_lines, seen = [], set()
+    # Six letters up: shorthand for a short word is not shorthand, it is a typo,
+    # and tests/cases/generated_typos.tsv already measures those.
     candidates = [w for w in pool
                   if len(w) >= 6 and w.isalpha() and not has_commoner_stem(w)]
     rng.shuffle(candidates)
@@ -249,6 +300,8 @@ def main() -> int:
             continue
         if not commonest_reading(cue, word):
             continue
+        if has_better_reading(cue, word):
+            continue
         seen.add(cue)
         syllables = len(syllabify(word))
         cue_lines.append(f"{cue}\t{forms.get(word, word)}\t5\tsyl{min(syllables, 5)}")
@@ -256,9 +309,9 @@ def main() -> int:
     header = ("# Generated by scripts/make_testset.py -- do not edit by hand.\n"
               f"# seed={args.seed} ranks {args.from_rank}..{args.to_rank}\n"
               "# input <TAB> expected <TAB> max_rank <TAB> group\n")
-    write_text(CASES / "generated_typos.tsv", header + "\n".join(typo_lines) + "\n")
-    write_text(CASES / "generated_skeletons.tsv", header + "\n".join(skel_lines) + "\n")
-    write_text(CASES / "generated_cues.tsv", header + "\n".join(cue_lines) + "\n")
+    write_text(out / "generated_typos.tsv", header + "\n".join(typo_lines) + "\n")
+    write_text(out / "generated_skeletons.tsv", header + "\n".join(skel_lines) + "\n")
+    write_text(out / "generated_cues.tsv", header + "\n".join(cue_lines) + "\n")
     print(f"done: {len(typo_lines)} typo cases, {len(skel_lines)} skeleton cases, "
           f"{len(cue_lines)} syllabic cases")
     return 0

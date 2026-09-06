@@ -1,2 +1,6 @@
 __pycache__/
 *.pyc
+
+# Agent worktrees and editor settings
+.claude/worktrees/
+.vscode/
