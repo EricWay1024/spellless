@@ -6,7 +6,7 @@
 
 You know the word. You have always known the word. What you cannot reliably do
 at the speed you think is get its letters into the right order — and English
-charges you for that, one key stroke after another.
+charges you for that, one keystroke after another.
 
 Spellless takes your approximate spelling and offers you the word you meant.
 Drop the vowels. Get the letters out of order. Run two words together. Then
@@ -22,19 +22,18 @@ mther's          →  mother's             mthers'        →  mothers'
 bc               →  because              im             →  I'm
 ```
 
-**Nothing is ever corrected behind your back.** The list appears, you choose,
-and <kbd>Enter</kbd> always commits exactly what you typed — because the one
-thing worse than mistyping a word is a machine mis-correcting it for you. 
+**Every change is one you picked.** The list appears, you choose, and
+<kbd>Enter</kbd> always commits exactly what you typed.
 
 ## Why this should exist
 
 Chinese input methods solved a version of this decades ago. You type an
 approximation, the IME shows you candidates, you pick one. Hundreds of millions
-of people write that way every day. 
+of people write that way every day.
 
 English never got the same treatment, because typing English assumes you can
-spell it. In this way, spelling stays a tax on thinking — a hundred small stumbles an
-hour, each one pulling your attention off the sentence and onto the keyboard.
+spell it. Spelling stays a tax on thinking — a hundred small stumbles an hour,
+each one pulling your attention off the sentence and onto the keyboard.
 
 Spellless is that same arrangement, for English. It treats what you typed as
 **a noisy encoding of a word you already know**, and decodes it:
@@ -43,31 +42,25 @@ Spellless is that same arrangement, for English. It treats what you typed as
   of order, which says almost nothing about what you meant.
 * **Vowels are cheap. Consonants carry the word.** `mthmtcs` is `mathematics`
   and `dffmrphsm` is `diffeomorphism`.
-* **And you need not even keep all the consonants.** Say the word to yourself
-  and type one or two letters a syllable — `satfcatn`, `stfcatn`, `strtfctn`
-  are all `stratification`. There is no scheme to learn: the matcher prices
-  the letters you *left out* rather than demanding the ones you kept.
+* **You can drop consonants too.** Say the word to yourself and type one or two
+  letters a syllable — `satfcatn`, `stfcatn`, `strtfctn` are all
+  `stratification`. The matcher prices the letters you *left out* rather than
+  demanding the ones you kept, so whatever felt right will do.
 * **Everything competes on one score** — frequency, edit cost, how much a
   completion adds, what you have chosen before — so a common word reached by a
-  cheap slip can beat a rare exact prefix. 
+  cheap slip can beat a rare exact prefix.
 
 ### Why not autocorrect?
 
-Not because a candidate list makes you careful. It does not, and anyone who
-says otherwise has not used one at speed. Typing fast you barely read the list
-— you hit the space bar on muscle memory, the first candidate goes in, and now
-and then it is not the one you wanted. Worth admitting up front, because the
-honest argument does not need it.
-
-What a candidate list buys you is a move you could not make before.
+A candidate list buys you a move you could not make before.
 
 There is a moment, several times an hour, when you know you cannot spell a word
 *and you know that you know*. `bureaucratic`. `liaison`. `diffeomorphism`.
-Autocorrect is no use there — it has to wait for you to write something wrong
-and then guess. So instead you break off, or you settle for a duller word you
-can spell, or you go and look it up and lose the sentence you were holding.
-What you do here is type the consonants and let the machine put the word in
-front of you: a dictionary lookup that never takes your hands off the keyboard.
+Autocorrect has to wait for you to write something wrong and then guess, so
+what you do instead is break off, or settle for a duller word you can spell, or
+go and look it up and lose the sentence you were holding. Here you type the
+consonants and let the machine put the word in front of you: a dictionary
+lookup that never takes your hands off the keyboard.
 
 ```
 brcrtc      →  bureaucratic         liasn       →  liaison
@@ -77,22 +70,19 @@ dffmrphsm   →  diffeomorphism       accomodate  →  accommodate
 That costs a beat, and the beat is real. The first time you fetch a word this
 way you are slower than someone who simply knew it.
 
-**Then it compounds.** You do not stay a person who stops to look things up.
-You build muscle memory for the shorthand exactly as you once built it for the
-spelling, and `dffmrphsm` stops being a lookup and becomes how you type that
-word. The vocabulary you can spell and the vocabulary you can *write* start to
-converge — and the second one is much bigger.
+**Then it compounds.** You build muscle memory for the shorthand exactly as you
+once built it for the spelling, and `dffmrphsm` stops being a lookup and
+becomes how you type that word. The vocabulary you can spell and the vocabulary
+you can *write* start to converge — and the second one is much bigger.
+Autocorrect's ceiling is the day you install it; this has its floor there.
 
-**That is what autocorrect can never give you.** You cannot get good at a
-system whose whole design is that you do not take part. Its ceiling is the day
-you install it; this has its floor there instead.
-
-Two consequences of pressing space on muscle memory are designed for rather
-than wished away. A word this has never seen takes **two** presses of the space
-bar, not one, because the moment worth interrupting you is the moment you were
-about to commit something it cannot vouch for. And a correction you make twice
-is promoted to first place for that input, so the shorthand you are building is
-learned from your side as well, not only guessed at from the dictionary's.
+At speed you barely read the list: the space bar goes on muscle memory and
+takes whatever is first. Two things are designed around that. A word the
+dictionary has never seen takes **two** presses of the space bar, because the
+moment worth interrupting you is the moment you were about to commit something
+it cannot vouch for. And a correction you make twice is promoted to first place
+for that input, so the shorthand you are building is learned from your side as
+well as guessed at from the dictionary's.
 
 The same arrangement is what makes real ambition affordable. Autocorrect can
 only risk a near-miss of an edit or two, because every guess is applied unseen.
@@ -100,11 +90,11 @@ Offering `mathematics` for `mthmtcs` means allowing a distance at which half
 the dictionary is reachable — unthinkable if a machine must pick, and
 affordable here because the answer is one of seven on the page, because what
 you typed is always among them, and because <kbd>Enter</kbd> always commits it
-verbatim. It never fights you over `kubectl`, `argmax` or a name it has not met.
+verbatim. It leaves `kubectl`, `argmax` and a name it has not met alone.
 
-Look again at the screenshot. `complicated` is first, and `completed`,
-`complicate`, `compacted`, `complicity` are the words a reasonable reader might
-have suspected. That is a ranking, and they fall out of a weighted edit distance, a
+In the screenshot, `complicated` leads and `completed`, `complicate`,
+`compacted`, `complicity` are the words a reasonable reader might have
+suspected. That ranking falls out of a weighted edit distance, a
 consonant-skeleton index, a syllable-cue alignment and one ranking function.
 See [DESIGN.md](DESIGN.md).
 
@@ -112,12 +102,8 @@ See [DESIGN.md](DESIGN.md).
 
 You stop breaking off mid-sentence to work out a spelling. Spaces appear
 between words and never in front of a comma, sentences start with a capital,
-`eg` becomes `e.g.` and `i`
-becomes `I`. A colleague's name is remembered after you type it once, and a
-correction you make twice becomes the first thing offered ever after. A word
-Spellless has never seen will not go in on one press of the space bar — it
-takes two, because the moment worth interrupting you is the moment you were
-about to be wrong. And when it does get something wrong, one key makes it
+`eg` becomes `e.g.` and `i` becomes `I`. A colleague's name is remembered after
+you type it once. And when it does get something wrong, one key makes it
 forget.
 
 ```
@@ -128,10 +114,10 @@ noether's        →  Noether's      psdfnctr  →  pseudofunctor
 ```
 
 It is a [Rime](https://rime.im) schema for Windows, and **the word you meant is
-first 89.9% of the time, on the first page 99.1%** — measured on cases the
-tuning never saw. About 2.5 ms per keystroke over 83,095 words. 2,033
-assertions say it still behaves. [EVALUATION.md](EVALUATION.md) has the
-numbers, including the cases it gets wrong and why.
+first 89.9% of the time, in the top five 99.1%** — measured on cases the tuning
+never saw. About 2.5 ms per keystroke. 2,109 assertions say it still behaves.
+[EVALUATION.md](EVALUATION.md) has the numbers, including the cases it gets
+wrong and why.
 
 ---
 
@@ -143,13 +129,22 @@ already there — official librime release builds bundle `librime-lua`, and
 Weasel ships those builds — so there is nothing to compile, no plugin to
 install and no administrator rights needed.
 
+**Consider installing
+[spellless-weasel](https://github.com/EricWay1024/spellless-weasel) first.** It
+is Weasel with one convention added, it is what this project is developed on,
+and it buys the three features [below](#the-other-half-spellless-weasel) that no
+schema can reach: punctuation takes its space back, a word you re-type is picked
+up, and Backspace deletes a whole word. It installs *beside* the Weasel you
+already have, so stock Weasel carries on and both sit in the Windows
+input-method list. The schema install here is the same either way.
+
 ```powershell
 python scripts\install.py
 ```
 
 From WSL, run `python3 scripts/install.py` instead — it finds the Windows-side
-Rime directory itself. Then right-click the Weasel tray icon → **Deploy** (「重新部署」), press
-<kbd>F4</kbd> and choose **Spellless**.
+Rime directory itself. Then right-click the Weasel tray icon → **Deploy**
+(「重新部署」), press <kbd>F4</kbd> and choose **Spellless**.
 
 | Flag | |
 | --- | --- |
@@ -158,15 +153,18 @@ Rime directory itself. Then right-click the Weasel tray icon → **Deploy** (「
 | `--user-dir DIR` | install somewhere specific |
 | `--uninstall` | remove the files this script wrote |
 
-The installer only ever writes inside your Rime user directory, and never
-`rime.lua` — only one is ever loaded, so overwriting it would break other Lua
-schemas. It enables the schema by appending one entry to `default.custom.yaml`
-with Rime's list-append operator (`"schema_list/+"`), which **adds** to the
-schema list rather than replacing it — important if you run a distribution like
-rime-ice. The file is backed up first and only ever has lines inserted, so your
-comments survive; if it already patches `schema_list`, the installer prints
-what to add rather than guessing. `--no-enable` copies the files and leaves
-that file alone.
+The installer writes into **every** Rime user directory it finds —
+`%APPDATA%\Rime` for stock Weasel, `%APPDATA%\Spellless` for the fork — so both
+frontends end up running the same build, and `--list-candidates` prints what it
+found and why. It writes only inside those directories, and leaves `rime.lua`
+alone — only one is ever loaded, so overwriting it would break other Lua
+schemas. It enables the schema by appending one entry to
+`default.custom.yaml` with Rime's list-append operator (`"schema_list/+"`),
+which **adds** to the schema list rather than replacing it — important if you
+run a distribution like rime-ice. The file is backed up first and only ever has
+lines inserted, so your comments survive; if it already patches `schema_list`,
+the installer prints what to add rather than guessing. `--no-enable` copies the
+files and leaves that file alone.
 
 If something misbehaves on first deploy, the candidate comments
 (`spellless/show_debug_comments: true`) and `%APPDATA%\Rime\rime.log` are the
@@ -188,8 +186,8 @@ two places to look.
 | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> or <kbd>Shift</kbd>+<kbd>Del</kbd> | forget the highlighted candidate |
 | <kbd>F4</kbd> | schema menu |
 
-Punctuation keys are punctuation. Rime's preset binds `,` `.` `-` `=` to
-paging; this schema does not, because they are a comma and a full stop.
+Punctuation keys are punctuation: `,` `.` `-` `=` type themselves, where Rime's
+preset would page.
 
 **Tap Shift to get out of the way.** It switches to plain typing, and tapping
 it again switches back — the tray icon shows which mode you are in. Tapped
@@ -215,20 +213,18 @@ government      ←  gvrnmnt   gvmnt     govmnt
 cohomology      ←  chmlgy    cohmlgy   chmolgy
 ```
 
-There is no scheme to learn and no table to memorise, because the matcher
-prices the letters you *left out* rather than demanding the ones you kept: a
-vowel costs almost nothing to skip, a consonant next to another consonant a
-little, and a consonant that begins a syllable rather more. That is the entire
-model — no pronunciation dictionary, no syllabifier. `alghrith` reads as
-`algorithm`, `tnk` puts `think` next to `tank`, and it works on your own words
-too, so `gthndck` still finds `Grothendieck`.
+The matcher prices the letters you *left out* rather than demanding the ones
+you kept: a vowel costs almost nothing to skip, a consonant next to another
+consonant a little, and a consonant that begins a syllable rather more. That is
+the entire model — no pronunciation dictionary, no syllabifier, nothing to
+memorise. `alghrith` reads as `algorithm`, `tnk` puts `think` next to `tank`,
+and it works on your own words too, so `gthndck` still finds `Grothendieck`.
 
-**Words you coin get built, not looked up.** `re-`, `non-`, `pseudo-`,
-`over-`, `-wise`, `-less` and two dozen more attach to any word, so no
-dictionary can hold the results. When nothing ordinary fits, the affix comes
-off, the rest is matched on its own, and the word is put back together — and
-the affix is recognised by its consonants too, because someone who writes
-`smplng` writes `nn` for `non`.
+**Words you coin get built.** `re-`, `non-`, `pseudo-`, `over-`, `-wise`,
+`-less` and two dozen more attach to any word, so no dictionary can hold the
+results. When nothing ordinary fits, the affix comes off, the rest is matched
+on its own, and the word is put back together — and the affix is recognised by
+its consonants too, because someone who writes `smplng` writes `nn` for `non`.
 
 ```
 resmplng    →  resampling        nnfnctr     →  nonfunctor
@@ -236,11 +232,10 @@ qscohrnt    →  quasicoherent     mtrxws      →  matrixwise
 ovrprmtrsd  →  overparametrised
 ```
 
-A word the dictionary knows is never taken apart, which is what keeps
-`reading`, `region`, `nonsense` and `coder` out of it entirely. And a coinage
-never displaces a reading the dictionary can account for — it sits behind them.
-Hyphenated compounds need none of this: type `catch-me-if-you-can` straight
-through and the hyphens close up on their own.
+The dictionary settles it first, which is what keeps `reading`, `region`,
+`nonsense` and `coder` whole; a coinage sits behind any reading the dictionary
+can account for. Hyphenated compounds need none of this: type
+`catch-me-if-you-can` straight through and the hyphens close up on their own.
 
 **Spaces are automatic**, and they ride on the word: whichever key commits it —
 space bar, a number — puts the space in too. Typing punctuation instead ends
@@ -257,8 +252,8 @@ start of an empty text box — but only if you typed the word in lower case, so
 `MATHE` and `kubectl` are left alone. Your own capitals are kept: `Mathe` gives
 `Mathematics`, `RECIEVE` gives `RECEIVE`.
 
-**Dropped apostrophes are treated as typography, not spelling**, so `dont`
-gives `don't`, `youre` gives `you're`, and `its` gives `its` with `it's` right
+**Dropped apostrophes are typography rather than spelling**, so `dont` gives
+`don't`, `youre` gives `you're`, and `its` gives `its` with `it's` right
 behind it. A bare `i` gives `I`, and `eg` gives `e.g.` — committing the
 abbreviation whole is also what stops it being mistaken for the end of a
 sentence. Add your own in `data/forms.txt`.
@@ -271,16 +266,15 @@ hence the capital `I`.
 exactlyright      →  exactly right       iamgoingtoschool  →  I am going to school
 ```
 
-A word is never split (`another` is not `a not her`), and a split is placed
-rather than ranked — last among the real candidates, so it can neither displace
-a correction nor be crowded out by a mediocre one. `spellless` and `argmax`
+A split is placed rather than ranked — last among the real candidates, so it
+can neither displace a correction nor be crowded out by a mediocre one — and a
+word is never split, so `another` stays `another`. `spellless` and `argmax`
 keep the first slot; `this day` is there when you want it.
 
 **Possessives follow the stem.** Type the apostrophe and the whole list comes
 back possessive: `mther's` → `mother's`, `mthers'` → `mothers'`. The stem is
 matched — that is the part you misspell — and the ending you typed is put back
 untouched, because only your apostrophe knows whether the noun was plural.
-Nothing guesses a possessive from a bare `s`.
 
 **Short and capitalised input leads with itself.** `x`, `cm`, `ms`, `PDE`,
 `TQFT` commit as themselves, because one or two characters are variables and
@@ -292,9 +286,8 @@ as the underscore appears.
 
 **The literal text you typed is always on the first page** — in slot 7 by
 default, or first when nothing plausible was found — so pressing space on
-`kubectl` or `argmax` cannot turn it into an English word. A word Spellless has
-never seen also takes two presses of the space bar rather than one, because the
-moment worth interrupting you is the moment you were about to be wrong.
+`kubectl` or `argmax` cannot turn it into an English word, and a word Spellless
+has never seen takes two presses rather than one.
 
 **Type `zzver` to see which build you are running.** The candidate list answers
 with the revision, when it was installed, how many words it loaded and how it
@@ -303,7 +296,7 @@ twenty minutes ago" stops being a guess.
 
 ```
 zzver  →  spellless 41223bf installed 2026-09-06 12:34
-          83095 words, 580 forms, 3 shortcuts
+          83137 words, 622 forms, 3 shortcuts
           cue 70/9.0, slip 10.0, learn on
 ```
 
@@ -323,20 +316,19 @@ back.
 
 **A correction you make twice is a correction you meant.** Pick the same
 candidate for the same input a second time and it leads that input from then
-on — placed, not scored, so nothing about English frequency argues with it.
-Once is not enough on purpose: a good deal of what anyone picks is picked once
-by accident.
+on — placed rather than scored, so English frequency cannot argue with it. Once
+is not enough on purpose: a good deal of what anyone picks is picked once by
+accident.
 
 ```
 cli   →  click  client  clip  clips ...      before
 cli   →  CLI    click   client  clip         after picking CLI twice
 ```
 
-Only a **number key** counts. The space bar does not: at speed it goes on
-muscle memory and takes whatever is first, so counting it would teach the list
-to insist on its own guess. <kbd>Enter</kbd> commits exactly what you typed,
-which is a refusal to choose rather than a choice, so it teaches nothing
-either.
+Only a **number key** counts, because at speed the space bar takes whatever is
+first and counting it would teach the list to insist on its own guess.
+<kbd>Enter</kbd> commits exactly what you typed, which is a refusal to choose
+rather than a choice, so it teaches nothing either.
 
 **And a capital you type yourself is learned, once you have chosen it twice.**
 `Windows` is the case the dictionary cannot settle — the lowercase word is
@@ -351,7 +343,7 @@ window   →  window · windows · Windows …
 ```
 
 Both readings, always, because you still have to be able to open a window. A
-capital that came from the start of a sentence is never learned — that one is
+capital that came from the start of a sentence stays unlearned — that one is
 ours, not yours. Control+Shift+D takes a correction back along with the word.
 
 That file is plain text and safe to edit by hand:
@@ -383,8 +375,7 @@ You will need fewer of these than you expect: the matcher already rebuilds a
 word from its consonants, so `ppl` would find `people` unaided. What a list is
 for is the cases where the information is not in the input at all — `bc` is two
 letters, and at two letters almost every word in the language is a plausible
-completion. No tuning fixes that. It is a habit, and a habit has to be written
-down.
+completion. That is a habit, and a habit has to be written down.
 
 **For a larger, permanent vocabulary**, add a `.txt` file to `data/vocab/` and
 run `make`. This puts the words in the main dictionary with a real corpus
@@ -435,9 +426,10 @@ and the reasons behind each.
 4. **Very short input is genuinely ambiguous**, and the ranking does not
    pretend otherwise: `frm` offers `from`, `form`, `firm`, `farm`, `forum`,
    `frame` in frequency order.
-5. **Learning remembers the word, not the input that found it.** Picking
-   `recommendation` for `rcmmndtn` raises `recommendation` everywhere, but does
-   not remember that *this* abbreviation meant *that* word.
+5. **Frequency learning is keyed on the word.** Picking `recommendation` for
+   `rcmmndtn` raises `recommendation` everywhere; the pairing of *this*
+   abbreviation with *that* word takes hold only once you have picked it a
+   second time, as above.
 6. **On a stock Weasel, spacing and capitals are inferred** from what the input
    method committed rather than from the document — a mouse click that moves
    the caret is invisible — so you will occasionally get a stray space or
@@ -447,23 +439,15 @@ and the reasons behind each.
    already written. Typing the punctuation while the word is still being
    composed — the normal way — is right.
 
-The last two are not limits of the schema but of where a schema sits, and the
-fork below lifts both.
+The last two are limits of where a schema sits, and the fork below lifts both.
 
 ---
 
 ## The other half: [spellless-weasel](https://github.com/EricWay1024/spellless-weasel)
 
-Everything above works on a stock Weasel. Three features do not, because no
-schema can reach them:
-
-These need the input method to take text back out of the document, which is
-only possible where the document is one — a terminal has already forwarded what
-it was given, so the attempt replays its buffer instead of correcting it. They
-are refused in the applications listed under `commit_only_apps`, `code.exe`
-among them, because VS Code's editor and its terminal are the same executable.
-Press <kbd>F4</kbd> and turn on **edits document** while writing prose in one of
-those; it resets when you next deploy.
+Everything above works on a stock Weasel. Three features need the input method
+to take text back out of the document, which is further than any schema
+reaches:
 
 | | |
 | --- | --- |
@@ -471,11 +455,17 @@ those; it resets when you next deploy.
 | a word being re-typed is picked up | delete the space after `so`, type `oner`, get `sooner` |
 | Backspace twice | deletes the whole word |
 
-All three exist because Rime cannot see or retract what it has committed: a
-commit is a string, and once it has left the input method the text belongs to
-the application. The frontend is on the other side of that line — it holds a
-TSF range, so it can read the few characters in front of the caret and hand
-them over, and it can take a character back.
+All three exist because a commit is a string: once it has left the input method
+the text belongs to the application. The frontend is on the other side of that
+line — it holds a TSF range, so it can read the few characters in front of the
+caret and hand them over, and it can take a character back.
+
+They work where the document is a document; a terminal has already forwarded
+what it was given, so the attempt replays its buffer instead of correcting it.
+They are refused in the applications listed under `commit_only_apps`,
+`code.exe` among them, because VS Code's editor and its terminal are the same
+executable. Press <kbd>F4</kbd> and turn on **edits document** while writing
+prose in one of those; it resets when you next deploy.
 
 **[EricWay1024/spellless-weasel](https://github.com/EricWay1024/spellless-weasel)**
 is Weasel with that one convention added, rebuilt to install *beside* the one
@@ -496,9 +486,9 @@ as wrong. The clock starts on your first keystroke, so the time spent choosing
 a candidate is charged to you, and what it credits is the text that arrived —
 which is the only way an input method can be compared with a keyboard fairly.
 
-It measures transcription, though, not writing. With the model line in front of
-you the spelling is already solved, which is the one problem Spellless exists
-to fix. Read a good score as "I copy quickly", not as "the matcher helps".
+It measures transcription. With the model line in front of you the spelling is
+already solved, which is the one problem Spellless exists to fix, so read a
+good score as "I copy quickly".
 
 ---
 
@@ -515,7 +505,7 @@ frontend, then type `zzver` and check the revision.
 
 ```bash
 make            # dictionary + indexes + test set
-make test       # 1977 assertions
+make test       # 2,109 assertions
 make bench      # accuracy and latency over tests/cases/
 make install
 ```
@@ -528,8 +518,9 @@ spellless/
 ├── scripts/       dictionary build, index build, test-set build, installer
 ├── data/          vendored corpus, supplemental vocabulary, surface forms
 ├── generated/     build output (1.3 MB) — what gets deployed
-├── tests/         1977 assertions + the evaluation cases
-└── bench/         evaluate.lua, tune.lua, naive.lua
+├── tests/         2,109 assertions + the evaluation cases
+├── bench/         evaluate.lua, tune.lua, naive.lua
+└── docs/          the algorithm in full, deployment, the typing bench
 ```
 
 The tests and benchmark need a `lua` binary (5.4) and exercise exactly the
