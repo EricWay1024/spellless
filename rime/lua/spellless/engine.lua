@@ -353,6 +353,17 @@ function Engine:describe(opts)
     ("cue %s/%s, %s, learn %s"):format(cfg.base_cue, cfg.cue_cost_scale, slip,
                                        cfg.learn and "on" or "off"),
   }
+  -- The three features that edit text already in the document, and whether
+  -- each is switched on.  They ship off and are turned on in a custom YAML, so
+  -- "I turned it on and nothing happened" is nearly always "the patch is not
+  -- being read" -- which this line settles in one keystroke instead of an
+  -- afternoon.  `edit_document` is a different question and the line below
+  -- answers that one: it overrules the refusal list, it does not switch
+  -- anything on.
+  out[#out + 1] = ("reclaim %s, absorb %s, word-backspace %s"):format(
+      cfg.reclaim_space and "on" or "OFF",
+      cfg.absorb_fragment and "on" or "OFF",
+      cfg.word_backspace and "on" or "OFF")
   -- What the matcher can actually see about the application it is typing into,
   -- which is not always what the configuration implies -- and when the two
   -- disagree, this line is the one that is true.

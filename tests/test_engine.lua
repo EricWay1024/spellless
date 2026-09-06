@@ -380,6 +380,12 @@ do
        "and a real correction keeps the slot the split used to take")
 end
 
+local function out_texts(candidates)
+  local t = {}
+  for i, c in ipairs(candidates) do t[i] = c.text end
+  return t
+end
+
 H.suite("engine: which build is running")
 -- The question this answers cannot be answered from outside the process, and
 -- getting a stale answer is exactly the failure it exists to prevent -- so the
@@ -403,6 +409,18 @@ do
     H.ok(not first.text:find("^spellless %w"),
          ("%q does not reach it (got %q)"):format(near, first.text))
   end
+
+  -- The three document-editing features and whether each is on.  "I turned it
+  -- on and nothing happened" is nearly always "the custom YAML is not being
+  -- read", and that should cost one keystroke to find out, not an afternoon.
+  local flags = table.concat(out_texts(engine:suggest("zzver", 20)), " ")
+  H.ok(flags:find("reclaim OFF", 1, true), "the shipped defaults are off: " .. flags)
+  local on = assert(Engine.new{ data_dir = DATA,
+                                config = { reclaim_space = true, word_backspace = true } })
+  local flags_on = table.concat(out_texts(on:suggest("zzver", 20)), " ")
+  H.ok(flags_on:find("reclaim on", 1, true) and flags_on:find("absorb OFF", 1, true)
+       and flags_on:find("word-backspace on", 1, true),
+       "and each is reported separately: " .. flags_on)
 
   local off = assert(Engine.new{ data_dir = DATA, config = { version_query = "" } })
   H.ok(not off:suggest("zzver", 20)[1].text:find("^spellless "),
