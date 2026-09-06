@@ -127,6 +127,18 @@ M.defaults = {
   -- first, so a string is not shredded into the many short words English is
   -- full of: at 1.4 "as a matter of fact" starts losing to "asa matter of
   -- fact", and at 0 everything shatters.
+  -- Words coined out of a productive affix and a word: "resampling",
+  -- "nonabelian", "matrixwise".  No dictionary can hold these -- that is what
+  -- productive means -- so they are built rather than looked up.  See
+  -- spellless/affix.lua; a word the dictionary already knows is never peeled,
+  -- which is what keeps "reading" and "nonsense" out of it.
+  affix_words       = true,
+  -- Shortest query worth peeling, and shortest stem worth matching.  Two or
+  -- three letters after the affix is not a stem, it is a coincidence.
+  min_affix_len     = 6,
+  min_affix_stem    = 4,
+  -- Each attempt is a whole extra search, so they are counted.
+  max_affix_tries   = 4,
   split_words       = true,
   split_word_penalty = 0.8,
   -- How good an ordinary explanation has to be before splitting is abandoned.

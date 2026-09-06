@@ -460,3 +460,58 @@ do
   H.ok(not list("widow"):find(" Windows "), "and it does not leak sideways")
   os.remove(path)
 end
+
+H.suite("engine: words coined out of an affix and a word")
+-- English makes "resampling" or "matrixwise" whenever it needs them, and no
+-- dictionary can hold the results.  So they are built rather than looked up.
+do
+  local function list(q)
+    local t = {}
+    for i, c in ipairs(engine:suggest(q, 8)) do t[i] = c.text:gsub("%s+$", "") end
+    return " " .. table.concat(t, " ") .. " "
+  end
+  local function has(q, w) return list(q):find(" " .. w .. " ", 1, true) ~= nil end
+
+  H.ok(has("resmplng", "resampling"), "re + smplng: " .. list("resmplng"))
+  H.ok(has("qscohrnt", "quasicoherent"), "and a prefix written without its vowels")
+  H.ok(has("ovrprmtrsd", "overparametrised"), "and a long one")
+  H.ok(has("mtrxws", "matrixwise"), "a suffix too, also by its consonants")
+
+  -- The affix is written out in full however it was typed: "nn" is "non".
+  H.ok(has("nnfnctr", "nonfunctor"), "nn is non: " .. list("nnfnctr"))
+
+  -- The best reading, not the first one to find anything.  "mtrxws" is
+  -- meta + rxws before it is mtrx + wise, and "rxws" does find "rows".
+  H.ok(not has("mtrxws", "metarows"), "the better reading wins")
+
+  -- And the guard that does most of the work: a word is a word.
+  for _, w in ipairs({ "reading", "region", "nonsense", "coder", "rearrange",
+                       "unit", "interest", "subject", "decide" }) do
+    H.eq(engine:suggest(w, 4)[1].text:gsub("%s+$", ""), w,
+         ("%q is a word, so it is read as one"):format(w))
+  end
+
+  -- Never in front of an ordinary answer.
+  local l = list("resmplng")
+  H.ok(l:find(" resembling ") and l:find(" resampling ", 1, true) > l:find(" resembling ", 1, true),
+       "a coinage sits behind the readings the dictionary can account for")
+
+  local off = assert(Engine.new{ data_dir = DATA, config = { affix_words = false } })
+  H.ok(not (" " .. off:suggest("resmplng", 8)[2].text .. " "):find("resampling"),
+       "and it can be switched off")
+end
+
+H.suite("engine: hyphenated compounds are typed a word at a time")
+-- "catch-me-if-you-can" needs no special handling and gets none: the hyphen
+-- ends the word, hugs what is behind it and takes no space after, so each part
+-- is matched normally and the pieces close up.  Asserted because it is easy to
+-- break from the spacing side without noticing.
+do
+  local P = require("spellless.preceding")
+  H.eq(P.hugs_previous("-"), true, "a hyphen closes up against the word before")
+  H.eq(P.needs_space_after("catch-"), false, "and takes none after itself")
+  H.eq(P.starts_fresh("catch-"), false, "and does not start a sentence")
+  H.eq(P.opens_after_word("-"), false, "nor does it open anything")
+  H.eq(engine:suggest("me", 2)[1].text:gsub("%s+$", ""), "me",
+       "so each part is just a word")
+end

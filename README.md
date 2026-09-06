@@ -223,6 +223,25 @@ model — no pronunciation dictionary, no syllabifier. `alghrith` reads as
 `algorithm`, `tnk` puts `think` next to `tank`, and it works on your own words
 too, so `gthndck` still finds `Grothendieck`.
 
+**Words you coin get built, not looked up.** `re-`, `non-`, `pseudo-`,
+`over-`, `-wise`, `-less` and two dozen more attach to any word, so no
+dictionary can hold the results. When nothing ordinary fits, the affix comes
+off, the rest is matched on its own, and the word is put back together — and
+the affix is recognised by its consonants too, because someone who writes
+`smplng` writes `nn` for `non`.
+
+```
+resmplng    →  resampling        nnfnctr     →  nonfunctor
+qscohrnt    →  quasicoherent     mtrxws      →  matrixwise
+ovrprmtrsd  →  overparametrised
+```
+
+A word the dictionary knows is never taken apart, which is what keeps
+`reading`, `region`, `nonsense` and `coder` out of it entirely. And a coinage
+never displaces a reading the dictionary can account for — it sits behind them.
+Hyphenated compounds need none of this: type `catch-me-if-you-can` straight
+through and the hyphens close up on their own.
+
 **Spaces are automatic**, and they ride on the word: whichever key commits it —
 space bar, a number — puts the space in too. Typing punctuation instead ends
 the word *without* its space and puts one after the punctuation, so nothing

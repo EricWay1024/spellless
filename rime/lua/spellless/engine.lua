@@ -7,6 +7,7 @@
 local Corpus = require("spellless.corpus")
 local UserDB = require("spellless.userdb")
 local cue = require("spellless.cue")
+local affix = require("spellless.affix")
 local version = require("spellless.version")
 local Shortcuts = require("spellless.shortcuts")
 local split = require("spellless.split")
@@ -367,6 +368,51 @@ function Engine:describe(opts)
   return out
 end
 
+--- The query read as an affix plus a word, when it is not a word itself.
+---
+--- Every reading is tried and the best-scoring one wins, rather than the first
+--- that finds anything.  Taking the first was wrong in a way worth recording:
+--- "mtrxws" is `meta` + `rxws` before it is `mtrx` + `wise`, and `rxws` does
+--- find "rows", so it offered "metarows" and never looked further.  What
+--- decides is how well the stem matched, which is the only evidence there is.
+---
+--- The stem is matched by the whole matcher, recursively -- a coined word is
+--- only useful if you can misspell it too, and "resmplng" reaches "sampling"
+--- through the syllable channel, not through an exact lookup.  One level only:
+--- "unresampling" is not worth the second search.
+function Engine:find_affix(query, style)
+  local cfg = self.cfg
+  if not cfg.affix_words or self.peeling then return nil end
+  -- A word the dictionary knows is a word, not a coinage.  This is what keeps
+  -- "reading", "region", "coder" and "nonsense" out of it entirely, and it is
+  -- doing far more work than the affix lists are.
+  if self.corpus:lookup(query) then return nil end
+  if #query < cfg.min_affix_len then return nil end
+
+  self.peeling = true
+  local found, tried = nil, 0
+  for _, part in ipairs(affix.peel(query, cfg.min_affix_stem)) do
+    if tried < cfg.max_affix_tries then
+      tried = tried + 1
+      local inner = self:suggest(part.stem, 3, { literal_first = false })
+      local best = inner[1]
+      if best and not best.raw then
+        local stem = best.text:gsub("%s+$", "")
+        -- Only a plain word.  A split ("re" + "sam pling") or a phrase is not
+        -- something to glue an affix onto.
+        if stem:find("^%a[%a']*$") and (not found or best.score > found.score) then
+          found = { text = affix.join(part, stem:lower()), score = best.score,
+                    cost = best.cost }
+        end
+      end
+    end
+  end
+  self.peeling = nil
+  if not found then return nil end
+  found.text = apply_case(found.text, style)
+  return found
+end
+
 function Engine:suggest(raw, limit, opts)
   local cfg = self.cfg
   local stats = {}
@@ -553,6 +599,38 @@ function Engine:suggest(raw, limit, opts)
   -- Last, rather than above the literal, because the literal has to stay where
   -- it is: it leads when nothing else is trustworthy, and putting the split
   -- above it there would hand first place to "spell less" over "spellless".
+  -- A coinage sits with the split, among the readings that are worth having
+  -- and never worth preferring: both are things the dictionary cannot contain,
+  -- and both would be wrong to put in front of a word it does.
+  -- Only when nothing ordinary was worth putting under the space bar.
+  --
+  -- Peeling costs a whole extra search per reading tried, which is far too
+  -- much to spend on every keystroke -- it put the 95th percentile over the
+  -- 10 ms this project holds itself to.  But a coinage is by definition a word
+  -- the dictionary does not have, so the case where it is wanted is exactly
+  -- the case where the ordinary channels came back with nothing trustworthy,
+  -- and `trusted` has already been worked out a few lines above.  Typing an
+  -- ordinary word now pays nothing at all for this.
+  local coined = not trusted and not (opts and opts.literal_first)
+      and self:find_affix(search, style)
+  if coined then
+    local text = coined.text .. (suffix or "")
+    local seen = false
+    for j = 1, #out do if out[j].text == text then seen = true break end end
+    if not seen then
+      -- Placed rather than appended, and it displaces the last entry when the
+      -- list is already full.  A coinage is the only reading of a coinage; the
+      -- twentieth guess at what else the letters might have been is not worth
+      -- the slot, and leaving this to "if there is room" made it appear or not
+      -- according to how many rivals a query happened to attract.
+      local slot = #out + 1
+      if slot > limit then slot = limit end
+      table.insert(out, slot, { text = text, source = "coined",
+                                score = coined.score, cost = coined.cost })
+      while #out > limit do table.remove(out) end
+    end
+  end
+
   local found = find_split(self, search)
   if found and #out < limit then
     out[#out + 1] = {
