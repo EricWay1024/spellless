@@ -786,6 +786,13 @@ function Engine:learn_choice(typed, text)
   typed = typed:match("^%s*(.-)%s*$")
   text = text:match("^%s*(.-)%s*$")
   if typed == "" or text == "" then return end
+  -- The version query is a diagnostic, not a word, and its answer is a
+  -- sentence about the running process.  Taking one of those lines by its
+  -- number is how you read it, so without this the store fills up with
+  -- "> zzver app code.exe, document readable, edits allowed".
+  if self.cfg.version_query ~= "" and typed:lower() == self.cfg.version_query then
+    return
+  end
 
   -- A capital you did not type is ours, not yours.
   --

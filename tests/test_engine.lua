@@ -393,6 +393,17 @@ do
   local off = assert(Engine.new{ data_dir = DATA, config = { version_query = "" } })
   H.ok(not off:suggest("zzver", 20)[1].text:find("^spellless "),
        "and an empty version_query removes it entirely")
+
+  -- Reading the answer means taking a line by its number, which is exactly the
+  -- gesture the correction store records.  Found in a real store as
+  -- "> zzver  app code.exe, document readable, edits allowed  1".
+  local scratch = os.tmpname()
+  os.remove(scratch)
+  local learner = assert(Engine.new{ data_dir = DATA, user_dir = scratch,
+                                     config = { learn = true } })
+  learner:learn_choice("zzver", "app code.exe, document readable, edits allowed")
+  H.eq(learner.user:choices_for("zzver"), nil,
+       "and reading the version does not teach it anything")
 end
 
 H.suite("engine: a correction made twice leads the list")
