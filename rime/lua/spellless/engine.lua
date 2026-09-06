@@ -311,8 +311,9 @@ function Engine:describe(opts)
   if opts and opts.may_edit ~= nil then
     local app = opts.client_app
     if app == nil or app == "" then app = "(frontend reports none)" end
-    out[#out + 1] = ("app %s, document edits %s"):format(
-        app, opts.may_edit and "allowed" or "refused")
+    out[#out + 1] = ("app %s, document %s, edits %s"):format(
+        app, opts.readable and "readable" or "unreadable",
+        opts.may_edit and "allowed" or "refused")
   end
   return out
 end

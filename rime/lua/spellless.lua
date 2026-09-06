@@ -102,37 +102,6 @@ local function schema_overrides(schema_config)
   return out
 end
 
---- May this application have text taken back out of it?
----
---- `reclaim_space`, `absorb_fragment` and `word_backspace` all work the same
---- way: the commit is prefixed with U+0008 and the frontend removes characters
---- the application has already been given.  That is only possible where the
---- text is still in a document the input method can revise.
----
---- In a terminal it is not.  Committed text has already gone down the pty to
---- the process on the other end, and the frontend's replacement therefore
---- arrives as *more* input rather than as a correction -- the visible symptom
---- being a duplicated line.  No amount of care in the frontend can fix that,
---- because by the time it acts the text is gone.
----
---- Two ways to say so, and either is enough: the `commit_only` option, which
---- Weasel's `app_options` can set per application, or the shipped list in
---- `commit_only_apps`, matched against the `client_app` property that the
---- frontend fills in with the executable name of the window being typed into.
-local function may_edit_document(context, engine)
-  if not engine then return false end
-  if context:get_option("commit_only") then return false end
-  local app = context:get_property("client_app")
-  if not app or app == "" then return true end
-  local list = engine.cfg.commit_only_apps
-  if not list or list == "" then return true end
-  app = app:lower():gsub("^%s+", ""):gsub("%s+$", "")
-  for name in list:lower():gmatch("[^,]+") do
-    if name:gsub("^%s+", ""):gsub("%s+$", "") == app then return false end
-  end
-  return true
-end
-
 --- Where the generated dictionary and indexes live.
 --- Checked in the user directory first so a personal rebuild wins over a
 --- system-wide install, exactly like Rime's own data lookup.
@@ -301,6 +270,49 @@ local function text_behind(context)
   return document_tail(context) or commit_tail(context.commit_history)
 end
 
+--- May we ask the frontend to take `expect` back out of the document?
+---
+--- `reclaim_space`, `absorb_fragment` and `word_backspace` all work the same
+--- way: the commit is prefixed with U+0008 and the frontend removes characters
+--- the application has already been given.  That needs the text to still be in
+--- a document the input method can revise, and in a terminal it is not --
+--- what was committed has gone down the pty, so the replacement arrives as
+--- *more* input and the line duplicates.
+---
+--- Which applications are like that cannot be answered by name.  VS Code is
+--- both: its editor is an ordinary document and its integrated terminal is
+--- not, and they arrive here as the same `code.exe`.  So the name only marks
+--- an application as *suspect*, and a suspect one has to prove it: the
+--- frontend reads the text in front of the caret for `absorb_fragment`
+--- anyway, and an application whose document cannot be read certainly cannot
+--- have it edited.  `absorb_fragment` and `word_backspace` already demand that
+--- read and so answer for themselves; only `reclaim_space` went on our own
+--- record of what we committed, which says nothing about whether it arrived.
+---
+--- `commit_only` -- which Weasel's `app_options` can set per application --
+--- is the flat refusal, for anything this cannot work out.
+local function may_edit_document(context, engine, expect)
+  if not engine then return false end
+  if context:get_option("commit_only") then return false end
+
+  local app = context:get_property("client_app")
+  local suspect = false
+  local list = engine.cfg.commit_only_apps
+  if app and app ~= "" and list and list ~= "" then
+    app = app:lower():gsub("^%s+", ""):gsub("%s+$", "")
+    for name in list:lower():gmatch("[^,]+") do
+      if name:gsub("^%s+", ""):gsub("%s+$", "") == app then suspect = true break end
+    end
+  end
+  if not suspect then return true end
+
+  -- Prove it, against the document rather than against our own history.
+  local doc = document_tail(context)
+  if not doc then return false end
+  if expect and expect ~= "" and doc:sub(-#expect) ~= expect then return false end
+  return true
+end
+
 --- Everything the text behind the cursor implies for the next word.
 local function read_behind(engine, context)
   local cfg = engine.cfg
@@ -312,7 +324,8 @@ local function read_behind(engine, context)
     -- has to report what the matcher can actually see rather than what the
     -- configuration says it should.
     client_app = context:get_property("client_app"),
-    may_edit = may_edit_document(context, engine),
+    may_edit = may_edit_document(context, engine, " "),
+    readable = document_tail(context) ~= nil,
     -- The word fragment the caret is sitting against, if any: delete the space
     -- after "so" and start typing again and this is "so".  Only ever set from
     -- the document, because absorbing it means deleting it, and a guess is not
@@ -644,7 +657,7 @@ function M.processor.func(key, env)
   -- Covers "1,000", "12:30" and "Smith:2020" as well.
   if engine and engine.cfg.auto_space and engine.cfg.reclaim_space
      and not composing and code >= 0x30 and code <= 0x39
-     and not key:shift() and may_edit_document(context, engine) then
+     and not key:shift() and may_edit_document(context, engine, " ") then
     local behind = commit_tail(context.commit_history)
     if behind:match("%d[%.,:] $") then
       env.engine:commit_text("\8" .. string.char(code))
@@ -722,7 +735,7 @@ function M.processor.func(key, env)
     -- inserted literally, which is why this is off by default.
     local reclaim = ""
     if engine.cfg.reclaim_space and preceding.hugs_previous(mark)
-       and may_edit_document(context, engine) then
+       and may_edit_document(context, engine, " ") then
       local stripped = behind:match("^(.-) $")
       if stripped then reclaim, behind = "\8", stripped end
     end

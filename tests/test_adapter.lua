@@ -144,9 +144,21 @@ do
     return written:find("\8", 1, true) ~= nil
   end
   H.ok(reclaims("notepad.exe"), "an ordinary text field still gets it")
-  H.ok(not reclaims("code.exe"), "VS Code, whose terminal cannot take it back, does not")
+  H.ok(not reclaims("code.exe"), "a suspect application with no readable document does not")
   H.ok(not reclaims("WindowsTerminal.exe"), "and the match ignores case")
   H.ok(reclaims(""), "an unknown application is given the benefit of the doubt")
+
+  -- The name only marks an application as suspect.  VS Code is both an
+  -- ordinary editor and a terminal under one executable name, so it has to
+  -- prove which one is being typed into -- and the proof is the document the
+  -- frontend can read for absorb_fragment anyway.
+  ctx0:set_property("surrounding_text", "you ")
+  H.ok(reclaims("code.exe"),
+       "the same application does get it where the document reads back")
+  ctx0:set_property("surrounding_text", "you.")
+  H.ok(not reclaims("code.exe"),
+       "and not where the document disagrees about what is behind the caret")
+  ctx0:set_property("surrounding_text", "")
 
   -- The option is the per-application escape hatch, for anything the shipped
   -- list has not heard of: Weasel's app_options can set it by name.
