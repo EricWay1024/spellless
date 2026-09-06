@@ -552,6 +552,47 @@ H.eq(spellless.processor.func(mock.key(string.byte("1")), env), 2,
 env.spellless.cfg.reclaim_space = false
 env.engine.context.input = ""
 
+H.suite("adapter: a dollar hands the keyboard over, and takes it back")
+-- Maths is not English.  `$` opens it, and everything until the closing `$`
+-- belongs to the typist.
+spellless.delimiter.init(env)
+local ctx = env.engine.context
+ctx:set_option("ascii_mode", false)
+ctx:set_property("spellless_delimiter", "")
+mock.history:clear(); mock.history:push("exact", "let ")
+mock.selected = nil
+ctx.input = ""
+H.eq(spellless.processor.func(mock.key(string.byte("$")), env), 1, "the dollar is handled")
+H.eq(mock.committed[#mock.committed], "$", "written where it was typed, opening so unspaced")
+H.ok(ctx:get_option("ascii_mode"), "and ASCII mode is on")
+H.eq(ctx:get_property("spellless_delimiter"), "$", "with the delimiter that opened it remembered")
+
+-- In ASCII mode nothing behind ascii_composer runs, so this gear is in front.
+H.eq(spellless.delimiter.func(mock.key(string.byte("x")), env), 2, "ordinary keys pass through")
+H.eq(spellless.delimiter.func(mock.key(string.byte("$")), env), 1, "the closing dollar is taken")
+H.eq(mock.committed[#mock.committed], "$ ", "and carries the space the next word needs")
+H.ok(not ctx:get_option("ascii_mode"), "ASCII mode is off again")
+H.eq(ctx:get_property("spellless_delimiter"), "", "and nothing is left open")
+
+H.suite("adapter: a dollar in an ASCII run nobody opened is a dollar")
+-- Tapping Shift into ASCII mode to type `$PATH` in a terminal must not be
+-- flipped back out by the dollar sign itself.
+ctx:set_option("ascii_mode", true)
+ctx:set_property("spellless_delimiter", "")
+local before_dollar = #mock.committed
+H.eq(spellless.delimiter.func(mock.key(string.byte("$")), env), 2, "passed through")
+H.eq(#mock.committed, before_dollar, "committing nothing")
+H.ok(ctx:get_option("ascii_mode"), "and staying in ASCII mode")
+
+H.suite("adapter: a run left by another route is not closed later")
+-- Shift, F4 and Control+Shift+A all leave ASCII mode without a closing dollar.
+ctx:set_option("ascii_mode", false)
+ctx:set_property("spellless_delimiter", "$")
+spellless.delimiter.func(mock.key(string.byte("a")), env)
+H.eq(ctx:get_property("spellless_delimiter"), "", "the stale delimiter is forgotten")
+ctx:set_option("ascii_mode", false)
+ctx.input = ""
+
 H.suite("adapter: Control+Shift+A escapes mid-word")
 -- key_binder's `toggle: ascii_mode` leaves an open composition alone and then
 -- appends plain ASCII to it, so this is handled in the processor instead.

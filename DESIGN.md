@@ -64,12 +64,13 @@ inferring from examples:
 ```
 keystroke
    |
+   +-- spellless        the `$` that ends an ASCII run          [Spellless]
    +-- ascii_composer   Caps Lock / ASCII mode                     [Rime]
    +-- recognizer       "sqlite3", "foo_bar", urls, emails         [Rime]
    +-- speller          builds the composition, a-z A-Z '          [Rime]
    +-- punctuator       , . ! ?                                    [Rime]
    +-- selector         number keys, paging                        [Rime]
-   +-- spellless        Enter, when a leading space is due     [Spellless]
+   +-- spellless        spaces, capitals, punctuation, Enter   [Spellless]
    +-- express_editor   Space = confirm, Enter = commit raw input  [Rime]
                            (Enter first passes our processor, for the space)
               |
@@ -605,6 +606,35 @@ speller's alphabet, so typing it would end the composition anyway, and
 committing the abbreviation as one candidate means the whole of it is there to
 recognise. `Corpus.abbreviations` collects every form ending in a full stop,
 and `ends_sentence` consults it first.
+
+### `$` hands the keyboard over
+
+Maths is not English, and a candidate list in front of `\frac{a}{b}` is in the
+way. Typing a character in `ascii_delimiters` (just `$` for now) writes it and
+turns ASCII mode on; typing the same character again writes it and turns ASCII
+mode off. Between the two, every keystroke is the typist's.
+
+The two halves live in different places, and have to. The opening `$` is
+ordinary punctuation: the branch below ends the word, works out the spacing and
+writes the mark, and all that is added is the switch and a note of which
+character opened the run. The closing one arrives in ASCII mode, where
+`ascii_composer` rejects printable keys where it stands — first in the
+processor list — so nothing behind it runs. Hence `lua_processor@*spellless*delimiter`,
+in front of it, which answers for one character in one state and returns
+`kNoop` for everything else.
+
+Only the delimiter that opened a run closes it. ASCII mode reached by tapping
+Shift has no delimiter, so `$PATH` in a terminal is a dollar sign followed by a
+word, which is what a terminal needs it to be. Leaving ASCII mode by any other
+route — Shift, F4, `Control+Shift+A` — makes the note stale, and the next key
+seen in Spellless mode clears it rather than the gear trying to recognise every
+way the mode can change.
+
+The space after the closing `$` is decided rather than measured: everything
+typed inside the run went straight to the application, so the commit history
+still reads as it did before the run opened and `needs_space_after` has nothing
+to work with. A closing delimiter takes a space for the same reason a word
+does, and punctuation takes it back on the frontend that can (§5.6).
 
 ### Enter, and what the processor actually owns
 

@@ -329,6 +329,17 @@ M.defaults = {
   -- `auto_space` off takes it away regardless, since there is no automatic
   -- space to carry.
   enter_space       = true,
+  -- Characters that turn ASCII mode on when you type one, and off when you
+  -- type it again: `$` opens maths, and inside maths every keystroke is
+  -- yours -- no candidates, no automatic capital, no spacing.  Each character
+  -- is closed by itself, and only a run this opened is closed that way: a `$`
+  -- typed in ASCII mode you reached by tapping Shift is an ordinary dollar
+  -- sign, so shell variables in a terminal go on working.
+  --
+  -- One character each.  `$$` therefore reads as open-then-close rather than
+  -- as display maths; write `\[` for that, or tap Shift.  Set to "" to switch
+  -- the whole idea off.
+  ascii_delimiters  = "$",
   -- Applications that may not have text taken back out of them, by name, comma
   -- separated.  The three features below all work by removing characters the
   -- application has already been given, and that only works where the text is

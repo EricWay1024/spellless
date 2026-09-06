@@ -62,6 +62,9 @@ local SENTENCE = "spellless_sentence"
 local BACKSPACE = "spellless_backspace"
 -- Set once the space bar has been offered a literal candidate and declined it.
 local LITERAL = "spellless_literal"
+-- Which delimiter opened the ASCII run we are inside, "" when we did not open
+-- it.  A tapped Shift can leave ASCII mode on without one.
+local DELIMITER = "spellless_delimiter"
 -- Set while a candidate is being taken by its number key.  A correction is
 -- only learned from one of those: see the commit notifier.
 local PICKED = "spellless_picked"
@@ -829,6 +832,19 @@ function M.processor.func(key, env)
 
     local space = preceding.needs_space_after(behind .. mark) and " " or ""
     env.engine:commit_text(reclaim .. mark .. space)
+    -- `$` opens maths, and maths is not English: hand the keyboard over.  The
+    -- mark itself has just been written by the ordinary punctuation path, with
+    -- the spacing that path works out -- opening marks keep the space in front
+    -- of them and take none after -- so all that is left is the switch.  The
+    -- delimiter is remembered because only the one that opened a run closes
+    -- it; see `delimiter` below, which is the half that has to run in ASCII
+    -- mode.
+    if engine.cfg.ascii_delimiters:find(mark, 1, true)
+       and not context:get_option("ascii_mode") then
+      context:set_property(DELIMITER, mark)
+      context:set_property(SENTENCE, "")
+      context:set_option("ascii_mode", true)
+    end
     return kAccepted
   end
 
@@ -880,6 +896,65 @@ function M.processor.func(key, env)
   -- Return with the space turned off needs no handling: express_editor commits
   -- the raw input, which fires the commit notifier, which learns it.
   return kNoop
+end
+
+-- ---------------------------------------------------------------------------
+-- processor: coming back out of ASCII mode
+-- ---------------------------------------------------------------------------
+
+--- Wire in as `lua_processor@*spellless*delimiter`, *first* -- before
+--- `ascii_composer`.
+---
+--- Typing `$` hands the keyboard over to ASCII mode (see the punctuation
+--- branch above), and the closing `$` has to hand it back.  Nothing else of
+--- ours can do it: in ASCII mode `ascii_composer` rejects printable keys where
+--- it stands, first in the list, and every processor behind it -- ours
+--- included -- never sees them.  So this one gear sits in front of it.
+---
+--- It answers for one character in one state.  Only the delimiter that opened
+--- the run closes it, and a run nobody opened is not closed at all: a `$` in
+--- ASCII mode you reached by tapping Shift is an ordinary dollar sign, which
+--- is what typing `$PATH` in a terminal needs it to be.
+M.delimiter = {}
+
+function M.delimiter.init(env)
+  env.spellless = acquire(env)
+end
+
+function M.delimiter.func(key, env)
+  local engine = env.spellless
+  if not engine or engine.cfg.ascii_delimiters == "" then return kNoop end
+  if key:release() or key:ctrl() or key:alt() or key:super() then return kNoop end
+  local context = env.engine.context
+  if not context:get_option("ascii_mode") then
+    -- Back in Spellless mode by some other route -- a tapped Shift, F4,
+    -- Control+Shift+A -- so the run is over however it ended, and the next `$`
+    -- opens rather than closes.  Forgetting it here rather than watching for
+    -- the Shift tap keeps this gear ignorant of how the mode changed, which is
+    -- the only way it can be right about all the ways it can.
+    if context:get_property(DELIMITER) ~= "" then
+      context:set_property(DELIMITER, "")
+    end
+    return kNoop
+  end
+
+  local code = key.keycode
+  if code <= 0x20 or code >= 0x7f then return kNoop end
+  local mark = string.char(code)
+  if context:get_property(DELIMITER) ~= mark then return kNoop end
+
+  -- The space after it is ours to decide, and the usual test cannot help:
+  -- everything typed inside the run went straight to the application, so the
+  -- commit history still reads as it did before the run opened.  A closing
+  -- delimiter is followed by a space for the same reason a word is -- the next
+  -- word has to be separated from it -- and punctuation takes it back on the
+  -- frontend that can (§5.6), exactly as it does after a word.
+  local space = engine.cfg.auto_space and " " or ""
+  env.engine:commit_text(mark .. space)
+  context:set_property(DELIMITER, "")
+  context:set_property(SENTENCE, "")
+  context:set_option("ascii_mode", false)
+  return kAccepted
 end
 
 return M

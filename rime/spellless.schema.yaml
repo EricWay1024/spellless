@@ -44,6 +44,10 @@ switches:
 
 engine:
   processors:
+    # Before ascii_composer, which is the only place it can be: in ASCII mode
+    # that processor rejects printable keys where it stands and nothing behind
+    # it runs, so the `$` that should bring us back out would never be seen.
+    - lua_processor@*spellless*delimiter
     - ascii_composer
     - recognizer
     - key_binder
