@@ -631,17 +631,39 @@ H.suite("adapter: nothing is handed over outside an editor")
 -- nothing expands it.
 ctx:set_property("client_app", "chrome.exe")
 ctx:set_option("ascii_mode", false)
-ctx.input = "d"
+ctx.input = "xd"
 local elsewhere = #mock.committed
 H.eq(spellless.handover.func(mock.key(string.byte("m")), env), 2, "the trigger is just letters")
-H.eq(ctx.input, "d", "left to the speller")
+H.eq(ctx.input, "xd", "left to the speller")
+-- The opening dollar has to be refused in the same places as the closing one.
+-- Gating only the way back left a chat window one keystroke from ASCII mode
+-- and no keystroke back out of it.
+mock.history:clear(); mock.history:push("exact", "costs ")
+ctx.input = ""
+H.eq(spellless.processor.func(mock.key(string.byte("$")), env), 1, "the dollar is still written")
+H.ok(not ctx:get_option("ascii_mode"), "but it opens nothing")
 ctx:set_option("ascii_mode", true)
 ctx:set_property("spellless_delimiter", "$")
-H.eq(spellless.handover.func(mock.key(string.byte("$")), env), 2, "and the dollar is just a dollar")
-H.eq(#mock.committed, elsewhere, "nothing was committed either way")
+H.eq(spellless.handover.func(mock.key(string.byte("$")), env), 2, "and closes nothing")
+H.eq(#mock.committed, elsewhere + 1, "only the dollar itself was committed")
 ctx:set_property("client_app", "code.exe")
 ctx:set_property("spellless_delimiter", "")
 ctx:set_option("ascii_mode", false)
+ctx.input = ""
+
+H.suite("adapter: maths is opened where maths is written, snippets where they expand")
+-- Typora has no snippet engine and every `$` in it is still maths, so the two
+-- lists are asked separately.
+ctx:set_property("client_app", "typora.exe")
+mock.history:clear(); mock.history:push("exact", "let ")
+H.eq(spellless.processor.func(mock.key(string.byte("$")), env), 1, "the dollar is handled")
+H.ok(ctx:get_option("ascii_mode"), "and opens maths in Typora too")
+H.eq(spellless.handover.func(mock.key(string.byte("$")), env), 1, "the closing one is taken")
+H.ok(not ctx:get_option("ascii_mode"), "and hands the keyboard back")
+ctx.input = "xd"
+H.eq(spellless.handover.func(mock.key(string.byte("m")), env), 2,
+     "while a snippet trigger is left alone, having nothing there to expand it")
+ctx:set_property("client_app", "code.exe")
 ctx.input = ""
 
 H.suite("adapter: Control+Shift+A escapes mid-word")

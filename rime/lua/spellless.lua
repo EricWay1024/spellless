@@ -341,6 +341,13 @@ local function may_edit_document(context, engine)
   return not app_listed(context, engine.cfg.commit_only_apps)
 end
 
+--- Is a feature that names `list` allowed in the application we are typing
+--- into?  An empty list means everywhere: `snippet_apps` and `delimiter_apps`
+--- are both permissions, and a permission nobody wrote is not a refusal.
+local function app_allows(context, list)
+  return list == "" or app_listed(context, list)
+end
+
 --- Everything the text behind the cursor implies for the next word.
 local function read_behind(engine, context)
   local cfg = engine.cfg
@@ -849,6 +856,7 @@ function M.processor.func(key, env)
     -- it; see `delimiter` below, which is the half that has to run in ASCII
     -- mode.
     if engine.cfg.ascii_delimiters:find(mark, 1, true)
+       and app_allows(context, engine.cfg.delimiter_apps)
        and not context:get_option("ascii_mode") then
       context:set_property(DELIMITER, mark)
       context:set_property(SENTENCE, "")
@@ -943,13 +951,6 @@ function M.handover.func(key, env)
   if not engine then return kNoop end
   if key:release() or key:ctrl() or key:alt() or key:super() then return kNoop end
   local context = env.engine.context
-  -- Nowhere by default would be useless, so an empty list is everywhere here;
-  -- `commit_only_apps` reads the same empty list as "no application is
-  -- refused", and both are the permissive reading of their own question.
-  if engine.cfg.handover_apps ~= ""
-     and not app_listed(context, engine.cfg.handover_apps) then
-    return kNoop
-  end
   if not context:get_option("ascii_mode") then
     -- Back in Spellless mode by some other route -- a tapped Shift, F4,
     -- Control+Shift+A -- so the run is over however it ended, and the next `$`
@@ -966,7 +967,8 @@ function M.handover.func(key, env)
     -- `midmost`.  The letters go in exactly as typed -- a capital from the
     -- start of a sentence would be a different snippet, or none.
     local code = key.keycode
-    if code > 0x20 and code < 0x7f and engine.snippets.count > 0 then
+    if code > 0x20 and code < 0x7f and engine.snippets.count > 0
+       and app_allows(context, engine.cfg.snippet_apps) then
       local typed = context.input .. string.char(code)
       local snippet = engine.snippets:get(typed)
       if snippet then
@@ -983,8 +985,10 @@ function M.handover.func(key, env)
   end
 
   -- The two halves are configured apart: a list of snippet triggers is useful
-  -- with no delimiters at all, and the other way round.
+  -- with no delimiters at all, in an application that has no snippet engine
+  -- but plenty of maths.
   if engine.cfg.ascii_delimiters == "" then return kNoop end
+  if not app_allows(context, engine.cfg.delimiter_apps) then return kNoop end
   local code = key.keycode
   if code <= 0x20 or code >= 0x7f then return kNoop end
   local mark = string.char(code)

@@ -649,9 +649,12 @@ never sees a letter at all.
 
 A trigger marked `ascii` hands the keyboard over as `$` does, because what
 follows it is maths. The theorem environments do not: what follows `xthm` is a
-sentence of English. Both, and the `$` pair above, are refused outside
-`handover_apps` — `code.exe` by default, since a trigger is meaningless where
-nothing expands it and `$` opening maths is wrong where `$5` is a price.
+sentence of English. Triggers are refused outside `snippet_apps` (`code.exe`) and the `$` pair
+above outside `delimiter_apps` (`code.exe,typora.exe`) — two questions with two
+answers, since a trigger is meaningless where nothing expands it while a `$` is
+maths in any editor that renders it and a price in a chat window. Both
+directions of the `$` are gated together: gating only the way back leaves an
+application one keystroke from ASCII mode and none back out.
 [docs/SNIPPETS.md](docs/SNIPPETS.md) is the whole scheme, including why every
 trigger starts with `x`.
 

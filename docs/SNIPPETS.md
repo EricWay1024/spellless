@@ -65,12 +65,23 @@ exactly and case-sensitively against the *whole* composition: `xdm` fires,
 HyperSnips' own word-boundary rule, arrived at from the other side. Redeploy
 after editing; the list is read once, like the shortcuts file.
 
-## Only in the editor
+## Only where each one makes sense
 
-Both halves of the handover are switched off unless the application in front
-of the caret is one that wants them — `spellless/handover_apps`, `code.exe` by
-default. A snippet trigger is meaningless where nothing expands it, and `$`
-opening maths is wrong in a chat window where `$5` is a price.
+| | default | asks |
+| --- | --- | --- |
+| `spellless/snippet_apps` | `code.exe` | where does something expand a trigger? |
+| `spellless/delimiter_apps` | `code.exe,typora.exe` | where is a `$` maths? |
+
+Two questions with two answers. A trigger is meaningless where nothing expands
+it — in an application with no snippet engine, `xdm` would commit two-and-a-bit
+letters of nonsense and turn the matcher off. A `$`, meanwhile, is still maths
+in Typora, which has no snippet engine at all; and it is still a price in a
+chat window, where the automatic switch would be a trap you have to tap Shift
+to get out of. An empty list means everywhere.
+
+Both directions of the `$` are gated together, which matters more than it
+sounds: gating only the way back would leave a chat window one keystroke from
+ASCII mode and no keystroke back out.
 
 VS Code is `code.exe` for its editor and its integrated terminal alike, and the
 terminal is unaffected: ASCII mode is already on there, and a `$` in ASCII mode

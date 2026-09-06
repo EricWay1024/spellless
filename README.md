@@ -115,7 +115,7 @@ noether's        →  Noether's      psdfnctr  →  pseudofunctor
 
 It is a [Rime](https://rime.im) schema for Windows, and **the word you meant is
 first 89.9% of the time, in the top five 99.1%** — measured on cases the tuning
-never saw. About 2.5 ms per keystroke. 2,158 assertions say it still behaves.
+never saw. About 2.5 ms per keystroke. 2,165 assertions say it still behaves.
 [EVALUATION.md](EVALUATION.md) has the numbers, including the cases it gets
 wrong and why.
 
@@ -210,7 +210,9 @@ switches to plain typing; the closing `$` writes itself and switches back, so
 `$\frac{a}{b}$` goes in without a candidate list in front of it. Only the
 delimiter that opened a run closes it, so a `$` in plain typing you reached by
 tapping Shift is an ordinary dollar sign and `$PATH` in a terminal still works.
-`spellless/ascii_delimiters` is the list, and `$` is all that is in it.
+`spellless/ascii_delimiters` is the list, and `$` is all that is in it; it
+works where maths gets written — VS Code and Typora — rather than in a chat
+window where `$5` is a price.
 
 **Tap Shift to get out of the way.** It switches to plain typing, and tapping
 it again switches back — the tray icon shows which mode you are in. Tapped
@@ -427,7 +429,8 @@ patch:
   spellless/auto_space: false          # type your own spaces
   spellless/enter_space: false         # or keep them, except after Enter
   spellless/ascii_delimiters: "$`"     # characters that switch to plain typing and back
-  spellless/handover_apps: "code.exe"  # where those two features work at all
+  spellless/snippet_apps: "code.exe"   # where a trigger is given back to the editor
+  spellless/delimiter_apps: "code.exe,typora.exe"  # where `$` opens maths
   spellless/auto_capitalize: false     # and your own capitals
   menu/page_size: 9                    # a bigger window (the literal slot follows it)
 ```
@@ -531,7 +534,7 @@ frontend, then type `zzver` and check the revision.
 
 ```bash
 make            # dictionary + indexes + test set
-make test       # 2,158 assertions
+make test       # 2,165 assertions
 make bench      # accuracy and latency over tests/cases/
 make install
 ```
@@ -544,7 +547,7 @@ spellless/
 ├── scripts/       dictionary build, index build, test-set build, icon, installer
 ├── data/          vendored corpus, supplemental vocabulary, surface forms
 ├── generated/     build output (1.3 MB) — what gets deployed
-├── tests/         2,158 assertions + the evaluation cases
+├── tests/         2,165 assertions + the evaluation cases
 ├── bench/         evaluate.lua, tune.lua, naive.lua
 └── docs/          the algorithm in full, deployment, editor snippets, the bench
 ```

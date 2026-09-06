@@ -423,17 +423,21 @@ M.defaults = {
   -- the editor's own expansion can happen, and hands the keyboard to ASCII
   -- mode when what follows is maths.  See snippets.lua and docs/SNIPPETS.md.
   snippets_file     = "spellless_snippets.txt",
-  -- Where handing the keyboard over is allowed at all, by application name,
-  -- comma separated; empty means everywhere.
+  -- Where a snippet trigger is given back to the editor, by application name,
+  -- comma separated; empty means everywhere.  A trigger is meaningless where
+  -- nothing expands it: in an application with no snippet engine, `xdm` would
+  -- commit two-and-a-bit letters of nonsense and turn the matcher off.
+  snippet_apps      = "code.exe",
+  -- Where `$` opens and closes maths.  A different question with a different
+  -- answer -- Typora has no snippet engine and every `$` in it is still
+  -- maths -- and a wrong answer in a chat window, where "$5" is a price and
+  -- the automatic switch would be a trap you have to tap Shift to get out of.
   --
-  -- Both halves of it exist for an editor: a snippet trigger is meaningless
-  -- where nothing expands it, and `$` opening maths is wrong in a chat window
-  -- where "$5" is a price.  So they are off unless the application in front of
-  -- the caret is one that wants them, which the frontend reports as
-  -- `client_app`.  VS Code is `code.exe` for its editor and its terminal
-  -- alike, and the terminal is unaffected: ASCII mode is already on there, and
-  -- a `$` in ASCII mode nobody opened is an ordinary dollar sign.
-  handover_apps     = "code.exe",
+  -- Both lists are matched against `client_app` as the frontend reports it.
+  -- VS Code is `code.exe` for its editor and its integrated terminal alike,
+  -- and the terminal is unaffected either way: ASCII mode is already on there,
+  -- and a `$` in ASCII mode that we did not open is an ordinary dollar sign.
+  delimiter_apps    = "code.exe,typora.exe",
   learn             = true,
   -- How many times you have to pick the same reading of the same input before
   -- it leads the list.  One selection is not evidence -- a good deal of what
