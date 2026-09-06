@@ -19,8 +19,11 @@
 
 local M = {}
 
--- No English word this index holds is longer, and bounding the inner loop is
--- what keeps this linear in practice.
+-- Longer than any word worth splitting on, and bounding the inner loop is what
+-- keeps this linear in practice.  Not quite "longer than any word in the
+-- index": `antidisestablishmentarianism` is 28.  Nothing is lost, because a
+-- split needs a second part as well and `max_split_len` is 28 for the whole
+-- input, so no reachable split could have used it.
 local MAX_WORD = 24
 
 --- Is `part` a word we are willing to build a split out of?

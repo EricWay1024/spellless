@@ -270,10 +270,15 @@ M.defaults = {
   -- it is off nothing below is consulted and the ranking is bit-for-bit what it
   -- was -- verified over all 16,429 candidate rows the case files produce.
   --
-  -- Off because it was measured and it loses: `lua bench/context.lua` reports 9
-  -- answers fixed against 29 broken after "the", and worse after every other
+  -- Off because it was measured and it loses: `lua bench/context.lua` reports 13
+  -- answers fixed against 31 broken after "the", and worse after every other
   -- previous word the table has an opinion about.  spellless/wordclass.lua says
   -- why, and it is not something the two constants below can repair.
+  --
+  -- The adapter half is not wired either: nothing puts `previous_word` into the
+  -- options `Engine:suggest` receives, so turning this on in a schema changes
+  -- nothing at all.  Only bench/context.lua and tests/test_wordclass.lua supply
+  -- it.  Anyone reviving this has two halves to build, not one.
   context_class     = false,
   -- Points per nat of PMI between the previous word's class and the
   -- candidate's.  The other log-ratio in the score is the frequency term, which

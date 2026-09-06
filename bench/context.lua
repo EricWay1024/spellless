@@ -24,7 +24,7 @@
 --
 -- The verdict, at the shipped constants: the hand-written cases fix 5 of 40
 -- sibling failures and demote none of 37 controls, which looks like a small
--- win; the battery fixes 9 and breaks 29 after "the", and is net negative for
+-- win; the battery fixes 13 and breaks 31 after "the", and is net negative for
 -- every previous word at every weight and margin tried.  Believe the battery.
 -- The difference between the two numbers is the difference between contexts
 -- chosen for the words and words chosen for the contexts.
