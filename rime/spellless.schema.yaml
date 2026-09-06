@@ -98,6 +98,12 @@ spellless:
   # after the punctuation, so "you" + "." gives "you. ".
   # Set to false to type your own.
   auto_space: true
+  # Applications that must never have text taken back out of them, comma
+  # separated.  A terminal has already forwarded what it was given down the pty,
+  # so the three features below cannot correct it -- the replacement arrives as
+  # more input and the line duplicates.  Matched against the executable name of
+  # the window you are typing into.
+  commit_only_apps: "code.exe,conhost.exe,cmd.exe,powershell.exe,pwsh.exe,windowsterminal.exe,wt.exe,openconsole.exe,mintty.exe,alacritty.exe,wezterm-gui.exe,putty.exe"
   # Take the space back when punctuation follows a word you already committed,
   # so picking "you" with the space bar and then typing "." gives "you. "
   # rather than "you . ".

@@ -102,6 +102,37 @@ local function schema_overrides(schema_config)
   return out
 end
 
+--- May this application have text taken back out of it?
+---
+--- `reclaim_space`, `absorb_fragment` and `word_backspace` all work the same
+--- way: the commit is prefixed with U+0008 and the frontend removes characters
+--- the application has already been given.  That is only possible where the
+--- text is still in a document the input method can revise.
+---
+--- In a terminal it is not.  Committed text has already gone down the pty to
+--- the process on the other end, and the frontend's replacement therefore
+--- arrives as *more* input rather than as a correction -- the visible symptom
+--- being a duplicated line.  No amount of care in the frontend can fix that,
+--- because by the time it acts the text is gone.
+---
+--- Two ways to say so, and either is enough: the `commit_only` option, which
+--- Weasel's `app_options` can set per application, or the shipped list in
+--- `commit_only_apps`, matched against the `client_app` property that the
+--- frontend fills in with the executable name of the window being typed into.
+local function may_edit_document(context, engine)
+  if not engine then return false end
+  if context:get_option("commit_only") then return false end
+  local app = context:get_property("client_app")
+  if not app or app == "" then return true end
+  local list = engine.cfg.commit_only_apps
+  if not list or list == "" then return true end
+  app = app:lower():gsub("^%s+", ""):gsub("%s+$", "")
+  for name in list:lower():gmatch("[^,]+") do
+    if name:gsub("^%s+", ""):gsub("%s+$", "") == app then return false end
+  end
+  return true
+end
+
 --- Where the generated dictionary and indexes live.
 --- Checked in the user directory first so a personal rebuild wins over a
 --- system-wide install, exactly like Rime's own data lookup.
@@ -453,6 +484,7 @@ function M.absorb.func(key, env)
   end
 
   if not engine or not engine.cfg.absorb_fragment then return kNoop end
+  if not may_edit_document(context, engine) then return kNoop end
   if key:ctrl() or key:alt() or key:super() then return kNoop end
   if not is_word_char(key.keycode) then return kNoop end
   if context:is_composing() then return kNoop end
@@ -606,7 +638,7 @@ function M.processor.func(key, env)
   -- Covers "1,000", "12:30" and "Smith:2020" as well.
   if engine and engine.cfg.auto_space and engine.cfg.reclaim_space
      and not composing and code >= 0x30 and code <= 0x39
-     and not key:shift() then
+     and not key:shift() and may_edit_document(context, engine) then
     local behind = commit_tail(context.commit_history)
     if behind:match("%d[%.,:] $") then
       env.engine:commit_text("\8" .. string.char(code))
@@ -683,7 +715,8 @@ function M.processor.func(key, env)
     -- do that.  See `reclaim_space`; on stock Weasel the U+0008 would be
     -- inserted literally, which is why this is off by default.
     local reclaim = ""
-    if engine.cfg.reclaim_space and preceding.hugs_previous(mark) then
+    if engine.cfg.reclaim_space and preceding.hugs_previous(mark)
+       and may_edit_document(context, engine) then
       local stripped = behind:match("^(.-) $")
       if stripped then reclaim, behind = "\8", stripped end
     end
@@ -711,7 +744,8 @@ function M.processor.func(key, env)
       context:set_property(BACKSPACE, "1")
       -- Only with nothing composing: while a word is being typed, Backspace
       -- belongs to the composition.
-      if repeated and engine and engine.cfg.word_backspace then
+      if repeated and engine and engine.cfg.word_backspace
+         and may_edit_document(context, engine) then
         local document = document_tail(context)
         local word = document and document:match("([%a][%a']*)$")
         if word then

@@ -129,6 +129,36 @@ type_punct(".")
 mock.translate(spellless, "zzz", mock.segment({ "abc" }, 0, 3), env)  -- evict the memo
 local reclaimed = mock.translate(spellless, "mathe", mock.segment({ "abc" }, 0, 5), env)
 H.eq(reclaimed[1].text, "Mathematics ", "so the reclaimed full stop still ends a sentence")
+
+H.suite("adapter: a terminal never has text taken back out of it")
+-- The three document-editing features all work by removing characters the
+-- application has already been given, and a terminal has already forwarded
+-- them down the pty.  The frontend's replacement then arrives as *more* input
+-- and the line duplicates -- which is what happens in VS Code's integrated
+-- terminal, where this was found.
+do
+  local function reclaims(app)
+    ctx0:set_property("client_app", app)
+    mock.history:clear(); mock.history:push("exact", "you ")
+    local written = select(2, type_punct("."))
+    return written:find("\8", 1, true) ~= nil
+  end
+  H.ok(reclaims("notepad.exe"), "an ordinary text field still gets it")
+  H.ok(not reclaims("code.exe"), "VS Code, whose terminal cannot take it back, does not")
+  H.ok(not reclaims("WindowsTerminal.exe"), "and the match ignores case")
+  H.ok(reclaims(""), "an unknown application is given the benefit of the doubt")
+
+  -- The option is the per-application escape hatch, for anything the shipped
+  -- list has not heard of: Weasel's app_options can set it by name.
+  ctx0:set_property("client_app", "notepad.exe")
+  ctx0:set_option("commit_only", true)
+  mock.history:clear(); mock.history:push("exact", "you ")
+  H.ok(not (select(2, type_punct(".")):find("\8", 1, true)),
+       "and commit_only switches it off without touching the list")
+  ctx0:set_option("commit_only", false)
+  ctx0:set_property("client_app", "")
+end
+
 env.spellless.cfg.reclaim_space = false
 mock.history:clear()
 

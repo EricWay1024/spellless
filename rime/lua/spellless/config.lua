@@ -310,6 +310,30 @@ M.defaults = {
   -- the space in too.  Punctuation ends the word without it and supplies the
   -- space that follows instead, so "you" + "." is "you. ".
   auto_space        = true,
+  -- Applications that may not have text taken back out of them, by name, comma
+  -- separated.  The three features below all work by removing characters the
+  -- application has already been given, and that only works where the text is
+  -- still in a document the input method can revise.
+  --
+  -- A terminal is the case where it is not.  Committed text has already been
+  -- forwarded to the process on the other end of the pty, and there is nothing
+  -- left to revise -- so the frontend's replacement arrives as *more* input and
+  -- the line duplicates.  VS Code's integrated terminal (code.exe) is where
+  -- this was found; the same is true of every console and terminal emulator,
+  -- and Weasel's own shipped config already gives cmd.exe and conhost.exe
+  -- special treatment for related reasons.
+  --
+  -- Matched against the `client_app` property, which the frontend sets to the
+  -- executable name of the window being typed into.  Setting the `commit_only`
+  -- option -- through Weasel's `app_options`, say -- does the same thing for
+  -- one application without editing this list.
+  --
+  -- The cost of being on this list is small and cosmetic: punctuation after a
+  -- committed word reads "you . " instead of "you. ".  The cost of being off it
+  -- wrongly is a corrupted line.
+  commit_only_apps  = "code.exe,conhost.exe,cmd.exe,powershell.exe,pwsh.exe," ..
+                      "windowsterminal.exe,wt.exe,openconsole.exe,mintty.exe," ..
+                      "alacritty.exe,wezterm-gui.exe,putty.exe",
   -- Take that space back when punctuation follows a word that was already
   -- committed, so "you " + "." is "you. " rather than "you . ".
   --
