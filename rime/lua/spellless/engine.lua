@@ -555,7 +555,12 @@ function Engine:suggest(raw, limit, opts)
       if choice.count >= cfg.choice_confirm_count then
         -- Through surface(), so the capital follows the input you just typed
         -- rather than the one you happened to type the day it was learned.
-        local text = self:surface(choice.text, style) .. (suffix or "")
+        --
+        -- No `suffix` here, unlike everywhere else in this function: the store
+        -- is keyed by the whole input, apostrophe and all, so what came back
+        -- for "mther's" is already "mother's" and adding the ending again
+        -- would place "mother's's" at rank 1.
+        local text = self:surface(choice.text, style)
         for j = #out, 1, -1 do
           if out[j].text == text then table.remove(out, j) end
         end
