@@ -120,7 +120,7 @@ noether's        →  Noether's      psdfnctr  →  pseudofunctor
 
 It is a [Rime](https://rime.im) schema for Windows, and **the word you meant is
 first 90.0% of the time, in the top five 99.3%** — measured on cases the tuning
-never saw. About 2.5 ms per keystroke. 2,180 assertions say it still behaves.
+never saw. About 2.5 ms per keystroke. 2,187 assertions say it still behaves.
 [EVALUATION.md](EVALUATION.md) has the numbers, including the cases it gets
 wrong and why.
 
@@ -515,12 +515,22 @@ They are refused in the applications listed under `commit_only_apps`,
 executable. Press <kbd>F4</kbd> and turn on **edits document** while writing
 prose in one of those; it resets when you next deploy.
 
-**[EricWay1024/spellless-weasel](https://github.com/EricWay1024/spellless-weasel)**
-is Weasel with that one convention added, rebuilt to install *beside* the one
-you already have: its own GUIDs, pipe, registry key and user directory, so a
-Chinese input method already on the machine carries on untouched. Turn the
-three on with `spellless/reclaim_space`, `spellless/absorb_fragment` and
-`spellless/word_backspace`. It is GPL-3.0, like Weasel; this repository is MIT.
+Two frontends carry that convention, and the schema finds out which it is
+talking to rather than being told: nothing is asked of a frontend until it has
+set `surrounding_text` at least once, and no stock build ever does. So the
+three ship **on** and are simply inert on a stock Weasel or Squirrel, whatever
+the configuration says. `spellless/reclaim_space`,
+`spellless/absorb_fragment` and `spellless/word_backspace` turn them off again
+if you would rather.
+
+**[spellless-weasel](https://github.com/EricWay1024/spellless-weasel)** is
+Weasel with that convention added, rebuilt to install *beside* the one you
+already have: its own GUIDs, pipe, registry key and user directory, so a
+Chinese input method already on the machine carries on untouched.
+**[spellless-squirrel](https://github.com/EricWay1024/spellless-squirrel)** is
+the same for macOS, where `insertText(_:replacementRange:)` does in one call
+what TSF needs an edit session for. Both are GPL-3.0, like the projects they
+fork; this repository is MIT.
 
 ---
 
@@ -557,7 +567,7 @@ Windows installer. `make release VERSION=0.1.0` builds the first.
 
 ```bash
 make            # dictionary + indexes + test set
-make test       # 2,180 assertions
+make test       # 2,187 assertions
 make bench      # accuracy and latency over tests/cases/
 make install
 ```
@@ -570,7 +580,7 @@ spellless/
 ├── scripts/       dictionary build, index build, test-set build, icon, installer
 ├── data/          vendored corpus, supplemental vocabulary, surface forms
 ├── generated/     build output (1.3 MB) — what gets deployed
-├── tests/         2,180 assertions + the evaluation cases
+├── tests/         2,187 assertions + the evaluation cases
 ├── bench/         evaluate.lua, tune.lua, probe.lua, naive.lua
 └── docs/          the algorithm in full, deployment, editor snippets, the bench
 ```

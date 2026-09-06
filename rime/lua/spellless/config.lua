@@ -406,23 +406,33 @@ M.defaults = {
   -- Take that space back when punctuation follows a word that was already
   -- committed, so "you " + "." is "you. " rather than "you . ".
   --
-  -- Off by default because it needs a frontend that understands the request:
-  -- the commit is prefixed with U+0008 BACKSPACE, which the Spellless build of
-  -- Weasel turns into one reclaimed character (and only ever a space -- it
-  -- checks) while stock Weasel would insert it literally.  Nothing else about
-  -- Spellless needs the fork.
-  reclaim_space     = false,
+  -- On, and safe to be on, which was not true until the schema could tell one
+  -- frontend from another.  The commit is prefixed with U+0008 BACKSPACE,
+  -- which the Spellless builds of Weasel and Squirrel turn into one reclaimed
+  -- character (and only ever a space, or the word being retyped -- they check)
+  -- while a stock build would insert it literally.
+  --
+  -- So the adapter waits: nothing is asked of a frontend until it has set
+  -- `surrounding_text` at least once, which no stock frontend ever does.  See
+  -- FRONTEND_READS in spellless.lua.  On stock Weasel or stock Squirrel these
+  -- three therefore do nothing at all, however they are configured, and there
+  -- is no way to make them corrupt a document by turning them on.
+  --
+  -- They were off for months and the cost of that was not the default, it was
+  -- the silence: three switches nobody knew to look for, in a file nobody
+  -- knew to create.  Nothing else about Spellless needs the fork.
+  reclaim_space     = true,
   -- Pick up a word you are part-way through re-typing.  Delete the space after
   -- "so", start typing again, and the "so" is taken back out of the document
   -- and into the composition, so the candidates are for "sooner" rather than
   -- for "oner".  Needs the same frontend as reclaim_space, and for the same
   -- reason: it has to remove characters that are already in the document, and
   -- it only ever acts on text the frontend has actually read back.
-  absorb_fragment   = false,
+  absorb_fragment   = true,
   -- Backspace twice in a row, with nothing composing, to delete the whole word
   -- in front of the caret rather than one more character of it -- for when a
   -- word is wrong enough to start again.  Same frontend requirement.
-  word_backspace    = false,
+  word_backspace    = true,
   -- Offer a capital on the first word of a sentence.  Only when you typed the
   -- word in lower case: an explicit capital of your own is never overridden.
   auto_capitalize   = true,

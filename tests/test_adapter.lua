@@ -21,6 +21,22 @@ local spellless = require("spellless")
 
 spellless.init(env)
 H.ok(env.spellless ~= nil, "the engine came up: " .. table.concat(mock.logged, "; "))
+
+-- This mock stands in for a frontend that reads the document, so say so once.
+-- The three document-editing features refuse to act until one has answered --
+-- see FRONTEND_READS -- and every suite below that exercises them assumes a
+-- capable frontend.  The suite at the end of this file is the other half: it
+-- forgets this and checks that nothing is asked of a frontend that has not
+-- proved it can answer.
+local function frontend_can_read(module)
+  -- One translate is enough: document_tail sets the latch when it sees text.
+  env.engine.context:set_property("surrounding_text", "ready ")
+  mock.translate(module, "a", mock.segment({ "abc" }, 0, 1), env)
+  env.engine.context:set_property("surrounding_text", "")
+  return module.frontend_reads()
+end
+H.ok(frontend_can_read(spellless), "and it has seen the document")
+
 H.eq(mock.connections, 1, "one commit notifier connection")
 H.eq(env.spellless.cfg.raw_candidate_index, 7, "the literal slot follows menu/page_size")
 
@@ -102,11 +118,12 @@ H.suite("adapter: punctuation reclaims the automatic space")
 -- Only with a frontend that can take a character back, so the schema has to
 -- ask for it; see `reclaim_space`.
 mock.history:clear(); mock.history:push("exact", "you ")
-H.eq(select(2, type_punct(".")), ". ", "off by default, the space just stays")
+H.eq(select(2, type_punct(".")), "\8. ", "the full stop asks for the space back")
 
-env.spellless.cfg.reclaim_space = true
+env.spellless.cfg.reclaim_space = false
 mock.history:clear(); mock.history:push("exact", "you ")
-H.eq(select(2, type_punct(".")), "\8. ", "on, the full stop asks for it back")
+H.eq(select(2, type_punct(".")), ". ", "and switched off, the space just stays")
+env.spellless.cfg.reclaim_space = true
 
 mock.history:clear(); mock.history:push("exact", "see ")
 H.eq(select(2, type_punct("(")), "(", "an opening bracket keeps the space it was given")
@@ -720,6 +737,9 @@ H.eq(quiet.engine.context:get_property("spellless_sentence"), "",
 H.eq(quiet.spellless.user:count("unlearnable"), 0, "and nothing was learned")
 package.loaded["spellless"] = nil
 spellless = require("spellless")
+-- A fresh module has a fresh latch, and every suite below this line assumes a
+-- frontend that reads the document.
+frontend_can_read(spellless)
 
 H.suite("adapter: fini releases the connection")
 spellless.fini(env)
@@ -936,4 +956,40 @@ do
   H.ok(#ordinary > 1 and not ordinary[1].text:find("^app "),
        "and a real word is unaffected")
   ctx0:set_property("client_app", "")
+end
+
+H.suite("adapter: a frontend that cannot read the document is asked for nothing")
+-- This is what lets reclaim_space, absorb_fragment and word_backspace ship
+-- *on*.  They work by committing U+0008, which a frontend that has never
+-- heard of the convention inserts as literal text -- so the schema waits until
+-- one has proved it can answer before it asks for anything.
+--
+-- Setting `surrounding_text` and honouring the backspaces were added to each
+-- of the two forks in the same commit, and no stock frontend does either, so
+-- the first is a sound proxy for the second.
+do
+  spellless.forget_frontend()
+  H.ok(not spellless.frontend_reads(), "a fresh process has been told nothing")
+
+  ctx0:set_property("client_app", "")
+  env.spellless.cfg.reclaim_space = true
+  mock.history:clear(); mock.history:push("exact", "you ")
+  local written = select(2, type_punct("."))
+  H.eq(written, ". ", "so the space stays and no backspace is committed")
+  H.ok(not written:find("\8", 1, true),
+       "which is the whole point: a stock frontend would print it")
+
+  -- Backspace-twice likewise asks for nothing it cannot get.
+  mock.history:clear()
+  ctx0.input = ""
+  local before = #mock.committed
+  spellless.absorb.func(mock.key(XK_BackSpace), env)
+  spellless.absorb.func(mock.key(XK_BackSpace), env)
+  H.eq(#mock.committed, before, "and Backspace deletes one character, as always")
+
+  -- One cooperative window is enough, and it holds for the session -- the
+  -- frontend is a property of the process, not of the window.
+  H.ok(frontend_can_read(spellless), "then the frontend answers once")
+  mock.history:clear(); mock.history:push("exact", "you ")
+  H.eq(select(2, type_punct(".")), "\8. ", "and from then on the space is reclaimed")
 end

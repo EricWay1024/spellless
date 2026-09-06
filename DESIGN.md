@@ -543,8 +543,13 @@ uses. So the fork adds exactly one convention, and nothing else:
 * **It degrades.** An application that will not give up the range keeps its
   characters, and the text still goes in.
 
-On the Lua side this is `reclaim_space`, and it is **off by default** — on
-stock Weasel the `U+0008` would be typed in literally. `preceding.hugs_previous`
+On the Lua side this is `reclaim_space`. It is **on by default**, which is
+only safe because the schema can tell the two kinds of frontend apart: it asks
+for nothing until one has set `surrounding_text`, and no stock build ever
+does, so on stock Weasel the `U+0008` is never emitted rather than typed in
+literally. Setting and honouring the two halves of the convention were added
+to each fork in the same commit, which is what makes the first a sound proxy
+for the second. `preceding.hugs_previous`
 decides which marks earn it: sentence punctuation and closing brackets, and
 deliberately not the paired marks, because with the space stripped `he said "`
 and `"no." ` are indistinguishable from behind.
@@ -864,12 +869,11 @@ full list, with the reason each one is where it is.
    the word is still being composed — the normal way — is right. So is
    deleting the odd stray space.
 
-   The frontend is not bound by this, and the Spellless build of Weasel lifts
-   it: set `spellless/reclaim_space: true` and punctuation takes that space
-   back. See §5.6 and
-   [EricWay1024/spellless-weasel](https://github.com/EricWay1024/spellless-weasel).
-   It stays off on a stock install, where the request would be typed in
-   literally.
+   The frontend is not bound by this, and the Spellless builds of Weasel and
+   Squirrel lift it: `spellless/reclaim_space` is on, and punctuation takes
+   that space back. See §5.6. On a stock install it stays inert -- not by
+   configuration but because the schema never asks a frontend that has not
+   shown it can answer.
 3. **No space goes in front of opening punctuation**, so `Let $X$` needs the
    space after `Let` typed by hand. Adding one before `(`, `[` and `$` would
    turn `f(x)` into `f (x)`; the two are indistinguishable from inside the IME,

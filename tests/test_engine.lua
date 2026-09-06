@@ -414,13 +414,13 @@ do
   -- on and nothing happened" is nearly always "the custom YAML is not being
   -- read", and that should cost one keystroke to find out, not an afternoon.
   local flags = table.concat(out_texts(engine:suggest("zzver", 20)), " ")
-  H.ok(flags:find("reclaim OFF", 1, true), "the shipped defaults are off: " .. flags)
-  local on = assert(Engine.new{ data_dir = DATA,
-                                config = { reclaim_space = true, word_backspace = true } })
-  local flags_on = table.concat(out_texts(on:suggest("zzver", 20)), " ")
-  H.ok(flags_on:find("reclaim on", 1, true) and flags_on:find("absorb OFF", 1, true)
-       and flags_on:find("word-backspace on", 1, true),
-       "and each is reported separately: " .. flags_on)
+  H.ok(flags:find("reclaim on", 1, true), "the shipped defaults are on: " .. flags)
+  local off = assert(Engine.new{ data_dir = DATA,
+                                 config = { reclaim_space = false, word_backspace = false } })
+  local flags_off = table.concat(out_texts(off:suggest("zzver", 20)), " ")
+  H.ok(flags_off:find("reclaim OFF", 1, true) and flags_off:find("absorb on", 1, true)
+       and flags_off:find("word-backspace OFF", 1, true),
+       "and each is reported separately: " .. flags_off)
 
   local off = assert(Engine.new{ data_dir = DATA, config = { version_query = "" } })
   H.ok(not off:suggest("zzver", 20)[1].text:find("^spellless "),

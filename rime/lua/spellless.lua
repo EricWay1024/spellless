@@ -267,10 +267,46 @@ end
 --- will not grant a read, or before the first key of a session.
 local SURROUNDING = "surrounding_text"
 
+--- Has the frontend ever told us what is in the document?
+---
+--- Setting `surrounding_text` and honouring a U+0008 prefix were added to each
+--- of the two forks in the same commit, and no stock frontend does either, so
+--- the first is a reliable sign of the second.  That is worth having because
+--- the alternative is asking the user: the three document-editing features
+--- would be dangerous to switch on by default without it -- on a frontend that
+--- has never heard of the convention the backspaces arrive as text -- and a
+--- feature nobody switches on is a feature nobody has.
+---
+--- A latch rather than a per-keystroke test, and deliberately so.  Which
+--- frontend is running is a fact about the process, not about the application
+--- being typed into, and plenty of applications refuse a read while the
+--- frontend behind them is perfectly capable.  One cooperative window is
+--- enough to establish it for the session; until then the features simply do
+--- not act, which is exactly what they did before.
+---
+--- Module scope because librime runs one Lua state per process and the
+--- frontend is a property of the process.  It is never cleared: a frontend
+--- cannot become a different frontend without the process restarting.
+local FRONTEND_READS = false
+
 local function document_tail(context)
   local text = context:get_property(SURROUNDING)
   if text == nil or text == "" then return nil end
+  FRONTEND_READS = true
   return text
+end
+
+--- Tests only: forget what the frontend has proved, and ask whether it has.
+--- A running input method has no use for either -- there is one frontend and
+--- it does not change -- but the safety property that lets these features ship
+--- on is exactly "nothing is asked of a frontend that has not answered", and
+--- that has to be assertable.
+function M.forget_frontend()
+  FRONTEND_READS = false
+end
+
+function M.frontend_reads()
+  return FRONTEND_READS
 end
 
 --- The text behind the cursor, from the document if the frontend can say and
@@ -330,6 +366,11 @@ end
 --- them.  Refusing both is the answer that cannot corrupt a line.
 local function may_edit_document(context, engine)
   if not engine then return false end
+  -- Nothing is asked of a frontend that has not shown it can answer.  This is
+  -- what lets the three features ship *on*: on stock Weasel or stock Squirrel
+  -- the latch never trips, so the U+0008 is never emitted and nothing can
+  -- arrive as literal text.  See FRONTEND_READS.
+  if not FRONTEND_READS then return false end
   if context:get_option("commit_only") then return false end
   -- The list cannot tell VS Code's editor from VS Code's terminal, so the
   -- person typing is allowed to.  `edit_document` is a switch in the F4 menu:
