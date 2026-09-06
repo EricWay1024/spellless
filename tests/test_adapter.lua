@@ -355,8 +355,20 @@ spellless.absorb.func(mock.key(XK_BackSpace), env)
 H.eq(spellless.processor.func(mock.key(XK_BackSpace), env), 2, "the first one is ordinary")
 H.eq(#mock.committed, n, "nothing committed")
 spellless.absorb.func(mock.key(XK_BackSpace), env)
-H.eq(spellless.processor.func(mock.key(XK_BackSpace), env), 1, "the second is handled")
-H.eq(mock.committed[#mock.committed], string.rep("\8", 6), "and takes the whole word")
+H.eq(spellless.processor.func(mock.key(XK_BackSpace), env), 2,
+     "the second passes the key through as well")
+H.eq(mock.committed[#mock.committed], string.rep("\8", 5),
+     "having asked for all but the last character of the word")
+-- The key supplies that last one, so a frontend that ignores the request
+-- still deletes a character.  Swallowing the keystroke instead made Backspace
+-- work every other press wherever the request went unanswered.
+ctxA:set_property("surrounding_text", "I think a")
+spellless.absorb.func(mock.key(XK_BackSpace), env)
+spellless.processor.func(mock.key(XK_BackSpace), env)
+n = #mock.committed
+spellless.absorb.func(mock.key(XK_BackSpace), env)
+H.eq(spellless.processor.func(mock.key(XK_BackSpace), env), 2, "a one-letter word too")
+H.eq(#mock.committed, n, "which asks for nothing and lets the key do it all")
 
 -- A key in between makes the next Backspace ordinary again.
 ctxA:set_property("surrounding_text", "I think sooner")

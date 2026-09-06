@@ -6,7 +6,7 @@
 
 You know the word. You have always known the word. What you cannot reliably do
 at the speed you think is get its letters into the right order — and English
-charges you for that, hour after hour, and gives you nothing back.
+charges you for that, one key stroke after another.
 
 Spellless takes your approximate spelling and offers you the word you meant.
 Drop the vowels. Get the letters out of order. Run two words together. Then
@@ -24,20 +24,17 @@ bc               →  because              im             →  I'm
 
 **Nothing is ever corrected behind your back.** The list appears, you choose,
 and <kbd>Enter</kbd> always commits exactly what you typed — because the one
-thing worse than mistyping a word is a machine mistyping it for you,
-confidently, while you look away.
+thing worse than mistyping a word is a machine mis-correcting it for you. 
 
 ## Why this should exist
 
 Chinese input methods solved a version of this decades ago. You type an
 approximation, the IME shows you candidates, you pick one. Hundreds of millions
-of people write that way every day and nobody finds it remarkable.
+of people write that way every day. 
 
 English never got the same treatment, because typing English assumes you can
-spell it. So spelling stays a tax on thinking — a hundred small stumbles an
+spell it. In this way, spelling stays a tax on thinking — a hundred small stumbles an
 hour, each one pulling your attention off the sentence and onto the keyboard.
-You know the word. The machine is making you prove it, letter by letter, and
-giving you nothing for the trouble.
 
 Spellless is that same arrangement, for English. It treats what you typed as
 **a noisy encoding of a word you already know**, and decodes it:
@@ -56,13 +53,11 @@ Spellless is that same arrangement, for English. It treats what you typed as
 
 ### Why not autocorrect?
 
-Autocorrect has to choose. One guess, no way to say *I am not sure*, applied to
+Autocorrect has only one guess and no way to say *I am not sure*, applied to
 text you have already written. When it is right you never notice; when it is
-wrong you often do not either, and you find out when a reader does. The
-keystroke it saved was never the expensive part — the expensive part is no
-longer trusting the sentence without re-reading it. A candidate list is not a
+wrong you often do not either, and you find out when a reader does. A candidate list is not a
 smaller version of that. It is the opposite arrangement: the machine proposes,
-you dispose, nothing lands that you did not choose.
+you dispose, nothing lands that you did not choose. 
 
 That also makes far more ambition affordable. Autocorrect can only risk a
 near-miss of an edit or two, because every guess is applied unseen. Offering
@@ -74,8 +69,7 @@ list, and <kbd>Enter</kbd> always commits it verbatim.
 
 Look again at the screenshot. `complicated` is first, and `completed`,
 `complicate`, `compacted`, `complicity` are the words a reasonable reader might
-have suspected. That is a ranking, not a lookup: nothing under `rime/lua/`
-knows any of those words. They fall out of a weighted edit distance, a
+have suspected. That is a ranking, and they fall out of a weighted edit distance, a
 consonant-skeleton index, a syllable-cue alignment and one ranking function.
 See [DESIGN.md](DESIGN.md).
 

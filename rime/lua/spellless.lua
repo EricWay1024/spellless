@@ -781,9 +781,22 @@ function M.processor.func(key, env)
         local document = document_tail(context)
         local word = document and document:match("([%a][%a']*)$")
         if word then
-          env.engine:commit_text(string.rep("\8", #word))
+          -- One short, and the key itself supplies the last character.
+          --
+          -- Asking for the whole word and swallowing the keystroke was a trap:
+          -- the request is a commit, and a commit is only a request -- if the
+          -- frontend will not or cannot carry it out, nothing is deleted and
+          -- the press is simply gone.  Alternating with ordinary presses that
+          -- reads as "Backspace deletes a character every other time", which
+          -- is a far worse bug than the feature is a feature.
+          --
+          -- Leaving the last one to the key means the failure is ordinary: the
+          -- word goes if the frontend obliges, and one character goes if it
+          -- does not, which is what Backspace was going to do anyway.
+          if #word > 1 then
+            env.engine:commit_text(string.rep("\8", #word - 1))
+          end
           context:set_property(BACKSPACE, "")
-          return kAccepted
         end
       end
     end
