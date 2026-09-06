@@ -623,8 +623,12 @@ def main() -> int:
 
         print("\nPreparing the next deploy:")
         pin_schema(user_dir, args.dry_run)
-    if not invalidate_build(user_dir, args.dry_run):
-        print("  nothing built yet, so nothing to mark stale")
+        # Inside the loop: every directory installed into needs its own build
+        # marked stale, or the frontend that reads it deploys and rebuilds
+        # nothing -- which is the "you are testing yesterday's build" failure
+        # the whole sweep exists to prevent.
+        if not invalidate_build(user_dir, args.dry_run):
+            print("  nothing built yet, so nothing to mark stale")
 
     print("""
 Next:
