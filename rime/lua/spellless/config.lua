@@ -28,16 +28,85 @@ M.defaults = {
   skeleton_budget   = 1.30,   -- query skeleton vs word skeleton
   elastic_budget    = 1.70,   -- query vs a prefix of the word, vowels cheap
 
-  -- Syllabic shorthand: what the letters you did *not* type were worth.  These
-  -- three prices are the whole model -- see spellless/cue.lua.
-  cue_budget        = 2.10,
-  cue_skip_vowel    = 0.04,   -- nobody spells out the vowels
-  cue_skip_cluster  = 0.35,   -- a consonant beside another: "think", "strat"
-  cue_skip_onset    = 0.60,   -- a consonant between vowels starts a syllable
-  -- There is deliberately no fourth price for a doubled letter.  A double is
+  -- Syllabic shorthand: how much of a word a person types.  One probability
+  -- per character class -- the chance the typist *keeps* a character of that
+  -- kind -- and nothing else; keeping costs -log(p) and dropping costs
+  -- -log(1-p), so the alignment cost is a real log-likelihood and the model
+  -- normalises itself over the word.  See spellless/cue.lua.
+  --
+  -- Fitted rather than guessed, which is the point of writing it this way: the
+  -- alignment says which characters each known (shorthand, word) pair kept, so
+  -- class-wise keep rates are counts.  Over the 342 pairs in
+  -- tests/cases/syllables.tsv and generated_cues.tsv, re-estimated until the
+  -- alignments stop moving, that is 0.39 / 0.68 / 0.89; coordinate descent
+  -- then moved them a little way to what is here, and gained 0.002 of
+  -- objective doing it, which is to say the maximum-likelihood numbers were
+  -- already right.
+  --
+  -- In English: a shorthand typist types about a third of the vowels, three
+  -- consonants in four when they sit next to another consonant, and six in
+  -- seven of the consonants that begin a syllable.
+  --
+  -- Unlike the other budgets this one is in nats -- how much surprise a
+  -- reading may carry before it stops being a reading -- because that is the
+  -- unit the alignment works in.
+  cue_budget        = 12.0,
+  cue_keep_vowel    = 0.32,   -- nobody spells out the vowels
+  cue_keep_cluster  = 0.76,   -- a consonant beside another: "think", "strat"
+  cue_keep_onset    = 0.86,   -- a consonant between vowels starts a syllable
+  -- Nats per unit of `cost`.  The ranker's cost_weight is calibrated against
+  -- edit distances, which are not log-probabilities; this divisor is what puts
+  -- this channel's log-likelihood on the same scale, and it is the one number
+  -- here with no probabilistic meaning.
+  --
+  -- It is also, in practice, the dial between this channel and the consonant
+  -- skeleton: raise it and the cost term flattens, so frequency decides and a
+  -- commoner longer word wins; lower it and an exact-skeleton reading wins.
+  -- Held out over ten fresh generator seeds, shorthand and skeleton accuracy
+  -- move against each other about two to one and the aggregate is flat --
+  -- 5: 69.8/91.6, 7: 83.4/90.6, 9: 88.5/89.3, 10: 90.1/88.5, 12: 91.9/87.6,
+  -- for a top-1 total of 85.8, 88.7, 89.5, 89.6, 89.6.  A promising +0.13 of
+  -- top-5 at 10 did not replicate on ten further seeds held back for exactly
+  -- that check, so 12 stands: the difference is where the accuracy sits, not
+  -- how much of it there is.
+  cue_cost_scale    = 12.0,
+  -- One letter of the shorthand may be the wrong key, at this many nats on top
+  -- of what keeping it costs.  Without it a slip *inside* an abbreviation is
+  -- fatal rather than merely expensive: the letters no longer appear in the
+  -- word in order, so nothing at all is offered, and "stfxctn" reaches nothing.
+  -- Nothing counts the slips -- two cost twice as much and the budget refuses
+  -- them -- which is the same structure as every other channel here.
+  --
+  -- **Off**, at 0, and it is a close thing.  It works: over 252 shorthands with
+  -- one letter corrupted it takes top-5 from 25.4% to 89.7%, and eleven of a
+  -- dozen hand-built cases lead.  It costs +0.5 ms mean, +0.4 ms per keystroke
+  -- and **+1.3 ms at p95**, which lands on the 10 ms wall this project holds
+  -- itself to -- on a development machine, for a compound error (shorthand
+  -- *and* a slip) that is rarer than either half, paid on every keystroke that
+  -- has neither.
+  --
+  -- Set it to 10.0 in the schema to turn it on; that is the value the sweep
+  -- chose, and 8 buys more recall for three case-file regressions.  The shape
+  -- that would earn it by default is the one scan_first_neighbours wants too: a
+  -- second pass, run only when Engine:trustworthy says the first found nothing
+  -- worth putting under the space bar.  Twice now the answer to "this is real
+  -- recall at a cost on every query" has been the same gate, and nobody has
+  -- built it.
+  cue_slip_cost     = 0.0,
+  -- Below this length a wrong letter is not a slip, it is a different word:
+  -- "tnk" with one letter wrong could be shorthand for anything, and letting
+  -- it be turns a three-letter query back into a scan of the dictionary.
+  min_cue_slip_len  = 5,
+  -- Alignments per keystroke spent on words that are *not* a clean subsequence
+  -- of the query.  Its own ceiling rather than a share of cue_max_checks: the
+  -- relaxed letter-set test admits five to ten times as many words, and
+  -- without a separate bound they would crowd out the exact readings, which
+  -- are much likelier to be right.
+  cue_slip_checks   = 400,
+  -- There is deliberately no fourth class for a doubled letter.  A double is
   -- the clearest case of a consonant beside a consonant, and giving it a
-  -- cheaper rule of its own let the cue reading undercut the typo channel on
-  -- its own ground: dropping *one* half of a double is a misspelling, not
+  -- keep probability of its own let the cue reading undercut the typo channel
+  -- on its own ground: dropping *one* half of a double is a misspelling, not
   -- shorthand, and "embarass" led with "embarrassed", "adn" with "adding".
   --
   -- How long a word the query may be shorthand for.  Two letters a syllable is

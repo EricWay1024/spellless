@@ -296,7 +296,19 @@ local function add_cues(corpus, query, cfg, emit, exact_id, stats)
   -- dropped "think" off the end of the list before the ranker ever saw it.
   local shortlist = util.top(cfg.max_cue)
   local cost_of = {}
-  local checked = 0
+  local checked, slipped = 0, 0
+  -- With one mistyped letter allowed, a word no longer has to contain every
+  -- letter of the query: it may be missing exactly the one that was slipped.
+  -- That is "the missing-letter set has at most one member", and `x & (x-1)`
+  -- clears the lowest set bit, so the whole test is `x & (x-1) == 0` -- two
+  -- more integer operations than the strict one, rather than the two
+  -- thirteen-bit table lookups a popcount would take on every word walked.
+  --
+  -- It admits five to ten times as many words per bucket, so those are counted
+  -- against their own ceiling and never take checks away from the words that
+  -- do contain every letter, which are much likelier to be right.
+  local slip = cfg.cue_slip_cost > 0 and qlen >= cfg.min_cue_slip_len
+  local slip_max = cfg.cue_slip_checks
   -- Two bounds on how long the word may be, and the tighter one wins.  The
   -- ratio is what matters for short input -- three letters is not shorthand
   -- for a seventeen-letter word, whatever the absolute gap -- and the absolute
@@ -312,21 +324,31 @@ local function add_cues(corpus, query, cfg, emit, exact_id, stats)
     if bucket then
       for k = 1, #bucket do
         local id = bucket[k]
-        if id ~= exact_id and (qmask & ~masks[id]) == 0 then
-          checked = checked + 1
-          if checked > cfg.cue_max_checks then goto done end
-          local d = cue.align(query, words[id], budget, cfg)
-          if d then
-            cost_of[id] = d
-            shortlist:push(cfg.cost_weight * d
-                           - cfg.freq_weight * corpus:weight(id), id)
+        if id ~= exact_id then
+          local x = qmask & ~masks[id]
+          local run = false
+          if x == 0 then
+            checked = checked + 1
+            if checked > cfg.cue_max_checks then goto done end
+            run = true
+          elseif slip and (x & (x - 1)) == 0 then
+            slipped = slipped + 1
+            run = slipped <= slip_max
+          end
+          if run then
+            local d = cue.align(query, words[id], budget, cfg)
+            if d then
+              cost_of[id] = d
+              shortlist:push(cfg.cost_weight * d
+                             - cfg.freq_weight * corpus:weight(id), id)
+            end
           end
         end
       end
     end
   end
   ::done::
-  if stats then stats.cues = (stats.cues or 0) + checked end
+  if stats then stats.cues = (stats.cues or 0) + checked + slipped end
   -- No length penalty on top: the letters this reading skipped are all priced
   -- in `cost` already, the ones past the last match included.
   shortlist:each(function(id) emit(id, "cue", cost_of[id], 0) end)
