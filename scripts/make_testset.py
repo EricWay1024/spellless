@@ -40,6 +40,61 @@ def neighbours() -> dict[str, list[str]]:
 
 NEIGHBOURS = neighbours()
 
+SYLLABLE_VOWELS = set("aeiouy")
+
+
+def syllabify(word: str) -> list[str]:
+    """Cut a word into rough syllables, orthographically.
+
+    Not linguistics: no pronunciation is consulted and "y" is simply treated as
+    a vowel.  It only has to be good enough to *generate* plausible shorthand,
+    and the matcher it is testing has no syllabifier at all -- see
+    rime/lua/spellless/cue.lua.
+    """
+    runs, i, n = [], 0, len(word)
+    while i < n:
+        if word[i] in SYLLABLE_VOWELS:
+            j = i
+            while j < n and word[j] in SYLLABLE_VOWELS:
+                j += 1
+            runs.append((i, j))
+            i = j
+        else:
+            i += 1
+    if len(runs) <= 1:
+        return [word]
+    cuts = []
+    for (_, end), (start, _) in zip(runs, runs[1:]):
+        # One consonant between the vowels joins the next syllable (a-go);
+        # two or more split, the first staying behind (gov-ern, al-go).
+        cuts.append(end if start - end <= 1 else end + 1)
+    parts, prev = [], 0
+    for c in cuts:
+        parts.append(word[prev:c])
+        prev = c
+    parts.append(word[prev:])
+    return [p for p in parts if p]
+
+
+def shorthand(word: str, rng: random.Random) -> str:
+    """One or two letters per syllable, chosen the way a typist might.
+
+    The first letter of a syllable is nearly always what gets typed; the second
+    cue, when there is one, is whatever else in that syllable felt salient.
+    Every letter comes from the word in order, which is the only property
+    spellless.cue relies on.
+    """
+    out = []
+    for k, part in enumerate(syllabify(word)):
+        # A middle syllable occasionally gets nothing at all.
+        if k > 0 and len(part) > 1 and rng.random() < 0.12:
+            continue
+        out.append(part[0])
+        rest = part[1:]
+        if rest and rng.random() < 0.45:
+            out.append(rng.choice(rest))
+    return "".join(out)
+
 
 def corrupt(word: str, rng: random.Random) -> tuple[str, str]:
     """Apply one plausible fast-typing slip.  Returns (typo, kind)."""
@@ -97,6 +152,7 @@ def main() -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--typos", type=int, default=500)
     ap.add_argument("--skeletons", type=int, default=400)
+    ap.add_argument("--cues", type=int, default=300)
     ap.add_argument("--seed", type=int, default=20260904)
     # Words this common are what people actually type; going deeper into the
     # tail measures the corpus, not the matcher.
@@ -139,12 +195,72 @@ def main() -> int:
         seen.add(s)
         skel_lines.append(f"{s}\t{forms.get(word, word)}\t5\tlen{min(len(s), 9)}")
 
+    cue_lines, seen = [], set()
+    # Six letters up: shorthand for a short word is not shorthand, it is a typo,
+    # and tests/cases/generated_typos.tsv already measures those.
+    #
+    # Words with a commoner word as a prefix are left out entirely.  Shorthand
+    # for "productions" is shorthand for "product" as well, and no matcher
+    # should be marked down for reading it as the word people actually type --
+    # the case is genuinely ambiguous, so it says nothing about accuracy.
+    rank = {w: i for i, w in enumerate(words)}
+
+    def has_commoner_stem(word: str) -> bool:
+        mine = rank[word]
+        return any(word[:k] in rank and rank[word[:k]] < mine
+                   for k in range(3, len(word)))
+
+    by_letter: dict[str, list[str]] = {}
+    for w in words:
+        if w[:1].isalpha():
+            by_letter.setdefault(w[0], []).append(w)
+
+    def is_subsequence(cue: str, word: str) -> bool:
+        it = iter(word)
+        return all(c in it for c in cue)
+
+    def commonest_reading(cue: str, word: str) -> bool:
+        """Is `word` the most frequent word this shorthand could be?
+
+        Not a use of the matcher -- only of the one property the generator
+        guarantees, that the letters appear in order.  A cue that fits a
+        commoner word just as well ("untl" for "untitled", when "until" is
+        right there) is ambiguous by construction and measures nothing.
+        """
+        limit = 2 * len(cue) + 2
+        for other in by_letter.get(cue[0], ()):
+            if other == word:
+                return True          # frequency ordered: nothing commoner left
+            if len(other) <= limit and is_subsequence(cue, other):
+                return False
+        return True
+
+    candidates = [w for w in pool
+                  if len(w) >= 6 and w.isalpha() and not has_commoner_stem(w)]
+    rng.shuffle(candidates)
+    for word in candidates:
+        if len(cue_lines) >= args.cues:
+            break
+        cue = shorthand(word, rng)
+        # Under half the letters is not shorthand, it is a guess.
+        if len(cue) < 4 or len(cue) * 2 < len(word):
+            continue
+        if cue == word or cue in vocabulary or cue in seen:
+            continue
+        if not commonest_reading(cue, word):
+            continue
+        seen.add(cue)
+        syllables = len(syllabify(word))
+        cue_lines.append(f"{cue}\t{forms.get(word, word)}\t5\tsyl{min(syllables, 5)}")
+
     header = ("# Generated by scripts/make_testset.py -- do not edit by hand.\n"
               f"# seed={args.seed} ranks {args.from_rank}..{args.to_rank}\n"
               "# input <TAB> expected <TAB> max_rank <TAB> group\n")
     write_text(CASES / "generated_typos.tsv", header + "\n".join(typo_lines) + "\n")
     write_text(CASES / "generated_skeletons.tsv", header + "\n".join(skel_lines) + "\n")
-    print(f"done: {len(typo_lines)} typo cases, {len(skel_lines)} skeleton cases")
+    write_text(CASES / "generated_cues.tsv", header + "\n".join(cue_lines) + "\n")
+    print(f"done: {len(typo_lines)} typo cases, {len(skel_lines)} skeleton cases, "
+          f"{len(cue_lines)} syllabic cases")
     return 0
 
 

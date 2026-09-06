@@ -21,11 +21,34 @@ M.defaults = {
   max_skeleton_range = 1500,
   max_typo          = 20,
   max_skeleton_fuzzy = 12,
+  max_cue           = 16,
 
   -- Edit budgets, in the weighted units of spellless.distance.
   typo_budget       = 1.35,   -- query vs word
   skeleton_budget   = 1.30,   -- query skeleton vs word skeleton
   elastic_budget    = 1.70,   -- query vs a prefix of the word, vowels cheap
+
+  -- Syllabic shorthand: what the letters you did *not* type were worth.  These
+  -- three prices are the whole model -- see spellless/cue.lua.
+  cue_budget        = 2.10,
+  cue_skip_vowel    = 0.04,   -- nobody spells out the vowels
+  cue_skip_cluster  = 0.35,   -- a consonant beside another: "think", "strat"
+  cue_skip_onset    = 0.60,   -- a consonant between vowels starts a syllable
+  -- There is deliberately no fourth price for a doubled letter.  A double is
+  -- the clearest case of a consonant beside a consonant, and giving it a
+  -- cheaper rule of its own let the cue reading undercut the typo channel on
+  -- its own ground: dropping *one* half of a double is a misspelling, not
+  -- shorthand, and "embarass" led with "embarrassed", "adn" with "adding".
+  --
+  -- How long a word the query may be shorthand for.  Two letters a syllable is
+  -- about the least anyone types and five characters a syllable about the most
+  -- English offers, so the ratio bounds short input and the absolute gap bounds
+  -- long input, where a ratio stops constraining anything.  Past either, the
+  -- word the alignment found is a coincidence.
+  cue_max_extra     = 12,
+  cue_max_ratio     = 3.0,
+  -- Alignments per keystroke, after the letter-set filter.
+  cue_max_checks    = 900,
 
   -- Splitting a run of letters back into words.  Charged per word beyond the
   -- first, so a string is not shredded into the many short words English is
@@ -56,6 +79,8 @@ M.defaults = {
   min_skeleton_len  = 2,
   min_skeleton_completion_len = 4,
   min_skeleton_fuzzy_len = 5,
+  -- Two letters is not shorthand for anything, it is a prefix.
+  min_cue_len       = 3,
 
   -- Scan shape.  The typo scan visits words whose length is within
   -- `len_window` of the query and whose first letter is the query's first or
@@ -85,12 +110,19 @@ M.defaults = {
   -- words you meant to have corrected.
   base_prefix       = 74,
   base_typo         = 75,
-  base_skeleton     = 66,
+  base_skeleton     = 62,
   -- A run of letters cut back into words: "exactlyright" -> "exactly right".
   -- Below an exact match, above a typo: it is only offered when the whole
   -- string is not a word, so there is rarely much competition, but a close
   -- misspelling of a real word is still the better guess.
   base_split        = 70,
+  -- Syllable cues.  This is the loosest reading of an input there is, and it
+  -- started well below the other sources on that reasoning -- but its job is to
+  -- make sure a real word is *on offer* for input the stricter channels cannot
+  -- reach at all, and a candidate nobody can see does not do that job.
+  -- Coordinate descent put it here, above the skeleton reading it generalises,
+  -- and every hand-written case still passes.
+  base_cue          = 70,
 
   form_bonus        = 70,   -- exact match on an entry with a written form
   freq_weight       = 34,   -- x normalised corpus log-frequency, in [0,1]
@@ -115,13 +147,17 @@ M.defaults = {
   -- over the word it was a misspelling of ("eyes") for good.  Small enough
   -- that a name you have actually adopted still wins when nothing else fits.
   unknown_word_penalty = 25,
-  cost_weight       = 19,   -- x weighted edit distance
-  extra_weight      = 12,   -- x how much longer the completion is than the input
+  cost_weight       = 16,   -- x weighted edit distance
+  extra_weight      = 8,    -- x how much longer the completion is than the input
 
   -- A query with few vowels is far more likely to be an abbreviation than a
   -- misspelling, so skeleton candidates get up to this much extra when the
   -- input looks consonantal.
-  skeleton_vowel_bonus = 14,
+  skeleton_vowel_bonus = 10,
+  -- The same signal for syllable cues.  A separate knob because they are a
+  -- separate channel and the tuner should be able to move them apart; that it
+  -- landed on the same number is a result, not an assumption.
+  cue_vowel_bonus   = 10,
 
   -- When even the best candidate needed more repair than this, or scores below
   -- this, we are not confident enough to put it under the space bar; the

@@ -59,7 +59,7 @@ Google Books skews old and literary, and keeps proper nouns as ordinary
 lowercase tokens. So `mathew`, `mather` and `mathews` are all reasonably
 frequent and compete with `mathematics` for the input `mathe`. Blending in a
 modern subtitle or web corpus, or demoting names at build time, is the single
-highest-value data change available — see README § Next improvements.
+highest-value data change available — see DESIGN.md § 10.
 
 ---
 

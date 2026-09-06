@@ -6,6 +6,7 @@
 
 local Corpus = require("spellless.corpus")
 local UserDB = require("spellless.userdb")
+local cue = require("spellless.cue")
 local Shortcuts = require("spellless.shortcuts")
 local split = require("spellless.split")
 local config = require("spellless.config")
@@ -162,10 +163,10 @@ local function generate_personal(self, query, out)
   local qskel = skeleton.of(query)
   local qlen = #query
   local n = #out
-  local function emit(word, source, cost)
+  local function emit(word, source, cost, extra)
     n = n + 1
     out[n] = { word = word, id = corpus:lookup(word), source = source,
-               cost = cost or 0, extra = #word - qlen }
+               cost = cost or 0, extra = extra or (#word - qlen) }
   end
   local longest = qlen + generate.ELASTIC_PROFILE.max_drift
   for i = 1, #words do
@@ -185,6 +186,13 @@ local function generate_personal(self, query, out)
       if #qskel >= cfg.min_skeleton_len and #w >= qlen - 1 then
         local ds = distance.prefix_distance(query, w, cfg.elastic_budget, generate.ELASTIC_PROFILE)
         if ds then emit(w, "skeleton", ds) end
+      end
+      -- A name you have adopted deserves shorthand too: this is the same
+      -- syllabic reading the dictionary scan does, and the list is short
+      -- enough that every entry can simply be tried.
+      if qlen >= cfg.min_cue_len then
+        local dc = cue.align(query, w, cfg.cue_budget, cfg)
+        if dc then emit(w, "cue", dc, 0) end
       end
     end
   end

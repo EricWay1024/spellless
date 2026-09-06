@@ -16,6 +16,7 @@ local BASE_KEY = {
   typo     = "base_typo",
   skeleton = "base_skeleton",
   split    = "base_split",
+  cue      = "base_cue",
 }
 
 --- How much longer the candidate is than what was typed, normalised to [0,1].
@@ -45,10 +46,21 @@ function M.score(item, cfg, ctx)
   if item.has_form and item.source == "exact" then
     s = s + cfg.form_bonus
   end
+  -- Signed: a consonant-only input is strong evidence for the abbreviation
+  -- reading, a vowel-rich one is evidence against it.  Both sources are
+  -- readings of the same guess -- that this is shorthand -- so both answer to
+  -- the same evidence; leaving cues out of it meant "tnk" ranked the exact
+  -- skeleton of a rare word above a common word one dropped letter away.
+  --
+  -- Two knobs rather than one because they are two channels and the tuner
+  -- should be able to separate them.  They agree today; what actually settled
+  -- "mathe" -- where the cue readings (Matthew, matches) once sat above half
+  -- the completions of the word being spelled out -- was raising base_cue, not
+  -- steepening this.
   if item.source == "skeleton" then
-    -- Signed: a consonant-only input is strong evidence for the abbreviation
-    -- reading, a vowel-rich one is evidence against it.
     s = s + cfg.skeleton_vowel_bonus * (2 * ctx.abbreviation_likeness - 1)
+  elseif item.source == "cue" then
+    s = s + cfg.cue_vowel_bonus * (2 * ctx.abbreviation_likeness - 1)
   end
   return s
 end

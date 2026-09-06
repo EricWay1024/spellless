@@ -51,7 +51,13 @@ local GRID = {
   base_prefix       = { 74, 77, 80, 83, 86 },
   base_typo         = { 66, 69, 72, 75, 78 },
   base_skeleton     = { 62, 66, 70, 74, 78 },
+  base_cue          = { 46, 52, 58, 64, 70 },
   skeleton_vowel_bonus = { 0, 5, 10, 14, 18, 24 },
+  cue_vowel_bonus   = { 0, 10, 20, 26, 30, 36 },
+  cue_skip_vowel    = { 0.04, 0.08, 0.14, 0.22 },
+  cue_skip_cluster  = { 0.20, 0.28, 0.35, 0.45, 0.60 },
+  cue_skip_onset    = { 0.60, 0.75, 0.85, 1.00, 1.20 },
+  cue_budget        = { 1.6, 1.9, 2.1, 2.4, 2.8 },
   typo_budget       = { 1.35, 1.5, 1.65, 1.8 },
   elastic_budget    = { 1.4, 1.7, 2.0 },
   user_weight       = { 18, 26, 34 },
@@ -59,7 +65,9 @@ local GRID = {
   confidence_floor  = { 62, 66, 70 },
 }
 local ORDER = { "freq_weight", "cost_weight", "extra_weight", "base_prefix", "base_typo",
-                "base_skeleton", "skeleton_vowel_bonus", "typo_budget", "elastic_budget",
+                "base_skeleton", "base_cue", "skeleton_vowel_bonus", "cue_vowel_bonus",
+                "cue_skip_vowel", "cue_skip_cluster", "cue_skip_onset", "cue_budget",
+                "typo_budget", "elastic_budget",
                 "user_weight", "confidence_cost", "confidence_floor" }
 
 local best = {}

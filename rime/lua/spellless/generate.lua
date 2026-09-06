@@ -6,12 +6,15 @@
 --   typo             bounded scan + weighted edit distance on the spelling
 --   skeleton         binary search of the skeleton permutation, widened by a
 --                    bounded scan, then scored by a vowel-elastic alignment
+--   cue              first-letter buckets filtered to words that contain every
+--                    letter typed, then a syllabic subsequence alignment
 --
 -- The scans are what keeps this interactive.  Rather than measure edit
 -- distance against all 83k words we only visit words that could plausibly be
 -- within budget -- right length, right first letter, overlapping letter sets --
 -- and reject everything else with two integer operations.
 
+local cue = require("spellless.cue")
 local distance = require("spellless.distance")
 local skeleton = require("spellless.skeleton")
 local Corpus = require("spellless.corpus")
@@ -235,7 +238,16 @@ local function add_skeletons(corpus, query, cfg, emit, exact_id, stats)
     scan(corpus.smasks, corpus.sbuckets, #qskel, letter_mask(qskel),
          anchor_letters(qskel, cfg), 1, budget, SKELETON_PROFILE,
          cfg.max_checks, function(id)
-      local d = distance.distance(qskel, corpus:skeleton(id), budget, SKELETON_PROFILE)
+      -- Against a *prefix* of the word's skeleton, not all of it.  An
+      -- abbreviation with a slip in it is usually also unfinished -- "alghrith"
+      -- is "algorithm" with an "h" for the "o" and no "m" yet -- and demanding
+      -- the whole skeleton charges for the slip and the missing tail at once,
+      -- which no budget worth having can absorb.  The elastic pass below still
+      -- prices the query against the real word, so this only widens who gets
+      -- considered, and "alghrith" went from offering nothing to leading with
+      -- "algorithm".
+      local d = distance.prefix_distance(qskel, corpus:skeleton(id), budget,
+                                         SKELETON_PROFILE)
       if d then fuzzy_top:push(d * 1e7 + id, id) end
     end, stats)
     fuzzy_top:each(offer)
@@ -250,6 +262,76 @@ local function add_skeletons(corpus, query, cfg, emit, exact_id, stats)
   end
 end
 
+--- Syllabic shorthand candidates: see spellless.cue.
+---
+--- Generation is a scan rather than an index lookup because there is no index
+--- to use.  A subsequence has no prefix to binary search on, and the skeleton
+--- permutation is exactly what these queries fail to match.  What they do have
+--- is a first letter and a letter *set*: every character typed is somewhere in
+--- the word, so `qmask & ~wordmask` must be empty, and that test rejects all
+--- but a few dozen of the words sharing the first letter with two integer
+--- operations each.
+---
+--- Length buckets are walked shortest first, so hitting the ceiling drops the
+--- longest words -- the ones that were the biggest stretch anyway.
+---
+--- Skipped entirely when the query is itself a word.  Shorthand is what you
+--- write *instead* of a word, so a string the dictionary already knows is not
+--- it -- the same reasoning that stops "another" being cut into "a not her".
+--- It is also what keeps the common case free: every correctly spelled word
+--- you type would otherwise pay for a scan that could only offer a stretch.
+local function add_cues(corpus, query, cfg, emit, exact_id, stats)
+  local qlen = #query
+  if qlen < cfg.min_cue_len or exact_id then return end
+  local first = byte(query, 1)
+  if first < 97 or first > 122 then return end
+
+  local qmask = letter_mask(query)
+  local budget = cfg.cue_budget
+  local masks, buckets, words = corpus.masks, corpus.wbuckets, corpus.words
+  -- The shortlist is keyed by what the ranker will do with the candidate, not
+  -- by alignment cost alone.  Every other source is narrow enough that cheapest
+  -- first is close enough to best first; this one is not.  "tnk" aligns onto a
+  -- dozen rare words at nearly no cost -- "tonkin", "tankers" -- and cost order
+  -- dropped "think" off the end of the list before the ranker ever saw it.
+  local shortlist = util.top(cfg.max_cue)
+  local cost_of = {}
+  local checked = 0
+  -- Two bounds on how long the word may be, and the tighter one wins.  The
+  -- ratio is what matters for short input -- three letters is not shorthand
+  -- for a seventeen-letter word, whatever the absolute gap -- and the absolute
+  -- gap is what matters for long input, where the ratio stops constraining
+  -- anything.
+  local last = qlen + cfg.cue_max_extra
+  local ratio = math.floor(qlen * cfg.cue_max_ratio)
+  if ratio < last then last = ratio end
+  if last > 31 then last = 31 end
+
+  for len = qlen, last do
+    local bucket = buckets[Corpus.bucket_key(len, first)]
+    if bucket then
+      for k = 1, #bucket do
+        local id = bucket[k]
+        if id ~= exact_id and (qmask & ~masks[id]) == 0 then
+          checked = checked + 1
+          if checked > cfg.cue_max_checks then goto done end
+          local d = cue.align(query, words[id], budget, cfg)
+          if d then
+            cost_of[id] = d
+            shortlist:push(cfg.cost_weight * d
+                           - cfg.freq_weight * corpus:weight(id), id)
+          end
+        end
+      end
+    end
+  end
+  ::done::
+  if stats then stats.cues = (stats.cues or 0) + checked end
+  -- No length penalty on top: the letters this reading skipped are all priced
+  -- in `cost` already, the ones past the last match included.
+  shortlist:each(function(id) emit(id, "cue", cost_of[id], 0) end)
+end
+
 -- ---------------------------------------------------------------------------
 
 --- Generate candidates for `query` (already lowercased).
@@ -259,14 +341,20 @@ function M.generate(corpus, query, cfg, stats)
   local out, n = {}, 0
   local words = corpus.words
   local qlen = #query
-  local function emit(id, source, cost)
+  -- `extra` defaults to how much longer the word is than the query, which is
+  -- what a completion adds.  A cue match overrides it: the letters it skipped
+  -- *inside* the word are already paid for in `cost`, and charging them twice
+  -- would rank "think" for "tnk" below a word half as likely.
+  local function emit(id, source, cost, extra)
     n = n + 1
-    out[n] = { id = id, source = source, cost = cost or 0, extra = #words[id] - qlen }
+    out[n] = { id = id, source = source, cost = cost or 0,
+               extra = extra or (#words[id] - qlen) }
   end
 
   local exact_id = add_exact_and_prefix(corpus, query, cfg, emit)
   add_typos(corpus, query, cfg, emit, exact_id, stats)
   add_skeletons(corpus, query, cfg, emit, exact_id, stats)
+  add_cues(corpus, query, cfg, emit, exact_id, stats)
   return out
 end
 

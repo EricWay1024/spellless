@@ -3,11 +3,21 @@
 > Treat spelling as a noisy encoding of intended English, and use an IME
 > candidate interface to decode the intention.
 
-Spellless is a Rime schema plus one Lua translator. It does not fork Weasel or
-librime, does not ship a compiled plugin, and does not need administrator
-rights. Everything Rime already does well — composition, candidate selection,
-paging, punctuation, committing raw text — is left to Rime; the only custom
-part is deciding *which words to offer and in what order*.
+Spellless is a Rime schema plus one Lua translator. It does not patch librime,
+does not ship a compiled plugin, and does not need administrator rights.
+Everything Rime already does well — composition, candidate selection, paging,
+punctuation, committing raw text — is left to Rime; the only custom part is
+deciding *which words to offer and in what order*.
+
+There is one exception, and it is deliberately small. Three features need to
+read the text in front of the caret and take a character of it back, and the
+Rime API has no channel for either, because a commit is a string and what
+happens to it afterwards belongs to the application. So they come from a
+companion build of Weasel —
+[spellless-weasel](https://github.com/EricWay1024/spellless-weasel) — which
+adds those two conventions and nothing else (§5.6). They are off by default,
+it installs beside a stock Weasel rather than replacing it, and everything
+else here runs without it.
 
 ---
 
@@ -71,6 +81,7 @@ keystroke
         +-- exact / prefix        binary search, alphabetical index
         +-- typo                  bounded scan + weighted edit distance
         +-- skeleton              skeleton index + scan, elastic alignment
+        +-- cue                   first-letter buckets, syllabic subsequence
         +-- personal vocabulary   linear pass over what you have chosen
                      |
                      v
@@ -210,6 +221,16 @@ Because typists *do* drop a leading vowel sometimes, the matcher also probes
 the index with each of the five vowels prepended, which is how `nvrnmnt`
 reaches `environment`.
 
+The index answers exact skeletons and their completions; a *mistyped* skeleton
+needs a scan, and that scan compares the query's skeleton against a **prefix**
+of the word's rather than all of it. An abbreviation with a slip in it is
+usually also unfinished — `alghrith` is `algorithm` with an `h` for the `o` and
+no `m` yet — and demanding the whole skeleton charges for the slip and the
+missing tail at once, which no budget worth having can absorb. The elastic pass
+below still prices the query against the real word, so this only widens who
+gets considered; `alghrith` went from offering nothing at all to leading with
+`algorithm`.
+
 ### 4.3 Elastic alignment: how skeleton candidates are priced
 
 This is the part that took the most iteration.
@@ -247,11 +268,92 @@ at 19 points of score per unit of cost that is the difference between leading
 the list and being nowhere near it: for `mathe` the first six candidates are
 all prefix completions of `math-`, and `mouth` does not appear at all.
 
-### 4.4 Keeping it interactive
+### 4.4 Syllable cues: shorthand nobody had to learn
+
+Two channels above both assume the typist is *spelling* — either the whole word
+with slips in it, or all of its consonants. Neither reaches what people
+actually do with a long word, which is to say it to themselves and type one or
+two letters per syllable:
+
+    stratification  ->  strat-i-fi-ca-tion  ->  satfcatn
+
+Every consonant that got dropped there costs a full 1.00 in the edit channel
+(`satfcatn` → `stratification` is 2.40 against a budget of 1.70) and the
+skeleton channel wants all eight of `strtfctn`. The word was simply
+unreachable: before this channel existed, `satfcatn` offered nothing at all,
+and `alghrith` — `algorithm` with an `h` for the `o` and no `m` yet — offered
+nothing either.
+
+What every such input does have is that **the letters typed appear in the word,
+in order**. So `spellless/cue.lua` aligns the query as a *subsequence*, and the
+entire question becomes what the skipped characters were worth:
+
+| Skipped | Cost | Because |
+| --- | --- | --- |
+| a vowel | 0.04 | nobody spells out the vowels |
+| a consonant beside another consonant | 0.35 | clusters, codas and doubled letters: the `h` of `think`, the `r` of `strat`, the `n` of `-nk`, one `t` of `cattle` |
+| a consonant between two vowels | 0.60 | that is a syllable's onset — the one letter a shorthand typist does keep |
+
+Those three prices are the whole model. There is no syllabifier, no
+pronunciation dictionary and no codebook to learn: a consonant sitting between
+two vowels begins an English syllable often enough to be worth pricing, and
+being wrong about it costs a little score rather than a candidate. The user
+instruction is "type what feels representative of each syllable", and nothing
+more precise than that is needed.
+
+Three details do the real work.
+
+**The first letter must match.** It is the one character a shorthand typist
+never drops, and requiring it is what stops a three-letter query proposing half
+the dictionary.
+
+**The tail is charged too.** Everything the query did not land on is priced,
+*including* the characters past the last match. Shorthand runs to the end of a
+word — nobody types cues syllable by syllable and then stops two syllables
+early — so a word with an untouched tail is being *completed*, which is what
+the prefix and skeleton channels are for. This one rule is what separates
+`embarass` → `embarrass` (nothing left over) from `embarass` →
+`embarrassed` (a whole syllable nobody typed); without it the second led, and
+`common_typos.tsv` would not pass.
+
+**A doubled letter gets no special price.** It was given one at first, on the
+theory that `cattle` → `ctl` drops nothing real. But dropping *one* half of a
+double while keeping the other is a misspelling, not shorthand, and at its own
+low price the cue reading undercut the edit channel on its own ground:
+`embarass` led with `embarrassed` and `adn` led with `adding` rather than
+`and`. A doubled consonant is already the clearest case of "a consonant beside
+a consonant" and needs no rule of its own.
+
+Precision comes from the prices rather than from a filter. `tnk` aligns onto
+`think`, `tank`, `thank` and `trunk` alike; which of them leads is a question
+about English frequency, which the ranker already answers. In the ranking the
+channel carries the same "does this input look consonantal?" signal the
+skeleton channel uses, so a vowel-rich query like `mathe` gets its cue readings
+pushed down and a consonantal one like `satfcatn` gets them pushed up. It has
+its own knob for that (`cue_vowel_bonus`) because it is a different channel and
+the tuner should be free to separate them; today the two agree at ±10, and a
+first attempt that ran the cue slope much steeper turned out to be a worse way
+of saying the same thing than simply raising `base_cue`.
+
+Generation cannot use an index — a subsequence has no prefix to binary search,
+and the skeleton permutation is exactly what these queries fail to match — so
+it is a scan over the first-letter buckets, filtered by the same 26-bit letter
+mask the other scans use. Here the test is a strict subset: every letter typed
+must be somewhere in the word, `qmask & ~wordmask == 0`, which rejects all but
+a few dozen of the words sharing the first letter at two integer operations
+each. What survives that gets a leftmost-greedy subsequence check (one walk,
+no table writes) before anything is priced. The channel is skipped entirely
+when the query is itself a dictionary word — shorthand is what you write
+*instead* of a word — which is also what keeps the common case free.
+
+### 4.5 Keeping it interactive
 
 Measuring edit distance against 83k words per keystroke is not affordable in
-interpreted Lua (about 5 µs per comparison). Three things bring it down to
-around 2 ms:
+interpreted Lua (about 5 µs per comparison). Three things bring it down to a
+couple of milliseconds:
+
+This is about the typo and skeleton scans; the cue scan has a different shape
+and pays for itself differently, described in §4.4.
 
 **Anchored buckets.** The scan only visits words whose length is within 2 of
 the query and whose first letter is the query's first *or second* letter — the
@@ -286,7 +388,7 @@ comparison; forcing the band arithmetic to produce integers rather than floats
 
 ---
 
-## 4.5 Words the corpus cannot spell
+## 4.6 Words the corpus cannot spell
 
 The frequency list is lowercase throughout, and capitalisation is otherwise
 reconstructed from how the input was typed (`Mathe` → `Mathematics`). That
@@ -413,7 +515,7 @@ way to write it — started a new sentence. A trailing `\` means a LaTeX control
 sequence has begun, and the literal leads so that `\citep` does not become
 `\cited`.
 
-### 5.6 Reclaiming the space: the one thing Rime cannot do
+### 5.6 What the frontend can do and Rime cannot
 
 A commit is a string. There is no channel in the Rime API for "and take one
 character back", because once text has left the IME it belongs to the
@@ -449,11 +551,20 @@ and `"no." ` are indistinguishable from behind.
 everything downstream — spacing, capitalisation — sees the text the commit
 produced rather than the request that produced it.
 
-This is the whole dependency on the fork. Everything else in Spellless runs on
-stock Weasel, which is why the two are installed side by side rather than one
-replacing the other: fresh TSF GUIDs, its own named pipe, its own registry key
-and its own user directory, so the Chinese input method already installed is
-untouched.
+That is the write side. The fork answers the read side with a second
+convention: it publishes the few characters in front of the caret as the
+`surrounding_text` property, and `document_tail` prefers it to the commit
+history whenever it is there. That is what stops the spacing and capitalisation
+rules above from guessing — a click that moved the caret becomes visible — and
+it is what `absorb_fragment` and `word_backspace` are built on, because both
+delete text that is already in the document and a guess is not good enough to
+delete on.
+
+Those two conventions are the whole dependency. Everything else in Spellless
+runs on stock Weasel, which is why the two are installed side by side rather
+than one replacing the other: fresh TSF GUIDs, its own named pipe, its own
+registry key and its own user directory, so the Chinese input method already
+installed is untouched.
 
 ### Where a sentence starts
 
@@ -486,7 +597,8 @@ becomes `Mathematics`, but `MATHE` is left as `MATHEMATICS` and `kubectl` — th
 literal candidate — is never touched at all.
 
 Two things this cannot know about: a mouse click that moves the caret, and an
-abbreviation typed dot by dot. Backspace re-syncs the first. The second is why
+abbreviation typed dot by dot. Backspace re-syncs the first, and on the fork
+the question does not arise (§5.6). The second is why
 `data/forms.txt` maps `eg` → `e.g.` and `ie` → `i.e.`: `.` is not in the
 speller's alphabet, so typing it would end the composition anyway, and
 committing the abbreviation as one candidate means the whole of it is there to
@@ -655,4 +767,117 @@ what to add instead of guessing.
 
 ## 9. Limitations found while building this
 
-See `README.md` § Limitations.
+The ones a user meets in practice are summarised in `README.md`; this is the
+full list, with the reason each one is where it is.
+
+1. **Digits end a word.** The number keys select candidates, and Rime's
+   recognizer runs *before* the selector — so any pattern that let `Lean4`
+   compose as one token would swallow the `2` in `Mathe2` and break candidate
+   selection after every capitalised word. Digits therefore commit the current
+   word: type `Lean`, press Enter or a candidate key, then `4`. Underscores are
+   fine (`foo_bar`), and so is a second capital (`TQFT2`, `ArXiv2`), because
+   neither can be confused with prose. `spellless.schema.yaml` documents a
+   looser one-capital pattern you can swap in if you write far more identifiers
+   than prose. For a run of them, tap Shift.
+2. **Rime cannot retract committed text**, so every spacing rule has to avoid
+   writing a space rather than remove one. (`key_binder`'s `send:`
+   re-processes a key inside the engine and drops it if nothing handles it — a
+   synthetic Backspace never reaches the application.) Two consequences:
+   *commit a word with the space bar or a number key and then type
+   punctuation* gives `mathew .`, because the word's space was already
+   written; and a run like `...` gives `. . .`. Typing the punctuation while
+   the word is still being composed — the normal way — is right. So is
+   deleting the odd stray space.
+
+   The frontend is not bound by this, and the Spellless build of Weasel lifts
+   it: set `spellless/reclaim_space: true` and punctuation takes that space
+   back. See §5.6 and
+   [EricWay1024/spellless-weasel](https://github.com/EricWay1024/spellless-weasel).
+   It stays off on a stock install, where the request would be typed in
+   literally.
+3. **No space goes in front of opening punctuation**, so `Let $X$` needs the
+   space after `Let` typed by hand. Adding one before `(`, `[` and `$` would
+   turn `f(x)` into `f (x)`; the two are indistinguishable from inside the IME,
+   so Spellless does not guess.
+4. **No multi-word input.** One composition is one word. `mthmtcs s hrd`
+   requires three commits. Rime's `octagram` (bundled) would give sentence
+   context, but that needs a real dictionary-backed translator; see *Next*.
+5. **The fuzzy channels do not compose.** Splitting is exact only:
+   `exactlyright` gives `exactly right`, but a run-together that is *also*
+   misspelled does not, since every part would need the full search at every
+   split point. Shorthand has the same shape of limit — §4.4 requires every
+   letter typed to appear in the word, in order, so a slip *inside* an
+   abbreviation (`stfxctn` for `stratification`) drops back to the edit and
+   skeleton channels, which cannot usually span that far. One missing
+   capability, met twice: running a fuzzy search inside a fuzzy segmentation.
+6. **Learning remembers the word, not the input that found it.** Selecting
+   `recommendation` for `rcmmndtn` raises `recommendation` everywhere; it does
+   not remember that *this* abbreviation meant *that* word. Storing the pair
+   would be a small change to `userdb.lua` and is still the highest-value next
+   step.
+7. **Proper nouns from the corpus sit among short prefixes.** The frequency
+   list is Google-Books-derived, so `mathe` offers `mathew` and `mathews`
+   alongside `mathematics`. Better data, or a name-demotion pass at build time,
+   would clear them out.
+8. **First-letter errors are only partly covered.** The scan is anchored on the
+   query's first *or second* letter, so `nirth`→`north` works but a query whose
+   first letter is a wrong key and whose second is also wrong will miss.
+   `spellless/scan_first_neighbours: true` widens this at roughly double the
+   scan cost.
+9. **Very short input is genuinely ambiguous** and the ranking does not
+   pretend otherwise: `frm` offers `from`, `form`, `firm`, `farm`, `forum`,
+   `frame` in frequency order. One and two characters go further and lead with
+   the literal, so `cm` stays `cm`. A shorthand listed in `data/forms.txt` is
+   the exception — `im` gives `I'm` — because someone wrote it down on purpose.
+10. **Typing latency is Lua-bound.** About 2.5 ms per keystroke while typing an
+    ordinary word, 9 ms at the 95th percentile across the whole evaluation set,
+    with a ceiling on how many candidates are examined. It is comfortably
+    interactive, but there is no headroom for, say, a 500k-word dictionary
+    without a different index.
+11. **On a stock Weasel, spacing and capitals are inferred.** Rime's commit
+    history is a record of what the input method committed, not of the
+    document: it is cleared on Return and Backspace, and a mouse click that
+    moves the caret is invisible. So you will occasionally get a stray space or
+    capital; Backspace re-syncs it, and `spellless/auto_space` /
+    `spellless/auto_capitalize` turn either off. With
+    [spellless-weasel](https://github.com/EricWay1024/spellless-weasel) this
+    stops being guesswork — the frontend reads the text in front of the caret
+    and hands it over. An abbreviation typed dot by dot is still
+    indistinguishable from a full stop either way.
+12. **Capitalisation comes from three places, none of them the corpus.** The
+    frequency list is lowercase throughout, so capitals come from how you typed
+    the word, from `data/forms.txt` and capitalised `data/vocab/` entries
+    (`Grothendieck`, `TQFT`), or from what you have committed before. A name in
+    none of those still comes out lowercase until you commit it once.
+13. **The first composition after a deploy pays about 100 ms** to load the
+    dictionary. Once per process, not once per word.
+
+---
+
+## 10. Next improvements, in order of expected impact
+
+1. **Remember the input, not just the word.** Store `(typed, committed)` pairs
+   in `spellless_user.txt` and score an exact match on the typed form highly.
+   Every correction you make once becomes permanent. Contained change to
+   `userdb.lua` and `rank.lua`.
+2. **A better frequency list.** The Google-Books-derived corpus over-weights
+   archaic words and proper nouns. Blending in a modern subtitle or web corpus,
+   or demoting capitalised-in-corpus tokens at build time, would raise the
+   top-1 rate more than any further weight tuning.
+3. **Score against the previous word.** A bigram context would disambiguate the
+   `frm`-class inputs where the remaining top-1 losses are concentrated.
+   `librime-octagram` is bundled and could supply the model.
+4. **Fuzzy splitting**, so `exctlyrght` finds `exactly right`, and a slip
+   inside shorthand stops being fatal. Every part needs the full search at
+   every split point, so it wants tight budgets and a gate.
+5. **LaTeX context.** `\emph{co}homology` gains a space after the `}`, and
+   `\cite{...}` arguments get prose spacing. Tracking control sequences and
+   brace depth would fix a class of irritation for anyone writing maths.
+6. **Recognised URLs and emails swallow trailing punctuation**, and commit
+   without their own space.
+7. **Learn the cost profile from data.** The edit weights came from coordinate
+   descent over ~1000 cases; fitting them to a real keystroke log would do
+   better, and `bench/tune.lua` already provides the loop.
+8. **Incremental search.** Consecutive keystrokes re-search from scratch;
+   restricting the next scan to the previous candidate set plus one edit would
+   cut typical latency several-fold.

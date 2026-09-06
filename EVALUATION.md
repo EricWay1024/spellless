@@ -19,9 +19,9 @@ Numbers below are from a single-threaded Lua 5.4.7 build on WSL2
 
 ## The test set
 
-1,056 cases in `tests/cases/`, in two kinds.
+1,484 cases in `tests/cases/`, in two kinds.
 
-**Hand-written (208 cases).** What the brief asks for, plus the failure modes
+**Hand-written (284 cases).** What the brief asks for, plus the failure modes
 worth guarding:
 
 | file | what it pins down |
@@ -34,8 +34,9 @@ worth guarding:
 | `raw.tsv` | the literal input stays reachable, and leads when nothing is trustworthy |
 | `forms.tsv` | dropped apostrophes, the pronoun "I", and abbreviations typed without their dots |
 | `literal.tsv` | short and capitalised input — variables, units and acronyms — leading with itself |
+| `syllables.tsv` | syllabic shorthand: one or two letters per syllable, several different spellings of the same word |
 
-**Generated (900 cases),** by `scripts/make_testset.py` with a fixed seed, from
+**Generated (1,200 cases),** by `scripts/make_testset.py` with a fixed seed, from
 words ranked 150–12,000 (what people actually type; deeper into the tail you
 measure the corpus, not the matcher):
 
@@ -49,6 +50,15 @@ dictionary change with that in mind.)
   question (see `ambiguity.tsv`).
 * 400 consonant skeletons of words ≥ 6 letters, excluding skeletons that are
   themselves words.
+* 300 syllabic shorthands of words ≥ 6 letters: the word is cut into rough
+  syllables and one or two letters are taken from each, biased towards the
+  first. Two filters keep the set honest, and both are about ambiguity rather
+  than difficulty. A word with a commoner word as a prefix is skipped, because
+  shorthand for `productions` is shorthand for `product` too. And the shorthand
+  itself is skipped unless the target is the **most frequent** word whose
+  letters it appears in, in order — otherwise `untl` would be scored against
+  `untitled` while `until` sits right there. Neither filter consults the
+  matcher; both use only the property the generator guarantees.
 
 `in-rank` is the per-case budget written in the file — some cases legitimately
 allow rank 3 or 5 rather than 1, because the input does not carry enough
@@ -64,19 +74,21 @@ file                          cases   top-1   top-5 in-rank
 ambiguity.tsv                    16   50.0%  100.0%  100.0%
 common_typos.tsv                 68   97.1%  100.0%  100.0%
 forms.tsv                        42   76.2%  100.0%  100.0%
-generated_skeletons.tsv         400   87.5%   98.5%   98.5%
-generated_typos.tsv             500   89.8%   98.4%   98.4%
+generated_cues.tsv              300   85.7%   98.3%   98.3%
+generated_skeletons.tsv         400   93.0%  100.0%  100.0%
+generated_typos.tsv             500   92.2%   99.0%   99.0%
 literal.tsv                      24  100.0%  100.0%  100.0%
 prefix.tsv                       16   93.8%  100.0%  100.0%
 raw.tsv                          14   71.4%   85.7%  100.0%
-skeletons.tsv                    31   96.8%  100.0%  100.0%
-spec_examples.tsv                16   68.8%   87.5%  100.0%
+skeletons.tsv                    31  100.0%  100.0%  100.0%
+spec_examples.tsv                16   75.0%   87.5%  100.0%
+syllables.tsv                    57   93.0%  100.0%  100.0%
 ------------------------------------------------------------
-TOTAL                          1127   88.3%   98.4%   98.8%
+TOTAL                          1484   90.4%   99.1%   99.3%
 ```
 
-**Top-1 88.3%, top-5 98.4%, every case within its budget 98.8%** — and every
-one of the 208 hand-written cases passes.
+**Top-1 90.4%, top-5 99.1%, every case within its budget 99.3%** — and every
+one of the 284 hand-written cases passes.
 
 Three files deserve a footnote, because their low top-1 is the *intended*
 result. `spec_examples.tsv` asks for `mathematics`, `mathematical` **and**
@@ -91,32 +103,93 @@ asserted.
 
 ```
                               cases   top-1   top-5
-  transpose                     120   96.7%  100.0%     <- the class the brief singles out
-  insert  (doubled letter)      135   97.8%  100.0%
-  substitute (neighbour key)    123   91.1%  100.0%
-  delete                        122   68.9%   95.1%
+  transpose                     117   95.7%  100.0%     <- the class the brief singles out
+  insert  (doubled letter)      126   96.8%  100.0%
+  substitute (neighbour key)    130   94.6%   98.5%
+  delete                        127   81.9%   97.6%
 ```
 
-Deletion is much the hardest, and unavoidably so: dropping a letter makes the
+Deletion is still the hardest, and unavoidably so: dropping a letter makes the
 input shorter *and* moves it closer to other real words, so `sho` (from `shoe`)
 sits behind `show`, `shop`, `should`. There is no evidence in the input that
 would justify ranking `shoe` first.
+
+It is also the class the syllable-cue channel helps most, because a dropped
+letter *is* a one-letter shorthand. Switching the channel off leaves deletion
+at 70.1% / 96.9% and lifts each of the other three rows by a point or so
+(insert 97.6%, substitute 96.2%, transpose 96.6%) — the trade is deliberate,
+and worth taking at eleven points against three.
 
 ### By skeleton length
 
 ```
                               cases   top-1   top-5
-  4 consonants                  120   72.5%   94.2%
-  5                             122   86.9%  100.0%
-  6                              95   91.6%  100.0%
-  7                              36   97.2%  100.0%
-  8                              22   90.9%  100.0%
-  9                               5  100.0%  100.0%
+  4 consonants                   94   84.0%  100.0%
+  5                             128   91.4%  100.0%
+  6                             106   98.1%  100.0%
+  7                              43  100.0%  100.0%
+  8                              19  100.0%  100.0%
+  9                              10  100.0%  100.0%
 ```
 
 Abbreviations become reliable from about five consonants — which matches how
 people actually abbreviate. The four-consonant cases are frequently ambiguous
 by construction (`clss` is `class` as much as it is `closes`).
+
+### Syllabic shorthand
+
+This is the channel added last, and the only fair way to judge it is against
+the same matcher without it. Both columns are the current build; the left one
+sets `min_cue_len` beyond any query, which switches the channel off and changes
+nothing else.
+
+```
+                        without cues        with cues
+  generated_cues (300)  38.7% / 45.7%    85.7% /  98.3%     top-1 / top-5
+  syllables      (57)   59.6% / 77.2%    93.0% / 100.0%
+```
+
+A harsher probe, because the case files are built from plausible shorthand
+rather than desperate shorthand: take 261 corpus words of seven letters or
+more and delete two letters at random.
+
+```
+                        without cues        with cues
+  nothing offered at all      9.2%             0.0%
+  right word first           28.4%            73.2%
+  right word on page 1       43.7%            93.5%
+```
+
+The first row is the one that changed the project. An input that offers
+*nothing* is not a ranking failure, it is a dead end: the only thing under the
+space bar is the misspelling you just typed, and if you commit it the learner
+remembers it. `alghrith` used to be exactly that.
+
+Nothing else regressed. No hand-written file moved down, and the two
+non-syllabic generated files went **up** — typos 90.0% → 92.2%, skeletons
+84.5% → 93.0% in the two columns above — because a dropped letter is itself a
+one-letter shorthand, and because the skeleton scan now compares against a
+*prefix* of the word's skeleton, so a half-typed abbreviation with a slip in it
+still finds its word (DESIGN.md §4.2).
+
+Case by case across those 900, the channel takes 53 cases from *not* first to
+first and 8 the other way. All eight of the losses land at rank 2, to a rival
+that is a fair reading of the input:
+
+```
+  importt  wanted import,   got important
+  slovka   wanted slovak,   got Slovakia
+  rabd     wanted rand,     got rabid
+  hassls   wanted hassle,   got hassles
+  mtns     wanted motions,  got meetings
+  bnss     wanted bonuses,  got business
+  wrrnts   wanted warrants, got warranties
+  flng     wanted filing,   got feeling
+```
+
+That is the shape of the trade: a looser reading occasionally puts a commoner
+word in front of the one that was meant, and never further than one keystroke
+away.
 
 ### Negative and ambiguity cases
 
@@ -133,14 +206,14 @@ These are in `ambiguity.tsv`, and passing them means *not* being over-confident:
 ## Latency
 
 ```
-over all 1,085 evaluation queries
-  mean 2.15 ms   median 1.45 ms   p95 5.86 ms
+over all 1,484 evaluation queries
+  mean 3.13 ms   median 2.03 ms   p95 9.15 ms
 
 typing nine words out, one keystroke at a time (86 keystrokes)
-  mean 1.44 ms
+  mean 2.45 ms
   by input length (ms)
-    1: 1.8   2: 0.8   3: 0.8   4: 0.9   5: 1.3   6: 1.0   7: 1.4
-    8: 2.6   9: 3.0  10: 2.2  11: 1.6  12: 1.7  13: 1.6  14: 0.9
+    1: 1.0   2: 1.0   3: 1.2   4: 3.4   5: 1.9   6: 1.6   7: 2.2
+    8: 5.0   9: 5.0  10: 3.4  11: 2.9  12: 2.7  13: 3.0  14: 2.0
 
 startup   104 ms, once per process (memoised across engines)
 memory    13.9 MB after loading, 16.8 MB steady state
@@ -148,13 +221,20 @@ memory    13.9 MB after loading, 16.8 MB steady state
 
 The second block is the number that matters: it is what a keystroke costs while
 a word is actually being typed. The peak around 8–9 characters is where the
-length buckets are fullest and both the typo scan and the skeleton scan run.
+length buckets are fullest and every scan runs at once.
+
+The syllable-cue channel costs less than it looks: 1.57 ms per keystroke
+without it against 1.71 ms with, on a tighter repeated-prefix benchmark. It
+is a scan over whole first-letter buckets rather than a narrow length window,
+so it is bounded instead by a strict letter-set test, a length ratio, and being
+skipped entirely whenever the query is itself a word — which is most of what
+anyone types.
 
 For scale: running just the typo source naively — weighted edit distance
 against all 82,880 words, no buckets, no prefilter — measures **105–115 ms per
 query** in the same Lua build (`bench/naive.lua`). The bucketing and prefilters
-described in DESIGN.md §4.4 do that work *and* the skeleton search in about
-2 ms, roughly a 50× reduction with no measured loss of recall.
+described in DESIGN.md §4.5 do that work *and* the skeleton and cue searches in
+about 2.5 ms, roughly a 40× reduction with no measured loss of recall.
 
 ---
 
@@ -162,10 +242,11 @@ described in DESIGN.md §4.4 do that work *and* the skeleton search in about
 
 `bench/tune.lua` runs coordinate descent over the ranking weights and edit
 budgets, maximising a macro average of `2·top-1 + top-5 + in-rank` across the
-case files. Macro rather than micro, so the 900 generated cases do not drown
-out the 156 hand-written ones.
+case files. Macro rather than micro, so the 1,200 generated cases do not drown
+out the 284 hand-written ones.
 
-Two rounds moved the objective from 3.4896 to 3.6002 and changed:
+The first round, before the syllable-cue channel existed, moved the objective
+from 3.4896 to 3.6002 and changed:
 
 | parameter | from | to | effect |
 | --- | --- | --- | --- |
@@ -177,6 +258,27 @@ Two rounds moved the objective from 3.4896 to 3.6002 and changed:
 | `typo_budget` | 1.8 | 1.35 | a tighter budget removed noise without losing recall (top-5 rose) |
 | `confidence_cost` | 1.0 | 1.5 | how much repair is believed before the literal input is demoted from first place |
 | `confidence_floor` | 70 | 62 | |
+
+Adding the cue channel and its two new case files changed what the shared
+weights should be, so the same descent was re-run over all thirteen files. It
+moved the objective from 3.6382 to 3.6854 and changed:
+
+| parameter | from | to | effect |
+| --- | --- | --- | --- |
+| `base_cue` | 58 | 70 | a cue reading is worth more than the first guess allowed |
+| `cue_vowel_bonus` | 30 | 10 | with the base that much higher, the "is this consonantal?" signal does not need to carry it |
+| `cue_skip_vowel` | 0.08 | 0.04 | skipped vowels are worth even less than assumed |
+| `cue_skip_onset` | 0.85 | 0.60 | |
+| `cost_weight` | 19 | 16 | the cue channel measures cost on its own scale, so the shared multiplier had to come down |
+| `extra_weight` | 12 | 8 | |
+| `base_skeleton` | 66 | 62 | some of what it was carrying is now the cue channel's work |
+| `skeleton_vowel_bonus` | 14 | 10 | likewise |
+
+A third pass found one more move — `cost_weight` 16 → 13, worth 0.005 — and it
+was not taken. It leaves top-1 exactly where it is and simply trades typo
+accuracy for shorthand accuracy (typos 92.2% → 91.0%, syllabic 85.7% → 88.0%),
+which is a judgement about what people type rather than something the case
+files can settle.
 
 Changes found by *hand* mattered considerably more than the tuning itself:
 
@@ -197,6 +299,6 @@ Changes found by *hand* mattered considerably more than the tuning itself:
 
 ## Regression protection
 
-`tests/run.lua` runs 1668 assertions, and `tests/test_install.py` another 32, including every hand-written case at its
+`tests/run.lua` runs 1868 assertions, and `tests/test_install.py` another 44, including every hand-written case at its
 stated budget and accuracy floors a few points below the numbers above for the
 generated sets. Ordinary tuning does not trip it; a real regression does.

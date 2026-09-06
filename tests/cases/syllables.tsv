@@ -1,0 +1,79 @@
+# Syllabic shorthand: one or two letters per syllable, chosen on the spot.
+#
+# Nobody is following a system here.  The same word gets different letters on
+# different days -- "stratification" is satfcatn one time and stfcatn the next
+# -- so what these cases test is not a codebook but the claim in
+# spellless/cue.lua: that the letters a person *drops* are predictable even
+# when the ones they keep are not.
+#
+# Rank 5 rather than 1 for most of them.  These inputs are genuinely lossy and
+# several readings usually survive; what matters is that the word is on the
+# first page at all, which before spellless/cue.lua it very often was not.
+#
+# input <TAB> expected <TAB> max_rank <TAB> group
+
+# Long technical words, where shorthand pays for itself most
+satfcatn	stratification	5	technical
+stfcatn	stratification	5	technical
+stifctn	stratification	5	technical
+strtfctn	stratification	5	technical
+dfmrphsm	diffeomorphism	5	technical
+dfeomrphsm	diffeomorphism	5	technical
+difmrphsm	diffeomorphism	5	technical
+hmtpy	homotopy	5	technical
+hmotpy	homotopy	5	technical
+hmtp	homotopy	5	technical
+chmlgy	cohomology	5	technical
+cohmlgy	cohomology	5	technical
+chmolgy	cohomology	5	technical
+ctgrfctn	categorification	5	technical
+catgrfcatn	categorification	5	technical
+ctgfctn	categorification	5	technical
+algrthm	algorithm	5	technical
+algthm	algorithm	5	technical
+alrthm	algorithm	5	technical
+mthmtcs	mathematics	5	technical
+mthmcs	mathematics	5	technical
+mtmtcs	mathematics	5	technical
+
+# Everyday words.  These have far more competition: half the dictionary is a
+# plausible reading of five letters out of "development".
+gvmnt	government	5	everyday
+govmnt	government	5	everyday
+gvrnmnt	government	5	everyday
+dvlpmnt	development	5	everyday
+devlmnt	development	5	everyday
+dvmnt	development	5	everyday
+infmtn	information	5	everyday
+infrmtn	information	5	everyday
+ifmtn	information	5	everyday
+exprnc	experience	5	everyday
+expnc	experience	5	everyday
+exprence	experience	5	everyday
+unvsty	university	5	everyday
+univsty	university	5	everyday
+unvrsty	university	5	everyday
+rspnsbl	responsible	5	everyday
+respnbl	responsible	5	everyday
+rspbl	responsible	5	everyday
+prbly	probably	5	everyday
+probly	probably	5	everyday
+prbbly	probably	5	everyday
+imprtnt	important	5	everyday
+imptnt	important	5	everyday
+impnt	important	5	everyday
+smthng	something	5	everyday
+smtng	something	5	everyday
+dfrnt	different	5	everyday
+bcs	because	5	everyday
+becs	because	5	everyday
+ppl	people	5	everyday
+pepl	people	5	everyday
+
+# Short input, where the shorthand reading has to fight a dictionary full of
+# short words that fit it exactly.  "tnk" really is the skeleton of "tank";
+# that it should still offer "think" is a claim about frequency, not spelling.
+tnk	think	5	short
+sthg	something	9	short
+difnt	different	9	short
+dfnt	different	12	short
