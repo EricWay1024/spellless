@@ -261,6 +261,20 @@ do
   H.eq(top("form"), "form", "a real word is never corrected to a commoner one")
   H.eq(top("from"), "from")
 
+  -- And the guarantee is stated rather than inferred from a margin.  With the
+  -- clamp removed "from" wins this on its personal count alone: base_exact is
+  -- set on what a typed word is worth against a word it completes, which is a
+  -- much smaller number than it takes to outrun user_weight at saturation.
+  local rank = require("spellless.rank")
+  local ceiling = { source = "exact", score = 100, familiarity = 0 }
+  local rival   = { source = "typo",  score = 110, familiarity = 18 }
+  local honest  = { source = "typo",  score = 110, familiarity = 2 }
+  rank.hold_exact({ ceiling, rival, honest })
+  H.ok(rival.score < ceiling.score,
+       "a rival that only leads because it is familiar is held behind")
+  H.eq(honest.score, 110,
+       "and one that leads on measured English is left where it was")
+
   -- An entry someone wrote a form for must be out of reach of the rest: that
   -- is what makes "sth" mean "something" however often "the" has been typed.
   -- Not base_exact on its own -- lifting that made every rare word unbeatable,

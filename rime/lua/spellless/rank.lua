@@ -33,9 +33,11 @@ end
 function M.score(item, cfg, ctx)
   local base = cfg[BASE_KEY[item.source]]
   if not base then return -math.huge end
+  local familiarity = cfg.user_weight * ctx.user(item)
+  item.familiarity = familiarity
   local s = base
       + cfg.freq_weight * ctx.freq(item)
-      + cfg.user_weight * ctx.user(item)
+      + familiarity
       - cfg.cost_weight * item.cost
       - cfg.extra_weight * extra_penalty(item.extra)
   -- No corpus id means the dictionary does not have this word at all -- but a
@@ -106,6 +108,44 @@ function M.apply_context(out, cfg, ctx)
   end
 end
 
+--- Familiarity may not overturn an exact match.
+---
+--- The personal store is a handful of counts from whatever happened to be
+--- typed lately -- including the mistakes committed while something was
+--- broken -- and the dictionary is measured English.  So history nudges, it
+--- does not decide, and the one place that has always had to be true is
+--- against a word you actually typed: "sth" must mean "something" however many
+--- hundreds of times "the" has been committed.
+---
+--- That guarantee used to rest on base_exact standing far enough above every
+--- other base to outrun `user_weight` at saturation.  It is stated here
+--- instead, which is both the honest place for it and what lets base_exact be
+--- set on the evidence it is actually about -- how much a word you typed is
+--- worth against a commoner word it completes -- rather than on how large a
+--- personal bonus it has to survive.
+---
+--- Only the bonus is held back, never the frequency: a rival that beats the
+--- exact match on measured English alone still wins, which is exactly the case
+--- this is not about.
+function M.hold_exact(out)
+  local ceiling
+  for i = 1, #out do
+    local item = out[i]
+    if item.source == "exact" and (not ceiling or item.score > ceiling) then
+      ceiling = item.score
+    end
+  end
+  if not ceiling then return end
+  for i = 1, #out do
+    local item = out[i]
+    if item.source ~= "exact" and item.score > ceiling
+       and (item.score - (item.familiarity or 0)) <= ceiling then
+      item.held = item.score - ceiling
+      item.score = ceiling - 1e-9
+    end
+  end
+end
+
 --- Rank `items`, keeping the best-scoring entry per word.
 --- Returns a list ordered by descending score.
 function M.rank(items, query, cfg, ctx)
@@ -128,6 +168,7 @@ function M.rank(items, query, cfg, ctx)
 
   local out = {}
   for i = 1, count do out[i] = best[order[i]] end
+  M.hold_exact(out)
   M.apply_context(out, cfg, ctx)
   -- Ties are broken by corpus rank so the order is stable and reproducible.
   table.sort(out, function(a, b)
