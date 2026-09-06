@@ -381,16 +381,28 @@ M.defaults = {
   -- special treatment for related reasons.
   --
   -- Matched against the `client_app` property, which the frontend sets to the
-  -- executable name of the window being typed into.  Setting the `commit_only`
-  -- option -- through Weasel's `app_options`, say -- does the same thing for
-  -- one application without editing this list.
+  -- executable name of the window being typed into -- and on macOS, where
+  -- Squirrel sets the same property, to its bundle identifier.  Both kinds of
+  -- name live in this one list because they cannot collide: nothing is called
+  -- both `code.exe` and `com.microsoft.VSCode`.  Setting the `commit_only`
+  -- option -- through Weasel's or Squirrel's `app_options`, say -- does the
+  -- same thing for one application without editing this list.
   --
-  -- The cost of being on this list is small and cosmetic: punctuation after a
-  -- committed word reads "you . " instead of "you. ".  The cost of being off it
-  -- wrongly is a corrupted line.
+  -- The macOS half is a *prediction*, not a measurement.  The Windows entries
+  -- were each earned: VS Code's terminal is where the duplicated line was
+  -- found, and the rest are the same shape of thing.  Their macOS equivalents
+  -- are listed on the same reasoning and none of them has been typed into yet
+  -- -- see SPELLLESS.md in the Squirrel fork, which says what that first
+  -- session has to cover.  Being on the list wrongly costs a cosmetic space;
+  -- being off it wrongly corrupts a line, so they start on it.
   commit_only_apps  = "code.exe,conhost.exe,cmd.exe,powershell.exe,pwsh.exe," ..
                       "windowsterminal.exe,wt.exe,openconsole.exe,mintty.exe," ..
-                      "alacritty.exe,wezterm-gui.exe,putty.exe",
+                      "alacritty.exe,wezterm-gui.exe,putty.exe," ..
+                      -- macOS: terminals, and the editors that embed one.
+                      "com.apple.terminal,com.googlecode.iterm2," ..
+                      "com.microsoft.vscode,com.microsoft.vscodeinsiders," ..
+                      "dev.warp.warp-stable,co.zeit.hyper,net.kovidgoyal.kitty," ..
+                      "io.alacritty,com.github.wez.wezterm",
   -- Take that space back when punctuation follows a word that was already
   -- committed, so "you " + "." is "you. " rather than "you . ".
   --
