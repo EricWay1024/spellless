@@ -148,16 +148,14 @@ do
   H.ok(not reclaims("WindowsTerminal.exe"), "and the match ignores case")
   H.ok(reclaims(""), "an unknown application is given the benefit of the doubt")
 
-  -- The name only marks an application as suspect.  VS Code is both an
-  -- ordinary editor and a terminal under one executable name, so it has to
-  -- prove which one is being typed into -- and the proof is the document the
-  -- frontend can read for absorb_fragment anyway.
+  -- Being able to *read* the document does not mean it can be edited, and the
+  -- distinction cost an afternoon: VS Code's terminal reads back perfectly
+  -- well -- it just returns the hidden textarea's buffer rather than the
+  -- visible line, and editing that replays it.  So a readable document buys
+  -- the application nothing here.
   ctx0:set_property("surrounding_text", "you ")
-  H.ok(reclaims("code.exe"),
-       "the same application does get it where the document reads back")
-  ctx0:set_property("surrounding_text", "you.")
   H.ok(not reclaims("code.exe"),
-       "and not where the document disagrees about what is behind the caret")
+       "a readable document does not make a suspect application safe")
   ctx0:set_property("surrounding_text", "")
 
   -- The option is the per-application escape hatch, for anything the shipped
@@ -665,4 +663,32 @@ do
   mock.selected, mock.commit_text = nil, nil
   -- Put the module and the environment the rest of the file uses back.
   package.loaded["spellless"] = spellless
+end
+
+H.suite("adapter: the person typing can overrule the list")
+-- The list cannot tell VS Code's editor from VS Code's terminal.  Nothing
+-- reaching the matcher can, so the switch exists to let a human say which.
+do
+  env.spellless.cfg.reclaim_space = true
+  ctx0:set_property("client_app", "code.exe")
+  local function asks()
+    mock.history:clear(); mock.history:push("exact", "you ")
+    return select(2, type_punct(".")):find("\8", 1, true) ~= nil
+  end
+  H.ok(not asks(), "refused by the list to begin with")
+  ctx0:set_option("edit_document", true)
+  H.ok(asks(), "and allowed when the switch says so")
+  ctx0:set_option("edit_document", false)
+  H.ok(not asks(), "and refused again when it is turned back off")
+
+  -- commit_only is the flat refusal and outranks it, so an application that
+  -- says "never" cannot be talked round by a switch left on by accident.
+  ctx0:set_option("edit_document", true)
+  ctx0:set_option("commit_only", true)
+  H.ok(not asks(), "commit_only still wins")
+  ctx0:set_option("commit_only", false)
+  ctx0:set_option("edit_document", false)
+  ctx0:set_property("client_app", "")
+  env.spellless.cfg.reclaim_space = false
+  mock.history:clear()
 end

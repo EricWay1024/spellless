@@ -342,6 +342,14 @@ fork below lifts both.
 Everything above works on a stock Weasel. Three features do not, because no
 schema can reach them:
 
+These need the input method to take text back out of the document, which is
+only possible where the document is one — a terminal has already forwarded what
+it was given, so the attempt replays its buffer instead of correcting it. They
+are refused in the applications listed under `commit_only_apps`, `code.exe`
+among them, because VS Code's editor and its terminal are the same executable.
+Press <kbd>F4</kbd> and turn on **edits document** while writing prose in one of
+those; it resets when you next deploy.
+
 | | |
 | --- | --- |
 | punctuation takes its space back | `you` space `.` gives `you. `, not `you . ` |

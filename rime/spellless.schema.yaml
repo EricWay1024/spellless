@@ -26,6 +26,15 @@ switches:
   - name: ascii_punct
     reset: 1
     states: [ 。，, . , ]
+  # Let the input method take text back out of the document -- close up the
+  # space before punctuation, pick up a word being re-typed, delete a word with
+  # a second Backspace.  See `commit_only_apps` below for why some applications
+  # are refused it, and turn this on when you are writing prose in one of them
+  # rather than using its terminal.  Resets every session: left on in the wrong
+  # window it is exactly the failure it exists to avoid.
+  - name: edit_document
+    reset: 0
+    states: [ "commit only", "edits document" ]
 
 engine:
   processors:
@@ -99,10 +108,15 @@ spellless:
   # Set to false to type your own.
   auto_space: true
   # Applications that must never have text taken back out of them, comma
-  # separated.  A terminal has already forwarded what it was given down the pty,
-  # so the three features below cannot correct it -- the replacement arrives as
-  # more input and the line duplicates.  Matched against the executable name of
-  # the window you are typing into.
+  # separated, matched against the executable name of the window you are typing
+  # into.  A terminal has already forwarded what it was given down the pty, so
+  # the three features below cannot correct it -- and in VS Code's terminal the
+  # attempt replays the buffer: "Hello" space "." comes out "Hello Hello.".
+  #
+  # code.exe is on the list even though only half of VS Code deserves it -- its
+  # editor takes the edit perfectly well and its terminal cannot, and they are
+  # the same executable.  Flip the `edit_document` switch (F4) while writing
+  # prose there, or take code.exe off this list if you never use its terminal.
   commit_only_apps: "code.exe,conhost.exe,cmd.exe,powershell.exe,pwsh.exe,windowsterminal.exe,wt.exe,openconsole.exe,mintty.exe,alacritty.exe,wezterm-gui.exe,putty.exe"
   # Take the space back when punctuation follows a word you already committed,
   # so picking "you" with the space bar and then typing "." gives "you. "

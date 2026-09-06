@@ -279,46 +279,50 @@ local function text_behind(context)
   return document_tail(context) or commit_tail(context.commit_history)
 end
 
---- May we ask the frontend to take `expect` back out of the document?
+--- May we ask the frontend to take text back out of the document?
 ---
 --- `reclaim_space`, `absorb_fragment` and `word_backspace` all work the same
---- way: the commit is prefixed with U+0008 and the frontend removes characters
---- the application has already been given.  That needs the text to still be in
---- a document the input method can revise, and in a terminal it is not --
---- what was committed has gone down the pty, so the replacement arrives as
---- *more* input and the line duplicates.
+--- way: the commit is prefixed with U+0008 and the frontend extends the
+--- composition backwards over characters the application has already been
+--- given, then rewrites the range.
 ---
---- Which applications are like that cannot be answered by name.  VS Code is
---- both: its editor is an ordinary document and its integrated terminal is
---- not, and they arrive here as the same `code.exe`.  So the name only marks
---- an application as *suspect*, and a suspect one has to prove it: the
---- frontend reads the text in front of the caret for `absorb_fragment`
---- anyway, and an application whose document cannot be read certainly cannot
---- have it edited.  `absorb_fragment` and `word_backspace` already demand that
---- read and so answer for themselves; only `reclaim_space` went on our own
---- record of what we committed, which says nothing about whether it arrived.
+--- Some applications cannot survive that, and VS Code's integrated terminal is
+--- one.  Its text lives in a hidden textarea that xterm.js re-sends to the pty
+--- whenever it changes, so touching the composition backwards does not correct
+--- anything -- it replays the buffer.  Typing "Hello", space, "." produces
+--- "Hello Hello.", and after deleting that and typing "Hey" it produces
+--- "Hey Hello. Hey.".  The old content is still in the textarea and comes back.
 ---
---- `commit_only` -- which Weasel's `app_options` can set per application --
---- is the flat refusal, for anything this cannot work out.
-local function may_edit_document(context, engine, expect)
+--- Two things were tried before this and both were wrong, which is worth
+--- recording because both look right.  Reading the document back does not
+--- help: the read succeeds there, it just returns the buffer rather than the
+--- line, so "can I read it" answers a different question from "can I edit it".
+--- And verifying what is about to be taken does not help either: at the first
+--- "Hello " the buffer and our own history agree exactly, and the replay
+--- happens anyway.  The damage is in the edit itself, not in getting the
+--- target wrong, so there is nothing to verify that would prevent it.
+---
+--- So this is decided by name, and the name is all there is.  VS Code is two
+--- applications under one executable -- an editor that takes the edit and a
+--- terminal that cannot -- and nothing reaching this function can separate
+--- them.  Refusing both is the answer that cannot corrupt a line.
+local function may_edit_document(context, engine)
   if not engine then return false end
   if context:get_option("commit_only") then return false end
-
+  -- The list cannot tell VS Code's editor from VS Code's terminal, so the
+  -- person typing is allowed to.  `edit_document` is a switch in the F4 menu:
+  -- turn it on while writing prose in an application the list distrusts, and
+  -- off again before going back to its terminal.  It resets every session,
+  -- because leaving it on in the wrong window is the failure it exists to
+  -- avoid.
+  if context:get_option("edit_document") then return true end
   local app = context:get_property("client_app")
-  local suspect = false
   local list = engine.cfg.commit_only_apps
-  if app and app ~= "" and list and list ~= "" then
-    app = app:lower():gsub("^%s+", ""):gsub("%s+$", "")
-    for name in list:lower():gmatch("[^,]+") do
-      if name:gsub("^%s+", ""):gsub("%s+$", "") == app then suspect = true break end
-    end
+  if not app or app == "" or not list or list == "" then return true end
+  app = app:lower():gsub("^%s+", ""):gsub("%s+$", "")
+  for name in list:lower():gmatch("[^,]+") do
+    if name:gsub("^%s+", ""):gsub("%s+$", "") == app then return false end
   end
-  if not suspect then return true end
-
-  -- Prove it, against the document rather than against our own history.
-  local doc = document_tail(context)
-  if not doc then return false end
-  if expect and expect ~= "" and doc:sub(-#expect) ~= expect then return false end
   return true
 end
 
@@ -333,7 +337,7 @@ local function read_behind(engine, context)
     -- has to report what the matcher can actually see rather than what the
     -- configuration says it should.
     client_app = context:get_property("client_app"),
-    may_edit = may_edit_document(context, engine, " "),
+    may_edit = may_edit_document(context, engine),
     readable = document_tail(context) ~= nil,
     -- The word fragment the caret is sitting against, if any: delete the space
     -- after "so" and start typing again and this is "so".  Only ever set from
@@ -666,7 +670,7 @@ function M.processor.func(key, env)
   -- Covers "1,000", "12:30" and "Smith:2020" as well.
   if engine and engine.cfg.auto_space and engine.cfg.reclaim_space
      and not composing and code >= 0x30 and code <= 0x39
-     and not key:shift() and may_edit_document(context, engine, " ") then
+     and not key:shift() and may_edit_document(context, engine) then
     local behind = commit_tail(context.commit_history)
     if behind:match("%d[%.,:] $") then
       env.engine:commit_text("\8" .. string.char(code))
@@ -744,7 +748,7 @@ function M.processor.func(key, env)
     -- inserted literally, which is why this is off by default.
     local reclaim = ""
     if engine.cfg.reclaim_space and preceding.hugs_previous(mark)
-       and may_edit_document(context, engine, " ") then
+       and may_edit_document(context, engine) then
       local stripped = behind:match("^(.-) $")
       if stripped then reclaim, behind = "\8", stripped end
     end
