@@ -135,6 +135,33 @@ function Engine:surface(word, style)
   return apply_case(form or word, style)
 end
 
+--- A capitalisation you have chosen for this word, twice, deliberately.
+---
+--- `worth_remembering` will not store "Windows" as the spelling of "windows",
+--- and it is right not to: the dictionary explains the lowercase word, so the
+--- capital is usually the start of a sentence and storing it would put a
+--- capital in the middle of every later one.
+---
+--- But a correction you made twice is not a sentence position.  It is only
+--- recorded when you typed the capital yourself and took the candidate by its
+--- number, twice -- and at that point it says something the dictionary does
+--- not know, which is that this word has a proper-noun reading you use.
+---
+--- Keyed on the *word*, so it follows the word rather than the keystrokes:
+--- teaching it by typing "windows" also reaches it from "wndows".
+function Engine:learned_capital(word)
+  local choices = self.user:choices_for(word)
+  if not choices then return nil end
+  for i = 1, #choices do
+    local c = choices[i]
+    if c.count >= self.cfg.choice_confirm_count
+       and c.text ~= word and c.text:lower() == word then
+      return c.text
+    end
+  end
+  return nil
+end
+
 --- Is "<stem>'s" a word, because <stem> is one?
 --- Personal vocabulary counts: names you have committed once -- Awodey, Riehl,
 --- a collaborator, a package -- are exactly what possessives get attached to,
@@ -442,6 +469,19 @@ function Engine:suggest(raw, limit, opts)
     if not already[entry.text] then
       already[entry.text] = true
       out[#out + 1] = entry
+    end
+    -- Both capitalisations, and in that order.  "Windows" must be reachable
+    -- from "wndows" and not only from typing it out; and "windows" must stay
+    -- reachable, or you could never open one again.  Immediately behind, so it
+    -- costs one keystroke and never displaces the reading you asked for.
+    local capital = self:learned_capital(item.word)
+    if capital and #out < limit then
+      local text = apply_case(capital, style) .. (suffix or "")
+      if not already[text] then
+        already[text] = true
+        out[#out + 1] = { text = text, source = "capital",
+                          score = item.score - 0.5, cost = item.cost }
+      end
     end
   end
 

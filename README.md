@@ -313,9 +313,27 @@ cli   →  click  client  clip  clips ...      before
 cli   →  CLI    click   client  clip         after picking CLI twice
 ```
 
-Only selections count. <kbd>Enter</kbd> commits exactly what you typed, which
-is a refusal to choose between the readings rather than a choice among them, so
-it teaches nothing. Control+Shift+D takes a correction back along with the word.
+Only a **number key** counts. The space bar does not: at speed it goes on
+muscle memory and takes whatever is first, so counting it would teach the list
+to insist on its own guess. <kbd>Enter</kbd> commits exactly what you typed,
+which is a refusal to choose rather than a choice, so it teaches nothing
+either.
+
+**And a capital you type yourself is learned, once you have chosen it twice.**
+`Windows` is the case the dictionary cannot settle — the lowercase word is
+ordinary English, so a capital on it is usually just the start of a sentence.
+Pick it deliberately twice and it is offered beside the plain word from then
+on, reachable from a misspelling too:
+
+```
+windows  →  Windows · windows · window …
+wndows   →  windows · Windows · window …
+window   →  window · windows · Windows …
+```
+
+Both readings, always, because you still have to be able to open a window. A
+capital that came from the start of a sentence is never learned — that one is
+ours, not yours. Control+Shift+D takes a correction back along with the word.
 
 That file is plain text and safe to edit by hand:
 

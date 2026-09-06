@@ -427,3 +427,36 @@ do
   H.eq(e:learn_choice("a b", "x"), nil, "nor does anything with a space in it")
   os.remove(path)
 end
+
+H.suite("engine: a capital you taught follows the word, not the keystrokes")
+-- "Windows" is the case the dictionary cannot settle: the lowercase word is
+-- ordinary English, so worth_remembering rightly refuses to store the capital
+-- as a spelling -- it would be a sentence position nine times in ten.  A
+-- correction made twice, with the capital typed by hand, is the exception.
+do
+  local path = os.tmpname()
+  require("spellless.userdb").forget(path)
+  local e = assert(Engine.new{ data_dir = DATA, personal_path = path })
+  local function list(q)
+    local t = {}
+    for i, c in ipairs(e:suggest(q, 6)) do t[i] = c.text:gsub("%s+$", "") end
+    return " " .. table.concat(t, " ") .. " "
+  end
+
+  H.ok(not list("wndows"):find(" Windows "), "not offered before it is taught")
+  e:learn_choice("Windows", "Windows")
+  H.ok(not list("wndows"):find(" Windows "), "nor after one selection")
+  e:learn_choice("Windows", "Windows")
+
+  H.ok(list("wndows"):find(" Windows "),
+       "after two it is reachable from a misspelling: " .. list("wndows"))
+  H.ok(list("windws"):find(" Windows "), "and from another one")
+  H.ok(list("wndows"):find(" windows "),
+       "and the lowercase reading is still there, or you could never open one")
+  H.ok(list("window"):find(" window "), "the singular is untouched")
+
+  -- It is keyed on the word, so it does not leak to words that merely look
+  -- like it.
+  H.ok(not list("widow"):find(" Windows "), "and it does not leak sideways")
+  os.remove(path)
+end
