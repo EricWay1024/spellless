@@ -472,9 +472,19 @@ function Engine:suggest(raw, limit, opts)
       -- "it's" and "mother's" would come back as "it'd's".  Plain trailing "s"
       -- is left alone, because "boss's" and "class's" are perfectly good, and
       -- so is "mothers'" once the apostrophe says which was meant.
+      --
+      -- The written form has to be consulted, not just the key.  Half the
+      -- contractions are keyed without their apostrophe -- "dont", "itd",
+      -- "thats" -- precisely so they can be typed without one, and testing the
+      -- key alone let every one of them straight through: "it's" offered
+      -- "it'd's" and "it'll's" on the first page.
       local kept = {}
       for i = 1, #items do
-        if not items[i].word:find("'") then kept[#kept + 1] = items[i] end
+        local word = items[i].word
+        local form = self.user:surface(word) or self.corpus.forms[word]
+        if not (word:find("'") or (form and form:find("'"))) then
+          kept[#kept + 1] = items[i]
+        end
       end
       items = kept
     else
