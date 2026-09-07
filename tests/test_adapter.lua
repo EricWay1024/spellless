@@ -1007,3 +1007,67 @@ do
   mock.history:clear(); mock.history:push("exact", "you ")
   H.eq(select(2, type_punct(".")), "\8. ", "and from then on the space is reclaimed")
 end
+
+H.suite("adapter: a command typed into the middle of a word")
+-- `qq` arms and the next key runs.  The point is capitalisation: it is
+-- otherwise inferred -- from what you typed, from whether a sentence just
+-- ended, from what you have chosen before -- and inference is unarguable-with
+-- when it is wrong.  This is the argument.
+do
+  local function press(ch)
+    return spellless.handover.func(mock.key(string.byte(ch)), env)
+  end
+  local function candidates()
+    local out = {}
+    for i, c in ipairs(mock.translate(spellless, ctx0.input,
+                                      mock.segment({ "abc" }, 0, #ctx0.input), env)) do
+      out[i] = c.text:gsub("%s+$", "")
+    end
+    return table.concat(out, " ")
+  end
+
+  ctx0:set_option("ascii_mode", false)
+  ctx0:set_property("spellless_case", "")
+  ctx0:set_property("spellless_armed", "")
+
+  -- Arming consumes nothing: the `qq` stays in the composition, so a key that
+  -- is not a command leaves ordinary text behind.
+  ctx0.input = "mathe"
+  H.eq(press("q"), 2, "the first q is just a letter")
+  ctx0.input = "matheq"
+  H.eq(press("q"), 2, "and so is the second -- arming costs nothing")
+  ctx0.input = "matheqq"
+  H.eq(press("z"), 2, "a key that is not a command is text")
+
+  -- ... and one that is runs, taking the prefix back out of the composition.
+  ctx0.input = "matheqq"
+  ctx0:set_property("spellless_armed", "matheqq")
+  H.eq(press("c"), 1, "a command key is consumed")
+  H.eq(ctx0.input, "mathe", "and the prefix is taken back out of the word")
+  H.ok(candidates():find("MATHEMATICS", 1, true),
+       "so the candidates are upper case: " .. candidates())
+
+  ctx0:set_property("spellless_case", "title")
+  H.ok(candidates():find("Mathematics", 1, true), "or title case: " .. candidates())
+
+  -- Lower case is the one that has to beat an inference rather than an input:
+  -- at the start of a sentence every candidate is capitalised automatically,
+  -- and this is how you say no.
+  mock.history:clear()
+  ctx0:set_property("spellless_case", "")
+  local capitalised = candidates()
+  ctx0:set_property("spellless_case", "lower")
+  H.ok(capitalised:find("Mathematics", 1, true) and
+       candidates():find("mathematics", 1, true),
+       "and lower case defeats an automatic sentence capital: " .. candidates())
+
+  -- An arming does not outlive the word it was made on.
+  ctx0:set_property("spellless_case", "")
+  ctx0:set_property("spellless_armed", "otherqq")
+  ctx0.input = "mathe"
+  H.eq(press("c"), 2, "an arming from another word does not fire")
+
+  ctx0:set_property("spellless_case", "")
+  ctx0:set_property("spellless_armed", "")
+  ctx0.input = ""
+end

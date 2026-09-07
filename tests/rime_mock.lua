@@ -102,6 +102,9 @@ function M.install(opts)
         set_option = function(self, key, value) self.options[key] = value end,
         -- the highlighted candidate of the current segment
         get_selected_candidate = function(self) return M.selected end,
+        pop_input = function(self, n)
+          self.input = self.input:sub(1, #self.input - n)
+        end,
         -- Context::Commit: what express_editor's space binding calls.  It
         -- commits the composed text -- the highlighted candidate -- through the
         -- commit notifier, then clears the context.

@@ -68,6 +68,15 @@ local DELIMITER = "spellless_delimiter"
 -- Set while a candidate is being taken by its number key.  A correction is
 -- only learned from one of those: see the commit notifier.
 local PICKED = "spellless_picked"
+-- The style a command asked for, held on the context until the word is
+-- committed.  A property rather than a local because the gear that reads it is
+-- the translator and the gear that sets it is a processor, and they get
+-- separate `env` tables.
+local FORCED_CASE = "spellless_case"
+-- Set while the composition ends in the `qq` prefix and the next key may be a
+-- command.  Stamped with the input it was armed on, so an arming cannot
+-- outlive the word that caused it.
+local ARMED = "spellless_armed"
 local SENTENCE_YES, SENTENCE_NO = "1", "0"
 
 local function write_note(context, value)
@@ -208,6 +217,12 @@ function M.init(env)
     -- Something was just committed, so whatever the last Return or Backspace
     -- implied is stale; the text behind the cursor is authoritative again.
     ctx:set_property(SENTENCE, "")
+    -- A case asked for with `qq` applies to the word it was asked for and to
+    -- nothing after it.  Here rather than anywhere else because a composition
+    -- can end several ways -- committed, cleared, abandoned -- and this is the
+    -- one of them that means "that word is done".
+    ctx:set_property(FORCED_CASE, "")
+    ctx:set_property(ARMED, "")
   end)
 end
 
@@ -389,6 +404,29 @@ local function app_allows(context, list)
   return list == "" or app_listed(context, list)
 end
 
+-- ---------------------------------------------------------------------------
+-- commands typed mid-word
+-- ---------------------------------------------------------------------------
+
+--- What each command key does.
+---
+--- Three of them set a case, which is the case this whole mechanism was asked
+--- for.  Capitalisation is otherwise *inferred* -- from what you typed, from
+--- whether a sentence just ended, from what you have chosen before -- and
+--- inference is right most of the time and unarguable with when it is not.
+--- These are the argument: `qqc` for an acronym, `qqf` for a name the
+--- dictionary reads as an ordinary word, `qql` for a word at the start of a
+--- sentence that should not have been capitalised.
+---
+--- The fourth undoes a mistake in the other direction, and is Control+Shift+D
+--- without the chord.
+local MAGIC = {
+  c = { case = "upper" },   -- CANDIDATES
+  f = { case = "title" },   -- Candidates
+  l = { case = "lower" },   -- candidates, defeating an automatic capital
+  d = { forget = true },    -- take the highlighted one out of the personal store
+}
+
 --- Everything the text behind the cursor implies for the next word.
 ---
 --- `input` is only used to recognise the version query.  It is worth passing
@@ -402,6 +440,11 @@ local function read_behind(engine, context, input)
   local out = {
     literal_first = preceding.expects_literal(tail),
     sentence_start = false,
+    -- Asked for outright with `qq`, and therefore beating everything the rest
+    -- of this function infers.  Set below rather than here: get_property
+    -- returns "" for unset and "" is truthy in Lua, so assigning it straight
+    -- across would silently defeat every automatic capital there is.
+    force_style = nil,
     -- The word fragment the caret is sitting against, if any: delete the space
     -- after "so" and start typing again and this is "so".  Only ever set from
     -- the document, because absorbing it means deleting it, and a guess is not
@@ -416,6 +459,9 @@ local function read_behind(engine, context, input)
     out.may_edit = may_edit_document(context, engine)
     out.readable = document ~= nil
   end
+  local forced = context:get_property(FORCED_CASE)
+  if forced ~= "" then out.force_style = forced end
+
   if document and cfg.absorb_fragment then
     out.fragment = document:match("([%a][%a']*)$")
   end
@@ -461,8 +507,12 @@ end
 local cache = { engine = nil, input = nil, result = nil, stamp = -1, key = nil }
 
 local function suggest(engine, input, behind)
+  -- Every input to the answer belongs in this key.  A field left out is a
+  -- stale list served with no way to tell: `force_style` was omitted once and
+  -- `qqc` did nothing at all, because the pre-command answer for the same
+  -- letters was still sitting here.
   local key = tostring(behind.sentence_start) .. tostring(behind.literal_first)
-      .. tostring(behind.client_app)
+      .. tostring(behind.client_app) .. tostring(behind.force_style)
   if cache.engine == engine and cache.input == input and cache.key == key
      and cache.stamp == engine.user.dirty_stamp then
     return cache.result
@@ -995,6 +1045,62 @@ end
 --- list -- and the keyboard goes to ASCII mode for the maths that follows.
 --- This has to be in front of the speller, which consumes letters and returns
 --- kAccepted; a processor behind it never sees one.  See snippets.lua.
+--- Run a command if one was asked for, and say whether the key was used.
+---
+--- Returns a ProcessResult when the key belonged to this mechanism, and nil
+--- when it did not -- so the caller carries on and the key is ordinary text.
+--- That distinction is the whole safety argument: arming costs nothing and
+--- disarms on anything unrecognised, so `zzxxqq` is still `zzxxqq`.
+local function handle_magic(key, context, engine)
+  local prefix = engine.cfg.magic_prefix
+  if prefix == "" then return nil end
+  local code = key.keycode
+  local input = context.input
+
+  -- Armed by the previous keystroke, and still on the same word?  The stamp
+  -- matters: without it an arming survives a commit and the first letter of
+  -- the next word runs a command nobody asked for.
+  if context:get_property(ARMED) == input and input:sub(-#prefix) == prefix then
+    context:set_property(ARMED, "")
+    local command = code > 0x20 and code < 0x7f
+        and MAGIC[string.char(code):lower()]
+    if command then
+      -- The prefix was never part of the word, so it goes before anything
+      -- else happens.  pop_input rather than rewriting `input`, because the
+      -- composition is the speller's and it knows how to shorten itself.
+      context:pop_input(#prefix)
+      if command.case then
+        context:set_property(FORCED_CASE, command.case)
+      elseif command.forget then
+        local chosen = context:get_selected_candidate()
+        local word = chosen and chosen.text:gsub("%s+$", "")
+        local gone = word and word ~= "" and engine:forget(word)
+        log.info(("spellless: qq-forget %q -> %s"):format(tostring(word),
+                 gone and "removed" or "was not in the personal store"))
+      end
+      context:refresh_non_confirmed_composition()
+      return kAccepted
+    end
+    return nil          -- not a command: the key is text, and so was the `qq`
+  end
+
+  -- Arm, without consuming anything.  The prefix stays in the composition and
+  -- the candidate list goes on answering it, so nothing is lost if the next
+  -- key turns out to be a letter.
+  --
+  -- Only written when it changes.  This runs on every printable key of every
+  -- word, and the overwhelmingly common case is "" -> "", which is a write to
+  -- librime's property map and a notification for nothing.
+  if code > 0x20 and code < 0x7f then
+    local typed = input .. string.char(code)
+    local arm = typed:sub(-#prefix) == prefix and typed or ""
+    if arm ~= context:get_property(ARMED) then
+      context:set_property(ARMED, arm)
+    end
+  end
+  return nil
+end
+
 M.handover = {}
 
 function M.handover.init(env)
@@ -1015,6 +1121,14 @@ function M.handover.func(key, env)
     if context:get_property(DELIMITER) ~= "" then
       context:set_property(DELIMITER, "")
     end
+
+    -- A command typed into the middle of a word.
+    --
+    -- `qq` arms; the next key runs.  Both halves are here, in the gear that
+    -- runs before the speller, because the speller consumes letters and a
+    -- processor behind it never sees one.
+    local magic = handle_magic(key, context, engine)
+    if magic ~= nil then return magic end
 
     -- A trigger is the whole composition and nothing else, which is where
     -- HyperSnips' word-boundary rule ends up when you arrive at it from this

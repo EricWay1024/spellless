@@ -468,6 +468,21 @@ M.defaults = {
   -- Abbreviations you define yourself, one "short<TAB>expansion" per line,
   -- in the Rime user directory.  See spellless/shortcuts.lua.
   shortcuts_file    = "spellless_shortcuts.txt",
+  ------------------------------------------------------------------- commands
+  -- Two letters that mean "the next key is an instruction, not a letter".
+  --
+  -- `qq` because English does not contain it -- one word in 83,364 does, and
+  -- that one is a corpus artefact -- so it can be typed mid-word without ever
+  -- being mistaken for part of one.  What follows it acts on the candidate
+  -- list rather than joining the query: see `magic_keys` and spellless.lua.
+  --
+  -- Nothing is committed to arming it, and that is deliberate.  The `qq` stays
+  -- in the composition until a *known* command arrives; anything else disarms
+  -- and carries on as ordinary text, so `zzxxqq` is still `zzxxqq` and the one
+  -- cost of the whole feature is that `qqc` cannot be typed literally.
+  --
+  -- Set to "" to switch it off.
+  magic_prefix      = "qq",
   -- Editor snippet triggers, one per line: typing one commits it verbatim so
   -- the editor's own expansion can happen, and hands the keyboard to ASCII
   -- mode when what follows is maths.  See snippets.lua and docs/SNIPPETS.md.

@@ -332,6 +332,6 @@ Changes found by *hand* mattered considerably more than the tuning itself:
 
 ## Regression protection
 
-`tests/run.lua` runs 2137 assertions, and `tests/test_install.py` another 64, including every hand-written case at its
+`tests/run.lua` runs 2146 assertions, and `tests/test_install.py` another 64, including every hand-written case at its
 stated budget and accuracy floors a few points below the numbers above for the
 generated sets. Ordinary tuning does not trip it; a real regression does.

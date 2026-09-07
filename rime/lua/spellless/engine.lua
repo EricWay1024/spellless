@@ -189,7 +189,12 @@ end
 --- An explicit capital in the input always wins: if you typed "mathe" at the
 --- start of a sentence you meant a capital, but if you typed "MATHE" you meant
 --- something else and we must not quietly undo it.
-local function effective_style(style, sentence_start)
+local function effective_style(style, sentence_start, forced)
+  -- A style asked for outright beats everything.  It is the one case where
+  -- the user has said what they want rather than implied it, and the whole
+  -- point of asking is to overrule what would otherwise be inferred -- an
+  -- automatic sentence capital most of all.
+  if forced then return forced end
   if sentence_start and style == "lower" then return "title" end
   return style
 end
@@ -438,7 +443,8 @@ function Engine:suggest(raw, limit, opts)
     stats.candidates = #out
     return out, stats
   end
-  local style = effective_style(case_style(raw), opts and opts.sentence_start)
+  local style = effective_style(case_style(raw), opts and opts.sentence_start,
+                                opts and opts.force_style)
   local query = raw:lower()
   limit = limit or cfg.limit
 

@@ -120,7 +120,7 @@ noether's        →  Noether's      psdfnctr  →  pseudofunctor
 
 It is a [Rime](https://rime.im) schema for Windows, and **the word you meant is
 first 90.0% of the time, in the top five 99.3%** — measured on cases the tuning
-never saw. About 2.5 ms per keystroke. 2,201 assertions say it still behaves.
+never saw. About 2.5 ms per keystroke. 2,210 assertions say it still behaves.
 [EVALUATION.md](EVALUATION.md) has the numbers, including the cases it gets
 wrong and why.
 
@@ -222,6 +222,22 @@ two places to look.
 
 Punctuation keys are punctuation: `,` `.` `-` `=` type themselves, where Rime's
 preset would page.
+
+**`qq` mid-word, then a key, is an instruction.** Capitalisation is otherwise
+inferred — from what you typed, from whether a sentence just ended, from what
+you have chosen before — and inference is right most of the time and
+unarguable-with when it is not. This is the argument:
+
+| | |
+| --- | --- |
+| `wndows` `qqf` | **W**indows — the first letter, for a name the dictionary reads as an ordinary word |
+| `api` `qqc` | API — all caps, for an acronym |
+| `but` `qql` | but — lower case, defeating an automatic sentence capital |
+| `qqd` | forget the highlighted candidate, as <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> does |
+
+`qq` because no English word contains it. Arming costs nothing — the letters
+stay in the composition until a key that *is* a command arrives, so `zzxxqq`
+is still `zzxxqq`, and anything unrecognised is just text.
 
 **Editor snippets are handed back to the editor.** VS Code expands `xdm` into
 a display-maths block the moment those letters land in the document, and under
@@ -593,7 +609,7 @@ Windows installer. `make release VERSION=0.1.0` builds the first.
 
 ```bash
 make            # dictionary + indexes + test set
-make test       # 2,201 assertions
+make test       # 2,210 assertions
 make bench      # accuracy and latency over tests/cases/
 make install
 ```
@@ -606,7 +622,7 @@ spellless/
 ├── scripts/       dictionary build, index build, test-set build, icon, installer
 ├── data/          vendored corpus, supplemental vocabulary, surface forms
 ├── generated/     build output (1.3 MB) — what gets deployed
-├── tests/         2,201 assertions + the evaluation cases
+├── tests/         2,210 assertions + the evaluation cases
 ├── bench/         evaluate.lua, tune.lua, probe.lua, naive.lua
 └── docs/          the algorithm in full, deployment, editor snippets, the bench
 ```
