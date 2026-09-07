@@ -1,0 +1,112 @@
+# The internet as it is actually used, and the decade the corpus missed.
+#
+# The base list is Google Books intersected with SCOWL: it is excellent English
+# and it stops somewhere around 2008.  It has never seen ChatGPT, Instagram,
+# TikTok, COVID, a hashtag or a selfie, and it has `youtube` and `facebook`
+# only as stray lowercase tokens.  Everything here is a word people type into
+# ordinary prose several times a day.
+#
+# Everything here has a lowercase reading worth keeping.  `Anthropic` is
+# offered beside `anthropic`, which is a real adjective; `Copilot` beside the
+# co-pilot, `Android` beside the robot, `Signal` beside the signal, `Google`
+# beside the verb.  Names that are not English words at all -- ChatGPT, TikTok,
+# YouTube, COVID -- are in brands.txt, which declares that once.
+#
+# Two-letter entries are deliberately absent, for the reason technology.txt
+# gives: at that length an entry is a rival for half the short input there is.
+# `DM` is the one that hurts to leave out.
+
+# --- AI, 2022 onwards
+
+# --- platforms
+
+# --- services people live in
+
+Anthropic
+Codex
+Copilot
+Gemini
+Perplexity
+Llama
+Mistral
+Grok
+Cursor
+transformer
+transformers
+embeddings
+finetune
+finetuning
+prompting
+tokenizer
+hallucinate
+hallucination
+multimodal
+agentic
+Google
+Threads
+Mastodon
+Twitch
+Telegram
+Signal
+Messenger
+Brave
+Epic
+Outlook
+Obsidian
+Amazon
+Apple
+Intel
+Tesla
+Meta
+Alphabet
+Android
+Pixel
+Galaxy
+Kindle
+hashtag
+emoji
+emojis
+selfie
+selfies
+vlog
+vlogger
+influencer
+livestream
+livestreaming
+clickbait
+paywall
+doomscrolling
+deepfake
+chatbot
+metaverse
+upvote
+upvoted
+downvote
+repost
+reposted
+retweet
+retweeted
+unfollow
+unfollowed
+hotspot
+onboarding
+offboarding
+subreddit
+username
+usernames
+timeline
+newsfeed
+autoplay
+spoiler
+spoilers
+blockchain
+crypto
+cryptocurrency
+fintech
+coronavirus
+lockdown
+lockdowns
+selfisolate
+selfisolation
+unmute
+unmuted

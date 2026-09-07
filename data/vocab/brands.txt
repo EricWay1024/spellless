@@ -1,0 +1,93 @@
+#!capitals replace
+# Brands, products and platforms whose names are not English words.
+#
+# `#!capitals replace` because there is nothing to keep: `youtube`, `covid` and
+# `facebook` exist in the base corpus only as stray lowercase tokens, the same
+# artefact that makes `africa` its 1,500th word, and offering them puts a
+# spelling nobody means in front of the one everybody does.
+#
+# A name that *is* also an English word does not belong here -- Apple, Signal,
+# Meta, Intel, Android, Anthropic, Copilot all keep both readings, and they
+# live in internet.txt.
+
+ChatGPT
+OpenAI
+Claude
+Claude Code
+Midjourney
+Sora
+DeepSeek
+Qwen
+HuggingFace
+Colab
+YouTube
+Instagram
+Facebook
+Twitter
+Bluesky
+TikTok
+Snapchat
+Pinterest
+LinkedIn
+Tumblr
+Reddit
+Quora
+Substack
+Patreon
+Spotify
+Netflix
+Hulu
+Wikipedia
+Wikimedia
+Firefox
+DuckDuckGo
+Bing
+Roblox
+Minecraft
+Fortnite
+Gmail
+Dropbox
+OneDrive
+iCloud
+Evernote
+Trello
+Asana
+Airbnb
+Uber
+Lyft
+Deliveroo
+DoorDash
+PayPal
+Venmo
+Stripe
+Shopify
+Etsy
+eBay
+Alibaba
+Taobao
+Samsung
+Huawei
+Xiaomi
+Nvidia
+SpaceX
+Starlink
+iPhone
+iPad
+AirPods
+MacBook
+Alexa
+Siri
+Bitcoin
+Ethereum
+NFT
+COVID
+IRL
+TBH
+IMO
+IMHO
+FOMO
+YOLO
+FYI
+AFAIK
+ICYMI
+TLDR

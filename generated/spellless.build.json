@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-07T18:56:24+00:00",
+  "generated_at": "2026-09-07T19:00:30+00:00",
   "generator": "scripts/build_dictionary.py",
-  "entries": 83302,
+  "entries": 83414,
   "parameters": {
     "limit": 0,
     "vocab_rank": 20000,
@@ -23,6 +23,12 @@
       "licence": "MIT"
     },
     {
+      "path": "data/vocab/brands.txt",
+      "sha256": "8947079f3ba43a338159f577774e71fc5e9dfeca0c5fb1732bb9e44fccb33e3f",
+      "origin": "this repository",
+      "licence": "MIT"
+    },
+    {
       "path": "data/vocab/contractions.txt",
       "sha256": "101fa57f95a8e891780e4fa9040e0e0d6d24bdf63a85d1e1e5f0f832728d2356",
       "origin": "this repository",
@@ -37,6 +43,12 @@
     {
       "path": "data/vocab/interjections.txt",
       "sha256": "00de11691dd0f604f5fb303d714cb46c6ad0ad73a8de58a0fad4aeb67e2202e6",
+      "origin": "this repository",
+      "licence": "MIT"
+    },
+    {
+      "path": "data/vocab/internet.txt",
+      "sha256": "371bc8d160baaae8f4c0a11b97523850861d8be6e6c89199528f5e4ced7429a6",
       "origin": "this repository",
       "licence": "MIT"
     },
@@ -79,13 +91,13 @@
   ],
   "indexes": {
     "alpha": {
-      "entries": 83302,
+      "entries": 83414,
       "encoding": "u24le"
     },
     "skel": {
-      "entries": 83302,
+      "entries": 83414,
       "encoding": "u24le",
-      "distinct_skeletons": 62436
+      "distinct_skeletons": 62518
     }
   }
 }

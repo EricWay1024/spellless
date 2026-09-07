@@ -125,6 +125,8 @@ The shipped files, and what each is for:
 | `proper_nouns.txt` | words only ever written with a capital |
 | `given_names.txt` | first names, so a colleague is typeable |
 | `technology.txt` | acronyms, platforms and libraries the corpus is too old for |
+| `internet.txt` | the 2010s and 2020s: AI, being online, the pandemic |
+| `brands.txt` | platforms and products whose names are not English words |
 | `contractions.txt` | the ones the base list lost or misspelled |
 | `interjections.txt` | `oh`, `ah`, `ok` — absent from the base list entirely |
 | `abbreviations.txt` | `eg`, `ie`, typed without their dots |

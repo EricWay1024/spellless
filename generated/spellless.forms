@@ -4,6 +4,7 @@ accra	Accra
 adams	Adams	+
 adrian	Adrian
 aes	AES
+afaik	AFAIK
 afghanistan	Afghanistan
 africa	Africa
 african	African
@@ -11,19 +12,26 @@ agda	Agda
 agreatdealof	a great deal of
 ai	AI
 aint	ain't
+airbnb	Airbnb
+airpods	AirPods
+alexa	Alexa
 alexander	Alexander
 alexei	Alexei
 algeria	Algeria
+alibaba	Alibaba
 alice	Alice
 allofthem	all of them
 allofwhich	all of which
 alotof	a lot of
+alphabet	Alphabet	+
 amanda	Amanda
+amazon	Amazon	+
 america	America
 american	American
 amsterdam	Amsterdam
 andrei	Andrei
 andrew	Andrew
+android	Android	+
 angela	Angela
 angular	Angular	+
 ankara	Ankara
@@ -31,10 +39,12 @@ anna	Anna
 ansible	Ansible
 antarctica	Antarctica
 anthony	Anthony
+anthropic	Anthropic	+
 anton	Anton
 antwerp	Antwerp
 anumberof	a number of
 api	API
+apple	Apple	+
 april	April
 arabic	Arabic
 arch	Arch	+
@@ -43,6 +53,7 @@ argentina	Argentina
 arm	ARM	+
 arthur	Arthur
 arxiv	arXiv
+asana	Asana
 asaresult	as a result
 asawhole	as a whole
 ascii	ASCII
@@ -86,8 +97,11 @@ berkeley	Berkeley
 berlin	Berlin
 bernard	Bernard
 bibtex	BibTeX
+bing	Bing
 birmingham	Birmingham
 bitbucket	Bitbucket
+bitcoin	Bitcoin
+bluesky	Bluesky
 bockstein	Bockstein
 bogota	Bogota
 bolivia	Bolivia
@@ -98,6 +112,7 @@ bothofthem	both of them
 botswana	Botswana
 bott	Bott	+
 bourbaki	Bourbaki	+
+brave	Brave	+
 brazil	Brazil
 brazilian	Brazilian
 brian	Brian
@@ -130,6 +145,7 @@ cd	CD	+
 cech	Cech
 cft	CFT
 charles	Charles
+chatgpt	ChatGPT
 chengdu	Chengdu
 chicago	Chicago
 chile	Chile
@@ -139,16 +155,22 @@ christina	Christina
 christopher	Christopher
 chrome	Chrome	+
 clara	Clara
+claude	Claude
+claudecode	Claude Code
 cli	CLI
 clojure	Clojure
 cloudflare	Cloudflare
+codex	Codex	+
+colab	Colab
 cologne	Cologne
 colombia	Colombia
 copenhagen	Copenhagen
+copilot	Copilot	+
 coq	Coq
 costarica	Costa Rica
 couldnt	couldn't
 couldve	could've
+covid	COVID
 cpu	CPU
 croatia	Croatia
 croatian	Croatian
@@ -157,6 +179,7 @@ css	CSS
 csv	CSV
 cuba	Cuba
 cuda	CUDA
+cursor	Cursor	+
 cw	CW
 czech	Czech
 czechrepublic	Czech Republic
@@ -167,8 +190,10 @@ darent	daren't
 david	David
 december	December
 dedekind	Dedekind	+
+deepseek	DeepSeek
 delhi	Delhi
 deligne	Deligne
+deliveroo	Deliveroo
 denmark	Denmark
 dennis	Dennis
 denver	Denver
@@ -182,14 +207,18 @@ dmitri	Dmitri
 dns	DNS
 doesnt	doesn't
 dont	don't
+doordash	DoorDash
 douglas	Douglas
+dropbox	Dropbox
 dublin	Dublin
+duckduckgo	DuckDuckGo
 dueto	due to
 durham	Durham
 dutch	Dutch
 dvd	DVD
 eachofwhich	each of which
 eachother	each other
+ebay	eBay
 ecuador	Ecuador
 edge	Edge	+
 edinburgh	Edinburgh
@@ -204,20 +233,25 @@ elizabeth	Elizabeth
 emil	Emil
 emma	Emma
 english	English
+epic	Epic	+
 erdos	Erdos
 eric	Eric
 erlang	Erlang
 eslint	ESLint
 estonia	Estonia
+ethereum	Ethereum
 ethiopia	Ethiopia
+etsy	Etsy
 euclidean	Euclidean	+
 europe	Europe
 european	European
 evenif	even if
 eventhough	even though
+evernote	Evernote
 excel	Excel	+
 exeter	Exeter
 fabian	Fabian
+facebook	Facebook
 fastapi	FastAPI
 february	February
 fedora	Fedora	+
@@ -225,10 +259,13 @@ felix	Felix
 figma	Figma
 finland	Finland
 finnish	Finnish
+firefox	Firefox
 florence	Florence
 flow	Flow	+
+fomo	FOMO
 forexample	for example
 forinstance	for instance
+fortnite	Fortnite
 fortran	Fortran
 fourier	Fourier	+
 france	France
@@ -238,7 +275,10 @@ french	French
 friday	Friday
 friedrich	Friedrich
 frobenius	Frobenius
+fyi	FYI
+galaxy	Galaxy	+
 galois	Galois	+
+gemini	Gemini	+
 geneva	Geneva
 george	George
 gerald	Gerald
@@ -249,8 +289,10 @@ gif	GIF
 github	GitHub
 gitlab	GitLab
 glasgow	Glasgow
+gmail	Gmail
 go	Go	+
 golang	Golang
+google	Google	+
 gpg	GPG
 gps	GPS
 gpu	GPU
@@ -259,6 +301,7 @@ grassmannian	Grassmannian
 greece	Greece
 greek	Greek
 gregory	Gregory
+grok	Grok	+
 grothendieck	Grothendieck
 guangzhou	Guangzhou
 gui	GUI
@@ -292,7 +335,10 @@ howre	how're
 html	HTML
 http	HTTP
 https	HTTPS
+huawei	Huawei
+huggingface	HuggingFace
 hugo	Hugo
+hulu	Hulu
 hungarian	Hungarian
 hungary	Hungary
 i	I
@@ -303,6 +349,8 @@ i've	I've
 iaas	IaaS
 iceland	Iceland
 icelandic	Icelandic
+icloud	iCloud
+icymi	ICYMI
 ide	IDE
 idk	I don't know
 idris	Idris
@@ -311,6 +359,8 @@ ifandonlyif	if and only if
 igor	Igor
 im	I'm
 imap	IMAP
+imho	IMHO
+imo	IMO
 inaddition	in addition
 incontrast	in contrast
 india	India
@@ -326,12 +376,16 @@ inparticular	in particular
 inpractice	in practice
 inprinciple	in principle
 inspiteof	in spite of
+instagram	Instagram
 insteadof	instead of
+intel	Intel	+
 intellij	IntelliJ
 intermsof	in terms of
 inthesensethat	in the sense that
 ios	iOS
+ipad	iPad
 ipados	iPadOS
+iphone	iPhone
 iran	Iran
 iranian	Iranian
 iraq	Iraq
@@ -339,6 +393,7 @@ ireland	Ireland
 irene	Irene
 irina	Irina
 irish	Irish
+irl	IRL
 isabel	Isabel
 isabella	Isabella
 isnt	isn't
@@ -386,6 +441,7 @@ kazakhstan	Kazakhstan
 kenya	Kenya
 kevin	Kevin
 kiev	Kiev
+kindle	Kindle	+
 kindof	kind of
 klaus	Klaus
 korea	Korea
@@ -414,9 +470,11 @@ lena	Lena
 leonard	Leonard
 lessthan	less than
 lima	Lima
+linkedin	LinkedIn
 lisbon	Lisbon
 lithuania	Lithuania
 liverpool	Liverpool
+llama	Llama	+
 llm	LLM
 london	London
 losangeles	Los Angeles
@@ -425,6 +483,8 @@ lucas	Lucas
 ludwig	Ludwig
 lurie	Lurie
 luxembourg	Luxembourg
+lyft	Lyft
+macbook	MacBook
 maclane	MacLane
 macos	macOS
 madrid	Madrid
@@ -436,6 +496,7 @@ margaret	Margaret
 maria	Maria
 marta	Marta
 martin	Martin
+mastodon	Mastodon	+
 mathscinet	MathSciNet
 matlab	MATLAB
 matthew	Matthew
@@ -443,17 +504,22 @@ matthias	Matthias
 melbourne	Melbourne
 melissa	Melissa
 mesopotamia	Mesopotamia
+messenger	Messenger	+
+meta	Meta	+
 mexican	Mexican
 mexico	Mexico
 mexicocity	Mexico City
 miami	Miami
 michael	Michael
 michelle	Michelle
+midjourney	Midjourney
 mightve	might've
 mikhail	Mikhail
 milan	Milan
 milnor	Milnor
+minecraft	Minecraft
 mint	Mint	+
+mistral	Mistral	+
 ml	ML	+
 monday	Monday
 mongodb	MongoDB
@@ -480,6 +546,7 @@ natalia	Natalia
 needlesstosay	needless to say
 neednt	needn't
 nepal	Nepal
+netflix	Netflix
 netherlands	Netherlands
 newdelhi	New Delhi
 newjersey	New Jersey
@@ -488,6 +555,7 @@ neworleans	New Orleans
 newyork	New York
 newzealand	New Zealand
 next	Next	+
+nft	NFT
 nginx	Nginx
 nicholas	Nicholas
 nicole	Nicole
@@ -508,7 +576,9 @@ notion	Notion	+
 nottingham	Nottingham
 november	November
 nuxt	Nuxt
+nvidia	Nvidia
 oauth	OAuth
+obsidian	Obsidian	+
 oclock	o'clock
 ocr	OCR
 october	October
@@ -517,7 +587,9 @@ olga	Olga
 onaverage	on average
 onceagain	once again
 oneanother	one another
+onedrive	OneDrive
 ontheotherhand	on the other hand
+openai	OpenAI
 opengl	OpenGL
 opensuse	openSUSE
 orm	ORM
@@ -526,19 +598,23 @@ osaka	Osaka
 oscar	Oscar
 oslo	Oslo
 ottawa	Ottawa
+outlook	Outlook	+
 owingto	owing to
 oxford	Oxford
 paas	PaaS
 pakistan	Pakistan
 paraguay	Paraguay
 paris	Paris
+patreon	Patreon
 patricia	Patricia
 patrick	Patrick
 paul	Paul
 paula	Paula
 pavel	Pavel
+paypal	PayPal
 pde	PDE
 pdf	PDF
+perplexity	Perplexity	+
 persian	Persian
 perth	Perth
 peru	Peru
@@ -547,7 +623,9 @@ pgp	PGP
 philadelphia	Philadelphia
 philip	Philip
 philippines	Philippines
+pinterest	Pinterest
 pittsburgh	Pittsburgh
+pixel	Pixel	+
 pls	please
 png	PNG
 poincare	Poincare	+
@@ -570,12 +648,15 @@ python	Python	+
 pytorch	PyTorch
 qft	QFT
 quillen	Quillen
+quora	Quora
+qwen	Qwen
 rachel	Rachel
 ram	RAM	+
 ratherthan	rather than
 react	React	+
 rebecca	Rebecca
 recallthat	recall that
+reddit	Reddit
 redis	Redis
 remix	Remix	+
 rest	REST	+
@@ -584,6 +665,7 @@ richard	Richard
 riemann	Riemann	+
 riodejaneiro	Rio de Janeiro
 robert	Robert
+roblox	Roblox
 rocket	Rocket	+
 romania	Romania
 romanian	Romanian
@@ -599,6 +681,7 @@ rust	Rust	+
 saas	SaaS
 safari	Safari	+
 sage	Sage	+
+samsung	Samsung
 samuel	Samuel
 sandiego	San Diego
 sanfrancisco	San Francisco
@@ -627,36 +710,44 @@ shanghai	Shanghai
 shant	shan't
 sheffield	Sheffield
 shenzhen	Shenzhen
+shopify	Shopify
 shouldnt	shouldn't
 shouldve	should've
 siberia	Siberia
+signal	Signal	+
 silvia	Silvia
 simon	Simon
 singapore	Singapore
+siri	Siri
 slack	Slack	+
 slovakia	Slovakia
 slovenia	Slovenia
 smth	something
 smtp	SMTP
+snapchat	Snapchat
 sobolev	Sobolev
 sofar	so far	+
 somebodys	somebody's
 someofwhich	some of which
 sophia	Sophia
 sophie	Sophie
+sora	Sora
 sortof	sort of
 sothat	so that
 southafrica	South Africa
 southkorea	South Korea
+spacex	SpaceX
 spain	Spain
 spanish	Spanish
 spark	Spark	+
+spotify	Spotify
 sql	SQL
 sqlite	SQLite
 srilanka	Sri Lanka
 ssd	SSD
 ssl	SSL
 stanford	Stanford
+starlink	Starlink
 steam	Steam	+
 steenrod	Steenrod
 stephanie	Stephanie
@@ -666,6 +757,8 @@ sth	something
 stockholm	Stockholm
 storm	Storm	+
 stpetersburg	St Petersburg
+stripe	Stripe
+substack	Substack
 suchthat	such that
 sunday	Sunday
 supposethat	suppose that
@@ -680,13 +773,17 @@ sydney	Sydney
 sylow	Sylow
 taipei	Taipei
 tanzania	Tanzania
+taobao	Taobao
 tatiana	Tatiana
+tbh	TBH
 tcp	TCP
 teams	Teams	+
 tehran	Tehran
 telaviv	Tel Aviv
+telegram	Telegram	+
 tensorflow	TensorFlow
 teresa	Teresa
+tesla	Tesla	+
 thai	Thai
 thailand	Thailand
 thanksto	thanks to
@@ -702,21 +799,29 @@ theyre	they're
 theyve	they've
 thom	Thom
 thomas	Thomas
+threads	Threads	+
 thursday	Thursday
 thx	thanks
+tiktok	TikTok
 timothy	Timothy
+tldr	TLDR
 tls	TLS
 tmr	tomorrow
 tmrw	tomorrow
 tokyo	Tokyo
 toronto	Toronto
 tqft	TQFT
+trello	Trello
 tsv	TSV
 tuesday	Tuesday
+tumblr	Tumblr
 tunisia	Tunisia
 turkish	Turkish
 tvos	tvOS
+twitch	Twitch	+
+twitter	Twitter
 typst	Typst
+uber	Uber
 udp	UDP
 uefi	UEFI
 uganda	Uganda
@@ -738,6 +843,7 @@ valencia	Valencia
 vancouver	Vancouver
 venezuela	Venezuela
 venice	Venice
+venmo	Venmo
 verilog	Verilog
 veronica	Veronica
 vhdl	VHDL
@@ -770,6 +876,8 @@ wholl	who'll
 whos	who's
 whyd	why'd
 whyre	why're
+wikimedia	Wikimedia
+wikipedia	Wikipedia
 wilhelm	Wilhelm
 william	William
 windows	Windows	+
@@ -781,14 +889,17 @@ wouldve	would've
 wsl	WSL
 wuhan	Wuhan
 xcode	Xcode
+xiaomi	Xiaomi
 xml	XML
 yaml	YAML
 yau	Yau
+yolo	YOLO
 yoneda	Yoneda
 york	York
 youd	you'd
 youll	you'll
 youre	you're
+youtube	YouTube
 youve	you've
 yuhang	Yuhang
 yuri	Yuri
