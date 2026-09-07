@@ -1,7 +1,7 @@
 access	Access	+
 accordingto	according to
 accra	Accra
-adams	Adams
+adams	Adams	+
 adrian	Adrian
 aes	AES
 afghanistan	Afghanistan
@@ -69,7 +69,7 @@ austria	Austria
 aws	AWS
 baghdad	Baghdad
 baltimore	Baltimore
-banach	Banach
+banach	Banach	+
 bangalore	Bangalore
 bangkok	Bangkok
 bangladesh	Bangladesh
@@ -96,8 +96,8 @@ boris	Boris
 boston	Boston
 bothofthem	both of them
 botswana	Botswana
-bott	Bott
-bourbaki	Bourbaki
+bott	Bott	+
+bourbaki	Bourbaki	+
 brazil	Brazil
 brazilian	Brazilian
 brian	Brian
@@ -120,9 +120,9 @@ cambodia	Cambodia
 cambridge	Cambridge
 canada	Canada
 canadian	Canadian
-capetown	Cape Town
+capetown	Cape Town	+
 cartan	Cartan
-cartesian	Cartesian
+cartesian	Cartesian	+
 casablanca	Casablanca
 catalan	Catalan
 catherine	Catherine
@@ -166,7 +166,7 @@ danish	Danish
 darent	daren't
 david	David
 december	December
-dedekind	Dedekind
+dedekind	Dedekind	+
 delhi	Delhi
 deligne	Deligne
 denmark	Denmark
@@ -210,7 +210,7 @@ erlang	Erlang
 eslint	ESLint
 estonia	Estonia
 ethiopia	Ethiopia
-euclidean	Euclidean
+euclidean	Euclidean	+
 europe	Europe
 european	European
 evenif	even if
@@ -230,7 +230,7 @@ flow	Flow	+
 forexample	for example
 forinstance	for instance
 fortran	Fortran
-fourier	Fourier
+fourier	Fourier	+
 france	France
 francis	Francis
 frankfurt	Frankfurt
@@ -238,7 +238,7 @@ french	French
 friday	Friday
 friedrich	Friedrich
 frobenius	Frobenius
-galois	Galois
+galois	Galois	+
 geneva	Geneva
 george	George
 gerald	Gerald
@@ -264,12 +264,12 @@ guangzhou	Guangzhou
 gui	GUI
 hadnt	hadn't
 hamburg	Hamburg
-hamiltonian	Hamiltonian
+hamiltonian	Hamiltonian	+
 hanoi	Hanoi
 harold	Harold
 harvard	Harvard
 hasnt	hasn't
-hausdorff	Hausdorff
+hausdorff	Hausdorff	+
 havana	Havana
 havent	haven't
 hdd	HDD
@@ -279,8 +279,8 @@ heinrich	Heinrich
 helena	Helena
 helsinki	Helsinki
 henry	Henry
-hessian	Hessian
-hilbert	Hilbert
+hessian	Hessian	+
+hilbert	Hilbert	+
 hindi	Hindi
 hirzebruch	Hirzebruch
 hive	Hive	+
@@ -353,7 +353,7 @@ itfollowsthat	it follows that
 itll	it'll
 ivan	Ivan
 ive	I've
-jacobian	Jacobian
+jacobian	Jacobian	+
 jakarta	Jakarta
 jamaica	Jamaica
 james	James
@@ -369,7 +369,7 @@ jonathan	Jonathan
 joseph	Joseph
 jpeg	JPEG
 json	JSON
-julia	Julia	+
+julia	Julia
 julian	Julian
 july	July
 june	June
@@ -379,7 +379,7 @@ justin	Justin
 jwt	JWT
 kafka	Kafka	+
 kahler	Kahler
-kan	Kan
+kan	Kan	+
 karachi	Karachi
 katherine	Katherine
 kazakhstan	Kazakhstan
@@ -395,11 +395,11 @@ kualalumpur	Kuala Lumpur
 kubernetes	Kubernetes
 kyoto	Kyoto
 lagos	Lagos
-lagrangian	Lagrangian
+lagrangian	Lagrangian	+
 lahore	Lahore
 lan	LAN
 laos	Laos
-laplace	Laplace
+laplace	Laplace	+
 laplacian	Laplacian
 lasvegas	Las Vegas
 latex	LaTeX	+
@@ -407,7 +407,7 @@ latin	Latin
 latvia	Latvia
 laura	Laura
 lean	Lean	+
-lebesgue	Lebesgue
+lebesgue	Lebesgue	+
 leeds	Leeds
 lefschetz	Lefschetz
 lena	Lena
@@ -550,7 +550,7 @@ philippines	Philippines
 pittsburgh	Pittsburgh
 pls	please
 png	PNG
-poincare	Poincare
+poincare	Poincare	+
 poland	Poland
 pop	POP	+
 porto	Porto
@@ -581,7 +581,7 @@ remix	Remix	+
 rest	REST	+
 ricci	Ricci
 richard	Richard
-riemann	Riemann
+riemann	Riemann	+
 riodejaneiro	Rio de Janeiro
 robert	Robert
 rocket	Rocket	+
@@ -639,7 +639,7 @@ slovenia	Slovenia
 smth	something
 smtp	SMTP
 sobolev	Sobolev
-sofar	so far
+sofar	so far	+
 somebodys	somebody's
 someofwhich	some of which
 sophia	Sophia
@@ -764,7 +764,7 @@ werent	weren't
 weve	we've
 weyl	Weyl
 whatsapp	WhatsApp
-whitehead	Whitehead
+whitehead	Whitehead	+
 whod	who'd
 wholl	who'll
 whos	who's

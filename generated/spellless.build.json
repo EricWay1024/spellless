@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-07T18:29:07+00:00",
+  "generated_at": "2026-09-07T18:56:24+00:00",
   "generator": "scripts/build_dictionary.py",
   "entries": 83302,
   "parameters": {
@@ -30,7 +30,7 @@
     },
     {
       "path": "data/vocab/given_names.txt",
-      "sha256": "29d9aad7a6f6bde8c28113b0c3507f26f94fbfa7e6f9cae220cd3d6da2cf9b4b",
+      "sha256": "8e89948057c34dd6139dacf5fef6dda0d985ead622fc9c91d3820d4a9741e881",
       "origin": "this repository",
       "licence": "MIT"
     },
@@ -54,7 +54,7 @@
     },
     {
       "path": "data/vocab/proper_nouns.txt",
-      "sha256": "bb02652cb9a6ce2456f3ef585a587069849d9e732044fcfe6970076ca62fac79",
+      "sha256": "f2e0195c9f9818fd5090db0f7c9ad4a388580ad0e530bd1271d7cd634c31a1a8",
       "origin": "this repository",
       "licence": "MIT"
     },
@@ -66,7 +66,7 @@
     },
     {
       "path": "data/vocab/technology.txt",
-      "sha256": "771b8f9bbfdb05edacce0945c956c74ebf2a7886bf4f42400b707f502ea3a867",
+      "sha256": "68dee50cbeb4e4a86f44fe06bfe1766047b86b15dfdddc5e9613eb6ddd26cd69",
       "origin": "this repository",
       "licence": "MIT"
     },

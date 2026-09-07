@@ -89,15 +89,12 @@ LLM
 # Two letters, and deliberately few: at this length an entry is a rival for
 # half the short input there is. These earn it by being unambiguous.
 #
-# `ML` is not among them, and the reason generalises. It is not a word, so it
-# passes the test above -- but `ml` is millilitres, which people write in
-# ordinary prose, and giving it a form makes that impossible to type. The test
-# is really "is the lowercase spelling meant by anyone", and units count.
-#
-# Losing it costs almost nothing, which is the other half of the argument:
-# typing `ML` with the shift held offers `ML` as the literal anyway. What an
-# entry here buys is the *lowercase* route -- `json` giving `JSON` -- and for
-# `ml` that route is the one worth blocking.
+# `ML` used to be excluded, and the reason it no longer needs to be is the
+# whole point of how capitals work now. It is not a word, so a capital would
+# once have replaced the key outright -- and `ml` is millilitres, which people
+# write in ordinary prose. Nothing replaces any more: `ml` appears below as its
+# own lowercase entry, which is what tells the build the reading exists, and
+# `ML` sits beside it.
 OS
 VM
 UI
@@ -172,71 +169,73 @@ pytest
 Django
 FastAPI
 
-# Words whose lowercase spelling is also a real word, so both are kept: the
-# entry commits what you typed and the other spelling sits behind it.  Before
-# the "+" marker existed these could not be listed at all -- adding RAM would
-# have taken the animal away -- and their absence was the single biggest hole
-# in this file.
-RAM +
-ARM +
+# Words whose lowercase spelling is also a real word.  Both are kept, with no
+# marker needed: a capital never takes a lowercase reading away, so listing RAM
+# costs you nothing and their absence used to be the biggest hole in this file.
+#
+# `ml` appears in lower case too, one line down, because millilitres is a
+# reading the corpus does not have and only an entry can supply.
+RAM
+ARM
 CPU
-REST +
-CRUD +
-POP +
+REST
+CRUD
+POP
 IMAP
-CD +
+CD
 DVD
-CAD +
-CAM +
-ML +	# millilitres, which is why this one keeps the +
+CAD
+CAM
+ml	# millilitres, and the entry that keeps that reading
+ML
 AI
 UI
 OS
-IT +
-Bash +
-React +
-Angular +
-Node +
-Rust +
-Swift +
-Ruby +
-Go +
-Java +
-Python +
-Notion +
-Fedora +
-Arch +
-Mint +
-Windows +
-Word +
-Excel +
-Access +
-Teams +
-Chrome +
-Safari +
-Edge +
-Slack +
-Zoom +
-Discord +
-Steam +
-Unity +
-Processing +
-LaTeX +
+IT
+Bash
+React
+Angular
+Node
+Rust
+Swift
+Ruby
+Go
+Java
+Python
+Notion
+Fedora
+Arch
+Mint
+Windows
+Word
+Excel
+Access
+Teams
+Chrome
+Safari
+Edge
+Slack
+Zoom
+Discord
+Steam
+Unity
+Processing
+LaTeX
 BibTeX
-Sage +
-Maple +
-Lean +
+Sage
+Maple
+Lean
 Coq
 Agda
 Idris
-Julia +
-Rocket +
-Spark +
-Hive +
-Kafka +
-Storm +
-Flow +
-Next +
+Julia
+Rocket
+Spark
+Hive
+Kafka
+Storm
+Flow
+Next
 Nuxt
 Astro
-Remix +
+Remix

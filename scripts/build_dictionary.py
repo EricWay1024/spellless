@@ -68,7 +68,7 @@ def accept(word: str) -> bool:
 
 def parse_vocab_file(
     path: Path, default_freq: int, ranked: list[tuple[str, int]] | None = None
-) -> tuple[dict[str, int], dict[str, str], set[str]]:
+) -> tuple[dict[str, int], dict[str, str], set[str], bool]:
     """Read a supplemental plain-text vocabulary file.
 
     An entry written with capitals -- "Grothendieck", "TQFT" -- is indexed
@@ -96,8 +96,9 @@ def parse_vocab_file(
     """
     freqs: dict[str, int] = {}
     forms: dict[str, str] = {}
-    additive: set[str] = set()
+    lowercase: set[str] = set()
     file_freq = default_freq
+    replaces = False
     with path.open(encoding="utf-8") as fh:
         for line in fh:
             # `#!rank N` says how common this file's words are, as a rank in the
@@ -105,6 +106,13 @@ def parse_vocab_file(
             # 20,000, which is far too prominent for a list of place names: they
             # then outrank the ordinary words they are competing with, and the
             # cost lands on everything else being corrected.
+            # `#!capitals replace` says every capital in this file is the only
+            # spelling its key has.  For a file of names that is true by
+            # definition, and the lowercase tokens the corpus holds for them
+            # are an artefact of how it was built, not a reading anybody means.
+            if re.match(r"^#!\s*capitals\s+replace\s*$", line.strip()):
+                replaces = True
+                continue
             directive = re.match(r"^#!\s*rank\s+(\d+)\s*$", line.strip())
             if directive and ranked:
                 index = min(int(directive.group(1)), len(ranked)) - 1
@@ -115,9 +123,6 @@ def parse_vocab_file(
                 continue
             parts = line.split("\t")
             written = parts[0].strip()
-            both = written.endswith("+")
-            if both:
-                written = written[:-1].strip()
             # The key is what you type: letters and apostrophes only, so spaces
             # and dots in the written form simply close up.
             word = re.sub(r"[^a-z']", "", written.lower())
@@ -128,11 +133,9 @@ def parse_vocab_file(
             freqs[word] = max(freqs.get(word, 0), freq)
             if written != word:
                 forms[word] = written
-                if both:
-                    additive.add(word)
-            elif both:
-                print(f"    {path.name}: {written!r} is marked + but has no capitals")
-    return freqs, forms, additive
+            elif not replaces:
+                lowercase.add(word)
+    return freqs, forms, (set() if replaces else lowercase), replaces
 
 
 def _build_time() -> datetime:
@@ -201,11 +204,15 @@ def main() -> int:
     vocab_files = sorted(VOCAB_DIR.glob("*.txt"))
     added, promoted = 0, 0
     vocab_forms: dict[str, str] = {}
-    additive: set[str] = set()
+    written_lower: set[str] = set()
+    replacing: set[str] = set()
     for path in vocab_files:
-        extra, extra_forms, extra_both = parse_vocab_file(path, default_freq, ranked)
+        extra, extra_forms, extra_lower, file_replaces = parse_vocab_file(
+            path, default_freq, ranked)
         vocab_forms.update(extra_forms)
-        additive |= extra_both
+        written_lower |= extra_lower
+        if file_replaces:
+            replacing |= set(extra_forms)
         for word, freq in extra.items():
             if word in freqs:
                 if freq > freqs[word]:
@@ -215,23 +222,16 @@ def main() -> int:
                 freqs[word] = freq
                 added += 1
         print(f"  {path.name}: {len(extra)} entries")
-    # A "+" only means something when the lowercase spelling is one somebody
-    # might mean.  Usually that makes it a base-corpus word, and when it is not
-    # the marker is either pointless or actively harmful -- it puts a reading
-    # nobody wants in front of the real one.  `ml` is the honest exception: not
-    # a word, but millilitres all the same, and the entry itself is what puts
-    # `ml` in the dictionary for the acronym to sit beside.
-    for key in sorted(additive):
-        if key not in base_rank:
-            print(f"    note: {vocab_forms[key]!r} is marked + but {key!r} is not "
-                  f"a word in the base corpus -- is the lowercase reading real?")
+    # A capital joins the lowercase reading wherever there is one to join, and
+    # replaces only where the key has never been written in lower case at all.
+    # Looked up, not judged: `ram` and `africa` and `bloom` are base-corpus
+    # tokens, `ml` is written as its own entry, and `tqft` is neither.
+    additive = {k for k in vocab_forms
+                if (k in base_rank or k in written_lower) and k not in replacing}
     print(f"  {added} new words, {promoted} promoted, "
           f"{len(vocab_forms)} carrying capitals "
-          f"({len(additive)} of them alongside a real word)")
-    if additive:
-        shown = ", ".join(f"{vocab_forms[k]}/{k}" for k in sorted(additive)[:8])
-        print(f"    both spellings kept: {shown}"
-              + (" ..." if len(additive) > 8 else ""))
+          f"({len(additive)} of them beside a lowercase reading, "
+          f"{len(vocab_forms) - len(additive)} replacing one that never existed)")
 
     # The corpus gives every contraction the same floor count, an artefact of
     # how it was tokenised rather than a fact about English: "don't" cannot

@@ -88,36 +88,35 @@ An entry written **with capitals** is indexed under its lowercase form and
 remembers the capitals, so `grthndck` gives back `Grothendieck` and `tqft`
 gives `TQFT`.
 
-A trailing **`+`** says to keep *both* spellings instead of replacing the
-lowercase one:
+**A capital never takes the lowercase reading away.** `RAM` is offered beside
+`ram`, `React` beside `react`, `Bloom` beside `bloom` — both spellings, one
+keystroke apart, ordered by what you typed. There is no marker to write and no
+judgement to make about whether the lowercase "really means something".
+
+It replaces only where there is nothing to replace: a key never written in
+lower case anywhere. That is looked up, not decided — the key is in the base
+corpus, or some entry writes it in lower case, or it is not a lowercase word at
+all. So `TQFT`, `CLI`, `Coq` and `Grothendieck` simply are their spellings, and
+`ml` gets its millilitres back by appearing as its own lowercase entry one line
+above `ML`.
+
+The one thing the lookup gets wrong is **names**, because this corpus keeps
+proper nouns as ordinary lowercase tokens: `africa` is its 1,500th word and
+looks exactly like `ram` to that test. A file says so once:
 
 ```
-TQFT                    # replaces: `tqft` is not a word
-RAM     +               # both: `ram` is an animal
-React   +               # both: `react` is a verb
-LaTeX   +               # both: `latex` is a material
+#!capitals replace
 ```
 
-Use `+` whenever the lowercase word means something on its own. Both spellings
-then appear, one keystroke apart, ordered by what you typed: `ram` leads with
-the animal and `RAM` behind it, `RAM` leads with the acronym, and typing
-`LaTeX` exactly leads with `LaTeX` — which is the only way to ask for a
-spelling that is neither title nor upper case. It is the same mechanism as a
-capital you teach by hand, which is why it behaves the same way.
+`proper_nouns.txt` and `given_names.txt` carry it, and they were already
+defined that way — "words only ever written with a capital". One declaration
+per file, not a judgement per entry, and the difference is measurable:
+treating those 400 names as ambiguous costs **three points of top-1**.
 
-**The build cannot decide this for you and does not try.** Corpus rank looks
-like it would work — `ram` is the 3,032nd word and `tqft` is absent entirely —
-but this corpus keeps proper nouns as ordinary lowercase tokens, so `africa` is
-the 1,500th word and would be classified alongside `ram`. It was tried; it
-marked 371 entries additive, `Africa/africa` and `Alice/alice` among them.
-
-Before `+` existed the rule was "only write capitals where the lowercase
-spelling would be wrong", and it cost real vocabulary: `RAM`, `REST`, `CD`,
-`ARM`, `CAD`, `Bash`, `React`, `Notion`, `Fedora`, `Windows`, `Python` and
-`LaTeX` could not be listed at all. They are all there now. The one shape still
-awkward is a key that is not a word *and* has a lowercase meaning — `ml` is
-millilitres — which `+` cannot express, because there is no lowercase entry for
-it to sit beside.
+An earlier version made the author mark each additive entry with a trailing
+`+`. It was wrong twice over. It is not needed — keeping both costs one
+candidate and losing one costs a word — and the judgement it asked for is one
+nobody makes reliably: twelve of the first sixty markers written were wrong.
 
 The shipped files, and what each is for:
 
@@ -133,13 +132,12 @@ The shipped files, and what each is for:
 | `phrases.txt` | word groups that behave as one word |
 | `math_sample.txt` | ~300 words of pure mathematics, as a **sample** of the mechanism |
 
-**The bar for a capitalised entry is sharper than it looks**, and
-`technology.txt` states it at length because acronyms are where it bites.
-Giving a key a written form applies that form *everywhere*: adding `RAM` makes
-`ram` commit as `RAM`, including when you meant the animal. So an entry is only
-safe when nobody means the lowercase spelling — which rules out `REST`, `POP`,
-`CD`, `ARM`, `CAD`, `Bash`, `React`, `Notion` and `Fedora`, and also `ML`,
-because `ml` is millilitres even though it is not a word.
+**The bar for a capitalised entry used to be sharper than it looks**, and
+`technology.txt` still states the old reasoning at length because it is worth
+knowing what changed. Giving a key a written form applied it *everywhere*, so
+adding `RAM` cost you the animal, and that ruled out `REST`, `POP`, `CD`,
+`ARM`, `CAD`, `Bash`, `React`, `Notion`, `Fedora` and `ML`. None of them are
+ruled out now, and all of them are in.
 
 Nothing in `rime/lua/` refers to any of these files, and deleting one changes
 nothing but the dictionary contents.

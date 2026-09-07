@@ -1,3 +1,8 @@
+#!capitals replace
+# Every capital here is the only spelling its key has.  The corpus holds
+# lowercase tokens for most of these -- `africa` is its 1,500th word --
+# but that is how Google Books was tokenised, not a reading anybody means,
+# and offering it costs three points of top-1.
 #!rank 55000
 # Words that are only ever written with a capital.
 #
