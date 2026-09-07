@@ -377,6 +377,10 @@ keystroke apart, ordered by what you typed — and typing `LaTeX` exactly leads
 with `LaTeX`, which is the only way to ask for a spelling that is neither title
 nor upper case. Nothing is taken away to gain an acronym.
 
+A spelling you teach it never costs you the dictionary's, either: teach it
+`Bloom` and `bloom` stays one keystroke behind, and picking the flower twice
+makes it the default again.
+
 **Words you type yourself are learned, capitals and all** — `LaTeX`, `arXiv`,
 `PyTorch`, `McDonald's`, `Reidemeister` — and are then reachable from any
 shorthand of them, not just from typing them out again. Your personal list has

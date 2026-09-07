@@ -174,16 +174,20 @@ own history. Words arrive with a starting familiarity of 4; the script's
 docstring carries the measurement behind that number, including what it costs
 ordinary English, which is nothing.
 
-A capitalised entry in a pack **replaces** the spelling of its key, because a
-personal file has nowhere to put the `+` that means "keep both". So a pack may
-carry `Dijkstra` and `Knuth`, whose lowercase spellings are not words, and must
-not carry `Bloom`, `Raft`, `Prim` or `Ford`, which would cost you the flower,
-the boat and two ordinary words. The importer reports every entry that respells
-something the dictionary already has, and leaves the judgement to you — it
-cannot make it, because corpus rank does not separate the two cases: `bloom` is
-the 8,858th token and `shannon` the 8,139th, and `prim` at 27,141 is rarer than
-`turing` at 22,189. Where a name is also a word, write the phrase instead:
-`Bloom filter` and `Bellman-Ford` have keys that cannot collide.
+A capitalised entry in a pack **does not need a `+`**, and a pack may carry
+`Bloom`, `Raft`, `Prim` and `Ford` without costing you the flower, the boat or
+two ordinary words. A spelling you teach or import leads, and the dictionary's
+own lowercase reading stays one keystroke behind it; picking that twice makes
+it the default again, through the ordinary correction mechanism.
+
+The rule is the same one `+` expresses, read off the dictionary instead of
+written by hand: **a key keeps its lowercase reading unless the dictionary
+issued it a spelling.** `latex`, `ok`, `pc`, `dijkstra` and `bloom` are read as
+lowercase words and keep that reading; `tqft`, `macos` and `cli` were given a
+form and have no second reading to lose, so they gain no companion candidate.
+Nothing has to guess whether the lowercase is "really a word" — which is just
+as well, because corpus rank cannot: `bloom` is the 8,858th token and `shannon`
+the 8,139th, and `prim` at 27,141 is rarer than `turing` at 22,189.
 
 Writing your own pack needs no tooling — it is a text file in this format, and
 `import_pack.py` takes a path as readily as a name.

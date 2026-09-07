@@ -61,20 +61,12 @@ def dictionary_words() -> set[str]:
 
 
 def respells(words: list[str], known: set[str]) -> list[str]:
-    """Entries that change how a word already in the dictionary is spelled.
+    """Entries whose capitals change how a dictionary word is spelled.
 
-    A personal entry written with capitals *replaces* the spelling of its key,
-    everywhere -- that is what makes `Grothendieck` work, and it is why
-    importing `Bloom` would cost you the flower.  The shipped vocabulary can
-    say "keep both" with a trailing "+"; a personal file has nowhere to put
-    that, so the choice belongs to whoever wrote the pack.
-
-    Stated as a fact rather than judged, because the judgement is not available
-    here.  Corpus rank looks like it would separate a word from a surname and
-    does not: `bloom` is the 8,858th token and `shannon` the 8,139th, and
-    `prim` at 27,141 is rarer than `turing` at 22,189.  Google Books keeps
-    proper nouns as ordinary lowercase tokens, so this is the same wall every
-    other automatic capitalisation rule in this project has hit.
+    Reported, not refused, and no longer dangerous: the dictionary's own
+    lowercase reading stays on the list one keystroke behind, so importing
+    `Bloom` no longer costs you the flower.  Worth saying out loud all the
+    same, because it changes what leads.
     """
     out = []
     for w in words:
@@ -192,9 +184,9 @@ def main() -> int:
             print(f"    {len(changed)} of them respell a word the dictionary "
                   f"already has: " + ", ".join(changed[:8])
                   + (" ..." if len(changed) > 8 else ""))
-            print("    That is usually the point -- `dijkstra` should be Dijkstra -- but")
-            print("    a personal entry replaces a spelling and cannot offer both, so a")
-            print("    capital on an ordinary word costs you the ordinary word.")
+            print("    They lead from now on; the dictionary's own reading is still")
+            print("    there, one keystroke behind, and picking it twice makes it the")
+            print("    default again.")
 
     if not lines:
         print("nothing to do")

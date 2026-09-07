@@ -13,10 +13,12 @@
 # telemetry, generics, lifetimes, Kubernetes, Nginx, Redis).  A pack that
 # repeats the dictionary is noise.
 #
-# Names are here only where the lowercase spelling is not itself a word, since
-# a personal entry *replaces* a spelling: Dijkstra and Knuth yes, Bloom and
-# Raft and Prim no -- those would cost you the flower, the boat and the
-# adjective.  They appear as phrases instead, where the key cannot collide.
+# Names may be written with their capitals even where the lowercase spelling is
+# an ordinary word.  A personal entry used to replace a spelling, so `Bloom`
+# would have cost you the flower; it no longer does -- the dictionary's own
+# reading stays, one keystroke behind, and picking it twice makes it the
+# default again.  The phrases below are kept anyway, because "Bloom filter"
+# commits in one selection.
 
 # --- algorithms and data structures
 memoization
@@ -76,12 +78,28 @@ Floyd
 Backus
 McCarthy
 
-# --- and as phrases, where the name alone would cost you an English word
+Bloom
+Raft
+Prim
+Ford
+Bellman
+Shannon
+Hamming
+Sentry
+Jenkins
+Prometheus
+Terraform
+Firebase
+Travis
+
+# --- and as phrases, which commit in one selection
 Bloom filter
 Bellman-Ford
 Raft consensus
 Prim's algorithm
 Ford-Fulkerson
+Shannon entropy
+Hamming distance
 
 # --- concurrency and systems
 mutex

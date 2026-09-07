@@ -575,11 +575,34 @@ function Engine:suggest(raw, limit, opts)
     -- "windows" must stay reachable, or you could never open one again.  One
     -- keystroke apart either way, so neither can displace the other.
     --
-    -- The capital is either one you chose yourself, twice, or one the
-    -- dictionary ships beside a word that also means something in lower case
-    -- -- `ram`, `react`, `latex`.  Same treatment for both.
-    local capital = self:learned_capital(item.word)
-        or self.corpus.capitals[item.word]
+    -- Three ways a word ends up with two spellings, and none of them may lose
+    -- one.  A spelling you taught or imported *replaces* the dictionary's, and
+    -- for a while that was accepted as the price of a personal store -- which
+    -- is why the pack could not carry `Bloom` without costing you the flower.
+    -- It is not a price, it is a missing candidate.
+    --
+    -- The dictionary has already said which keys have a lowercase reading
+    -- worth protecting, and it said it by whether it gives the key a form:
+    -- `latex`, `ok`, `pc`, `dijkstra`, `bloom` are read as lowercase words and
+    -- keep that reading, while `tqft` and `macos` were issued a spelling and
+    -- have no second reading to lose.  So the test is `corpus.forms`, not a
+    -- guess about English -- and unlike corpus rank, which cannot separate
+    -- `bloom` (8,858th) from `shannon` (8,139th), it is a decision somebody
+    -- actually made.
+    local capital, capital_leads
+    local taught = self.user:surface(item.word)
+    if taught and taught ~= item.word
+       and self.corpus:lookup(item.word) and not self.corpus.forms[item.word] then
+      -- `entry` already carries your spelling, via `surface`.  What goes
+      -- beside it is the reading the dictionary would have given.
+      capital = item.word
+    else
+      -- The other direction: `entry` is the plain word and the capital goes
+      -- behind it -- one you chose twice yourself, or one the dictionary ships
+      -- beside a word that also means something in lower case.
+      capital = self:learned_capital(item.word) or self.corpus.capitals[item.word]
+      capital_leads = capital ~= nil and capital == raw
+    end
     local capital_text = capital
         and (apply_case(capital, style) .. (suffix or ""))
     -- Typing the capital out is the clearest statement of intent there is, and
@@ -591,7 +614,7 @@ function Engine:suggest(raw, limit, opts)
     if capital_text then
       second = { text = capital_text, source = "capital",
                  score = item.score - 0.5, cost = item.cost }
-      if capital == raw then
+      if capital_leads then
         first, second = second, entry
         first.score, second.score = item.score, item.score - 0.5
       end

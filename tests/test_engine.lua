@@ -630,6 +630,50 @@ do
   os.remove(path)
 end
 
+H.suite("engine: a spelling you taught never costs you the dictionary's")
+-- A personal spelling used to replace the dictionary's, everywhere, which is
+-- what makes `Grothendieck` work -- and it is why a pack could not carry
+-- `Bloom` without costing you the flower.  That was accepted as the price of a
+-- personal store.  It is not a price, it is a missing candidate.
+--
+-- The dictionary has already said which keys have a lowercase reading worth
+-- keeping, and it said it by whether it issues the key a form.
+do
+  local path = os.tmpname()
+  local fh = assert(io.open(path, "wb"))
+  fh:write("bloom\tBloom\t4\ndijkstra\tDijkstra\t4\nlatex\tLaTeX\t4\n"
+           .. "tqft\tTQFT\t4\nreidemeister\tReidemeister\t4\n")
+  fh:close()
+  require("spellless.userdb").forget(path)
+  local e = assert(Engine.new{ data_dir = DATA, personal_path = path })
+  local function list(q)
+    local t = {}
+    for i, c in ipairs(e:suggest(q, 6)) do t[i] = c.text:gsub("%s+$", "") end
+    return " " .. table.concat(t, " ") .. " "
+  end
+
+  -- Your spelling leads, because teaching one is a statement of intent.
+  H.eq(e:suggest("bloom", 1)[1].text:gsub("%s+$", ""), "Bloom", "what you taught leads")
+  H.ok(list("bloom"):find(" bloom "), "and the flower is still there")
+  H.ok(list("blm"):find(" Bloom "), "both reachable from a skeleton")
+  H.ok(list("blm"):find(" bloom "), "both of them")
+  H.eq(e:suggest("dijkstra", 1)[1].text:gsub("%s+$", ""), "Dijkstra", "an imported name")
+  H.ok(list("dijkstra"):find(" dijkstra "), "keeps the dictionary's reading behind it")
+
+  -- But only where the dictionary actually has a lowercase reading.  It says
+  -- so by issuing a form: `tqft` was given one and has no second reading, and
+  -- `reidemeister` is not in the dictionary at all.  Neither gains a companion
+  -- -- the lowercase spelling still appears further down, because the literal
+  -- input is always on the page, but that is 8.0's guarantee and not this one.
+  local function second(q) return e:suggest(q, 6)[2].text:gsub("%s+$", "") end
+  H.eq(second("bloom"), "bloom", "the companion sits immediately behind")
+  H.ok(second("tqft") ~= "tqft",
+       "a key the dictionary already spelled gains none: " .. list("tqft"))
+  H.ok(second("reidemeister") ~= "reidemeister",
+       "nor does one it has never heard of: " .. list("reidemeister"))
+  os.remove(path)
+end
+
 H.suite("engine: a capital the dictionary ships beside a word, not instead of it")
 -- The rule that used to keep this file honest was "only write capitals where
 -- the lowercase spelling would be wrong", and it cost real vocabulary: RAM,
