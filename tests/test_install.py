@@ -247,5 +247,53 @@ if words.exists():
     check((gen / "spellless.skel").stat().st_size == n * 3, "one skeleton entry per word")
     check(b"\r" not in words.read_bytes(), "the word list has no carriage returns")
 
+print("docs: every identifier the documents name still exists")
+# The line numbers this replaces had rotted: 48 of 56 no longer pointed at the
+# thing beside them, because the code moved and nothing checked.  A name does
+# not rot silently -- it either resolves or it does not -- so the anchors are
+# names now, and this is what makes that worth relying on.
+#
+# Not file names: the documents legitimately name other people's Lua --
+# rime-ice's corrector.lua, librime-lua's rime.lua -- and a checker that
+# assumed every .lua belonged to us would be wrong about those.
+REMOVED_ON_PURPOSE = {
+    # Named in docs/PIPELINE.md G.6, which records what was found and removed.
+    # A document about what a codebase got wrong has to be able to say the name.
+    "UserDB:forget_surface",
+}
+
+
+def check_doc_identifiers() -> None:
+    import re
+    joined = "\n".join(p.read_text(encoding="utf-8")
+                       for p in (REPO / "rime" / "lua").rglob("*.lua"))
+    pattern = re.compile(r"`((?:Engine|UserDB|Corpus|M|cfg|rank|generate|util|skeleton"
+                         r"|distance|cue|preceding|split|affix|shortcuts|snippets)"
+                         r"[.:][A-Za-z_][A-Za-z0-9_]*)`")
+    missing, seen = [], set()
+    for doc in sorted((REPO / "docs").glob("*.md")) + [REPO / "DESIGN.md",
+                                                       REPO / "EVALUATION.md",
+                                                       REPO / "README.md"]:
+        if not doc.exists():
+            continue
+        for m in pattern.finditer(doc.read_text(encoding="utf-8")):
+            name = m.group(1)
+            if name in seen or name.endswith(".lua") or name in REMOVED_ON_PURPOSE:
+                continue
+            seen.add(name)
+            short = re.split(r"[.:]", name)[-1]
+            if not re.search(rf"(function [\w.:]*[.:]{re.escape(short)}\b"
+                             rf"|function {re.escape(short)}\b"
+                             rf"|\b{re.escape(short)}\s*=)", joined):
+                missing.append(f"{doc.name}: {name}")
+    check(not missing, "every documented identifier is defined: "
+                       + "; ".join(missing[:8]))
+    check(len(seen) >= 20,
+          f"and there are enough of them for this to mean something ({len(seen)})")
+
+
+check_doc_identifiers()
+
+
 print(f"\n{CHECKS} checks, {len(FAILURES)} failures")
 sys.exit(1 if FAILURES else 0)

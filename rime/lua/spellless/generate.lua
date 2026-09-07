@@ -232,7 +232,27 @@ local function add_skeletons(corpus, query, cfg, emit, exact_id, stats)
     for v in ("aeiou"):gmatch(".") do collect(v .. qskel) end
   end
 
-  if #qskel >= cfg.min_skeleton_fuzzy_len then
+  -- Not when the query is already a word.  `add_cues` has made this argument
+  -- since it was written -- "a string the dictionary knows is not shorthand" --
+  -- and it is stronger here: this leg looks for a *mistyped* abbreviation, and
+  -- a mistyped abbreviation of a word you have just spelled correctly is not a
+  -- thing that happens.
+  --
+  -- It is also where the time goes.  Typing 65,306 keystrokes of real prose,
+  -- 44% of them land on a dictionary word, and on those this leg was the whole
+  -- cost: p95 4.21 -> 1.64 ms, and for words of six letters or more mean
+  -- 2.77 -> 0.95 with the worst case 24.9 -> 7.8.  Overall p95 4.80 -> 3.99.
+  --
+  -- Nothing worth having goes with it.  Across 4,451 queries -- every case file
+  -- plus the 3,000 commonest words typed correctly -- 711 lists change and the
+  -- leader changes in none of them.  103 candidates leave rank 2 and they are
+  -- `always -> airways`, `spanish -> punished`, `could've -> coolidge`,
+  -- `company -> companies`: noise, or a word you would simply have typed.
+  --
+  -- The benchmark cannot see any of this.  Its cases are misspellings, so
+  -- almost none of them is an exact hit, which is why the 1,535-case latency
+  -- table barely moves while ordinary typing halves.  See ALGORITHM.md 8.2.
+  if #qskel >= cfg.min_skeleton_fuzzy_len and not exact_id then
     local fuzzy_top = util.top(cfg.max_skeleton_fuzzy)
     local budget = cfg.skeleton_budget
     scan(corpus.smasks, corpus.sbuckets, #qskel, letter_mask(qskel),

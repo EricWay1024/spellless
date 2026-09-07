@@ -8,20 +8,27 @@ prose after each block says why it is that way and what broke when it was not.
 Every function and constant name is the real one, so anything here can be
 checked against the source.
 
-Companion documents: `docs/ALGORITHM.md` is the algorithm as a decision problem,
-with the evaluation; `DESIGN.md` is the input-method side; `data/README.md` is
-the corpus. This document is the one that walks the whole path.
+Companion documents: `docs/ALGORITHM.md` is the algorithm as a decision
+problem, with the evaluation; `docs/NOISY-CHANNEL.md` states the same channels
+§C.4 walks through in prose as one probabilistic model, and is the right place
+to argue with the *shape* of the cost function rather than its constants;
+`DESIGN.md` is the input-method side; `data/README.md` is the corpus;
+`docs/AUDIT-2026-09.md` is what reading the tree against all of them turned up.
+This document is the one that walks the whole path.
 
 **Notation.** `←` is assignment, `=` is comparison, `[]` is a list, `//` starts
 a comment. Indentation is block structure. `foo.lua:bar` is a source location.
 
-**Measured today** (Lua 5.4, WSL2, one core), so the numbers below are
-reproducible rather than remembered:
+**Measured at `e033416`** (Lua 5.4, WSL2, one core), so the numbers below are
+reproducible rather than remembered — `lua bench/evaluate.lua` and
+`lua tests/run.lua` print them:
 
 ```
-lua tests/run.lua      2316 checks, 0 failures
+lua tests/run.lua      2349 checks, 0 failures
 lua bench/evaluate.lua 1535 cases   top-1 91.1%   top-5 99.0%   in-rank 99.4%
-                       latency mean 2.87 ms  median 2.12 ms  p95 7.55 ms  max 18.49 ms
+                       latency mean 2.89 ms  median 2.18 ms  p95 7.71 ms  max 21.74 ms
+                       -- but see G.2: these cases are misspellings, and 44%
+                       -- of real keystrokes are exact hits, where p95 is 1.6 ms
                        typing nine words out: 2.28 ms mean over 86 keystrokes
                        17.7 MB resident after 1,535 queries
 corpus                 83,414 words, 809 surface forms, 103 companion capitals
@@ -29,12 +36,11 @@ Corpus.load            73 ms, 14.1 MB
 naive full scan        138 ms for one query against all 83,414 words
 ```
 
-> **On the numbers.** This document was written against the tree, not against
-> the other documents, and where it disagreed with them it was right: eleven of
-> the twelve discrepancies in §G.6 have since been fixed, including one that
-> changed shipped behaviour. The figures here are what the code does today.
-> Quote **89.8% ± 0.6 top-1 held out**; the 91.1% printed by
-> `lua bench/evaluate.lua` includes 335 cases the weights were written for.
+> **The numbers here were measured at `e033416`.** Quote **89.8% ± 0.6 top-1,
+> 99.3% ± 0.2 top-5**, held out over ten fresh generator seeds; the 91.1%
+> that `lua bench/evaluate.lua` prints includes 335 hand-written cases the
+> weights were written against. `docs/AUDIT-2026-09.md` records the
+> discrepancies found while writing this, and what was done about them.
 
 ---
 
@@ -198,7 +204,7 @@ no parsing and no scaling constant anywhere in the Lua
 ### B.2 What is derived at load, and why it is not shipped
 
 ```
-Corpus.load(dir):                                        // corpus.lua:157
+Corpus.load(dir):                                        // corpus.lua
     key ← dir .. "\0" .. Corpus.fingerprint(dir)
     if cache[key] exists: return it
     words ← split(slurp(dir/spellless.words), "[^\r\n]+")
@@ -209,7 +215,7 @@ Corpus.load(dir):                                        // corpus.lua:157
     forms, capitals, abbreviations ← parse spellless.forms
     cache[key] ← self
 
-derive(self):                                            // corpus.lua:51
+derive(self):                                            // corpus.lua
     for id in 1 .. n:
         w ← words[id]
         mask  ← 26-bit letter-presence bitmask of w
@@ -249,7 +255,7 @@ The two range searches over the permutations are written against a *predicate*
 rather than a sentinel string:
 
 ```
-partition_point(self, key_at, is_before):                // corpus.lua:262
+partition_point(self, key_at, is_before):                // corpus.lua
     lo, hi ← 1, n+1
     while lo < hi:
         mid ← (lo + hi) // 2
@@ -305,7 +311,7 @@ build_dictionary.main():                                 // scripts/build_dictio
     write spellless.forms:  "key<TAB>spelling"  or  "key<TAB>spelling<TAB>+"
 ```
 
-At load, `corpus.lua:197` splits that last file in two:
+At load, `corpus.lua` splits that last file in two:
 
 ```
 for each line "key <TAB> display [<TAB> flag]":
@@ -414,7 +420,7 @@ key arrives
 ### C.1 What the adapter reads before the matcher runs
 
 ```
-read_behind(engine, context, input) → behind:            // spellless.lua:436
+read_behind(engine, context, input) → behind:            // spellless.lua
     tail     ← text_behind(context)      // the document if it can be read, else
                                          // the stitched commit history
     document ← document_tail(context)    // nil unless the frontend published one
@@ -477,7 +483,7 @@ across would silently defeat every automatic capital there is.
 **`commit_tail` stitches, it does not read the newest record.**
 
 ```
-commit_tail(history):                                    // spellless.lua:250
+commit_tail(history):                                    // spellless.lua
     take the last TAIL_RECORDS (6) records, newest first, until
         the accumulated text reaches TAIL_CHARS (16)
     tail ← concat(them, oldest first)
@@ -497,7 +503,7 @@ applied here and everything downstream sees the text the request produced.
 ### C.2 The one-entry memo
 
 ```
-cache ← { engine, input, result, stamp, key }            // spellless.lua:516
+cache ← { engine, input, result, stamp, key }            // spellless.lua
 
 suggest(engine, input, behind):
     key ← concat(behind.sentence_start, behind.literal_first, behind.client_app,
@@ -525,7 +531,7 @@ a `forget`, or a learned choice invalidates it).
 ### C.3 `Engine:suggest`, step by step
 
 ```
-Engine:suggest(raw, limit, opts) → candidates, stats     // engine.lua:455
+Engine:suggest(raw, limit, opts) → candidates, stats     // engine.lua
 
  0  if raw = "": return []
     if lower(raw) = cfg.version_query:                  // "zzver"
@@ -556,7 +562,7 @@ Engine:suggest(raw, limit, opts) → candidates, stats     // engine.lua:455
             drop every item whose WORD or whose SURFACE FORM contains "'"
         // no else: a second possessive generator lived here and could never
         // run — the guard above forces the query to match ^[a-z][a-z']*$, so a
-        // query ending in "'s" always leaves a matching stem.  Removed; see §G.6.
+        // query ending in "'s" always leaves a matching stem.  Removed.
 
  4  ctx ← { text, freq, user, tiebreak, previous_class,
             prefer_bare  ← opts.prefer_bare and search does not end in "d",
@@ -609,13 +615,13 @@ when the possessive has none of its own, so `Milnor` makes `Milnor's` and
 #### C.3.1 The personal store, searched by the same matcher
 
 ```
-Engine:personal_index():                                 // engine.lua:267
+Engine:personal_index():                                 // engine.lua
     if self.personal exists and self.personal_words = #user.order: return it
     words ← [ w in user.order | w matches ^%a[%a']*$ ]   // a hand-edited file can hold anything
     self.personal ← Corpus.of_words(words)               // same masks, buckets, permutations
     return self.personal
 
-generate_personal(self, query, out):                     // engine.lua:248
+generate_personal(self, query, out):                     // engine.lua
     index ← Engine:personal_index()
     found ← generate.generate(index, query, cfg, nil)    // the SAME function
     for item in found:
@@ -656,7 +662,7 @@ is most of why the store exists, and which is what makes
 ### C.4 Generation: four channels, one pool
 
 ```
-generate.generate(corpus, query, cfg, stats) → items     // generate.lua:362
+generate.generate(corpus, query, cfg, stats) → items     // generate.lua
     emit(id, source, cost, extra):
         items append { id, source, cost, extra or (#words[id] − #query) }
 
@@ -679,7 +685,7 @@ budget" without touching 83k of them. That is one function.
 
 ```
 scan(masks, buckets, qlen, qmask, letters, window, budget, profile,
-     max_checks, verify, stats):                         // generate.lua:111
+     max_checks, verify, stats):                         // generate.lua
     for step in 0 .. 2*window:
         delta ← (step+1)//2, negated on odd steps        // 0, −1, +1, −2, +2
         len   ← qlen − delta
@@ -695,7 +701,7 @@ scan(masks, buckets, qlen, qmask, letters, window, budget, profile,
                             if checked > max_checks: return
                             verify(id)
 
-bit_budgets(delta, budget, p):                           // generate.lua:95
+bit_budgets(delta, budget, p):                           // generate.lua
     n    ← |delta|
     left ← budget − n · p.min_indel_any
     if left < 0: return none                             // the length gap alone is unaffordable
@@ -739,7 +745,7 @@ per-keystroke budget on *every* query. See §G.4.
 #### Channel 1: exact and prefix
 
 ```
-add_exact_and_prefix(corpus, query, cfg, emit):          // generate.lua:155
+add_exact_and_prefix(corpus, query, cfg, emit):          // generate.lua
     exact_id ← corpus:lookup(query)
     if exact_id: emit(exact_id, "exact", 0)
     top ← util.top(cfg.max_prefix)                       // 12
@@ -754,7 +760,7 @@ commonest completions" costs one pass over the range and no sort.
 #### Channel 2: typos — a bounded scan against a weighted OSA distance
 
 ```
-add_typos(corpus, query, cfg, emit, exact_id, stats):    // generate.lua:166
+add_typos(corpus, query, cfg, emit, exact_id, stats):    // generate.lua
     if #query < cfg.min_typo_len (2): return
     shortlist ← util.top(cfg.max_typo)                   // 20
     scan(corpus.masks, corpus.wbuckets, #query, letter_mask(query),
@@ -839,7 +845,7 @@ asserting the ordering is still monotone under the Lua function, so the two
 cannot drift apart silently.
 
 ```
-add_skeletons(corpus, query, cfg, emit, exact_id, stats): // generate.lua:197
+add_skeletons(corpus, query, cfg, emit, exact_id, stats): // generate.lua
     qskel ← skeleton.of(query)
     if #qskel < cfg.min_skeleton_len (2): return
     pool ← []
@@ -930,7 +936,7 @@ What every such input *does* have is that the letters typed appear in the word,
 how likely that particular subsequence was.
 
 ```
-cue.align(query, word, budget, cfg) → nats / cue_cost_scale   // cue.lua:150
+cue.align(query, word, budget, cfg) → nats / cue_cost_scale   // cue.lua
     if #word < #query or #query < 2: return nil
     if query[1] ≠ word[1]: return nil                  // the letter nobody drops
 
@@ -1037,7 +1043,7 @@ allowed to spend one *on top of* the clean budget rather than widening the
 budget for everybody.
 
 ```
-add_cues(corpus, query, cfg, emit, exact_id, stats):     // generate.lua:283
+add_cues(corpus, query, cfg, emit, exact_id, stats):     // generate.lua
     if #query < cfg.min_cue_len (3) or exact_id: return  // ← the whole common case
     last ← min(#query + cfg.cue_max_extra (12), floor(#query · cfg.cue_max_ratio (3.0)), 31)
     for len in #query .. last:                           // shortest first
@@ -1121,7 +1127,7 @@ very common word reached by a cheap typo can legitimately overtake a rare exact
 prefix completion — `teh` should give `the`, not `tehran`.
 
 ```
-rank.rank(items, query, cfg, ctx):                       // rank.lua:219
+rank.rank(items, query, cfg, ctx):                       // rank.lua
  1  ctx.abbreviation_likeness ← 1 − skeleton.vowel_ratio(query)
  2  ctx.best_cost ← min over items of item.cost   (0 if there are none)
  3  for item: item.score ← rank.score(item, cfg, ctx)
@@ -1135,7 +1141,7 @@ rank.rank(items, query, cfg, ctx):                       // rank.lua:219
 ```
 
 ```
-rank.score(item, cfg, ctx):                              // rank.lua:33
+rank.score(item, cfg, ctx):                              // rank.lua
     base ← cfg["base_" .. item.source]                   // exact/prefix/typo/skeleton/cue
     if no base: return −∞                                // everything else is PLACED
     excess ← item.cost − ctx.best_cost
@@ -1238,7 +1244,7 @@ exactly what familiarity is *for*.
 #### `hold_exact` — familiarity may not overturn an exact match
 
 ```
-rank.hold_exact(out):                                    // rank.lua:166
+rank.hold_exact(out):                                    // rank.lua
     ceiling ← max score among items with source = "exact"
     if none: return
     for item with source ≠ "exact":
@@ -1258,7 +1264,7 @@ wins, which is exactly the case this is not about.
 #### `defer_inflections` — the bare-verb rule
 
 ```
-rank.defer_inflections(out, cfg, ctx):                   // rank.lua:202
+rank.defer_inflections(out, cfg, ctx):                   // rank.lua
     if not ctx.prefer_bare: return
     window ← min(cfg.bare_verb_window (5), #out)
     if window < 2: return
@@ -1266,7 +1272,7 @@ rank.defer_inflections(out, cfg, ctx):                   // rank.lua:202
     // nothing leaves the window; nothing below it moves at all
 ```
 
-with, from `engine.lua:538`:
+with, from `engine.lua`:
 
 ```
 ctx.prefer_bare ← opts.prefer_bare and search does not end in "d"
@@ -1322,8 +1328,7 @@ them is what the abandoned part-of-speech table lacked:
   places.
 
 Run over 374,090 real slots with their real left context, the shipped predicate
-fires on **about 3,990** (`config.lua` says 3,979, `ALGORITHM.md` §8.1 says
-3,994 — see §G.6), and on the 473 distinct (shorthand, word) pairs that produces
+fires on **3,994**, and on the 473 distinct (shorthand, word) pairs that produces
 **11 improve and 0 regress** — `gnrlz → generalize`, `ddc → deduce`,
 `imps → impose`, `endw → endow`, `rlt → relate`. It costs 5 µs a keystroke.
 
@@ -1388,7 +1393,7 @@ putting the split above it there would hand first place to `spell less` over
 Two of these run their own searches, and both are gated on `trusted`:
 
 ```
-Engine:find_affix(query, style):                         // engine.lua:422
+Engine:find_affix(query, style):                         // engine.lua
     if not cfg.affix_words or self.peeling: return nil    // one level only
     if corpus:lookup(query): return nil                   // ← doing more work than the lists
     if #query < cfg.min_affix_len (6): return nil
@@ -1401,7 +1406,7 @@ Engine:find_affix(query, style):                         // engine.lua:422
     self.peeling ← nil
     return affix.join(part, stem) with apply_case
 
-find_split(self, query):                                 // engine.lua:331
+find_split(self, query):                                 // engine.lua
     if not cfg.split_words or corpus:lookup(query): return nil
     found ← split.best(corpus, query, cfg)               // word-break DP, MAX_WORD 24
     each part carries its own surface form                // "I am going to school"
@@ -1444,7 +1449,7 @@ tried before `pse`-anything and `counter` before `co`.
 ### C.7 Trust, and when the literal leads
 
 ```
-Engine:trustworthy(best, query, has_exact, typed_style, after_digit):  // engine.lua:782
+Engine:trustworthy(best, query, has_exact, typed_style, after_digit):  // engine.lua
     if not best: return false
     if best.cost  > cfg.confidence_cost  (1.50): return false
     if best.score < cfg.confidence_floor (62):   return false
@@ -1455,7 +1460,7 @@ Engine:trustworthy(best, query, has_exact, typed_style, after_digit):  // engine
         return best.cost = 0 and best.extra ≤ 1
     return true
 
-Engine:insert_raw(out, raw, limit, trusted):             // engine.lua:811
+Engine:insert_raw(out, raw, limit, trusted):             // engine.lua
     slot ← trusted ? cfg.raw_candidate_index : 1
     if the literal is already in `out`:
         if its position ≤ slot: return                   // leave it alone
@@ -1503,14 +1508,14 @@ cm → cm, come, com …            QF → QF, QFT             th → the, that,
 ### C.8 Surface, case, and the companion capital
 
 ```
-Engine:surface(word, style):                             // engine.lua:141
+Engine:surface(word, style):                             // engine.lua
     form ← user:surface(word)  or  corpus.forms[word]
     if not form and word ends "'s" or "'":
         base ← user:surface(stem) or corpus.forms[stem]
         if base: form ← base .. the ending you typed
     return apply_case(form or word, style)
 
-apply_case(word, style):                                 // engine.lua:125
+apply_case(word, style):                                 // engine.lua
     if style = "upper": return upper(word)
     if style = "title":
         if starts_lower_then_capital(word): return word  // iPhone, eBay, macOS, arXiv
@@ -1532,7 +1537,7 @@ the middle of a word by accident, and nothing in this program puts one there.
 they should; `LaTeX` is unaffected either way.
 
 ```
-// for each ranked item, in Engine:suggest step 5           // engine.lua:609
+// for each ranked item, in Engine:suggest step 5           // engine.lua
 taught ← user:surface(item.word)
 if taught and taught ≠ item.word
    and corpus:lookup(item.word) and not corpus.forms[item.word]:
@@ -1612,7 +1617,7 @@ Two earlier designs failed, and both failures are instructive:
 ### D.2 Punctuation, and the space it takes back
 
 ```
-// M.processor.func, spellless.lua:915
+// M.processor.func, spellless.lua
 if cfg.auto_space and is_punctuation(code):
     if composing:
         if single_segment(context):
@@ -1679,11 +1684,11 @@ properties on the shared input context:
              ""       nothing since the last commit — the tail knows best,
                       and an EMPTY tail then means a context nobody has typed in yet
 
-M.processor.func, with nothing composing:               // spellless.lua:985
+M.processor.func, with nothing composing:               // spellless.lua
     if Return or KP_Enter: SENTENCE ← "1:0";  BACKSPACE ← ""
     elif BackSpace:        SENTENCE ← "0:0";  BACKSPACE ← "1"; (word-backspace, §D.5)
 
-read_note(context):                                      // spellless.lua:87
+read_note(context):                                      // spellless.lua
     (value, stamp) ← SENTENCE matched against "^([01]):(%d+)$"
     return value only if stamp = context.commit_history.size
 
@@ -1722,17 +1727,17 @@ one candidate means the whole of it is there to recognise.
 
 ```
 // all inside M.processor.func
-Shift+Return or KP_Enter, composing:                     // spellless.lua:803
+Shift+Return or KP_Enter, composing:                     // spellless.lua
     text  ← context.input
     trail ← (KP_Enter and auto_space and enter_space) ? " " : ""
     commit_text(text .. trail); engine:learn(text); SENTENCE ← ""; context:clear()
     return KP_Enter ? kAccepted : kNoop          // Shift+Return goes on to the app
 
-Return, composing, and the highlight has moved:          // spellless.lua:841
+Return, composing, and the highlight has moved:          // spellless.lua
     if composition:back().selected_index > 0:
         PICKED ← "1"; context:commit(); return kAccepted
 
-Return, composing, auto_space and enter_space:           // spellless.lua:864
+Return, composing, auto_space and enter_space:           // spellless.lua
     commit_text(context.input .. " "); engine:learn(context.input)
     SENTENCE ← ""; context:clear(); return kAccepted
 
@@ -1773,14 +1778,14 @@ than a choice (§E).
 ### D.5 The space bar, Backspace, and word-backspace
 
 ```
-// the space bar over a literal candidate                 spellless.lua:897
+// the space bar over a literal candidate                 spellless.lua
 if composing and cfg.confirm_literal and code = XK_space and no modifiers:
     chosen ← context:get_selected_candidate()
     if chosen.type = "raw" and LITERAL ≠ "1":
         LITERAL ← "1"; return kAccepted            // swallow the first press
 // M.absorb clears LITERAL on any key that is not the space bar
 
-// Backspace outside a composition                        spellless.lua:991
+// Backspace outside a composition                        spellless.lua
 repeated ← (BACKSPACE = "1")
 SENTENCE ← "0:0"; BACKSPACE ← "1"
 if repeated and cfg.word_backspace and may_edit_document():
@@ -1812,7 +1817,7 @@ the key means the failure is ordinary.
 Discoverability is designed in: the first Backspace is an ordinary Backspace, so
 you delete the space, see the word, and hit it again.
 
-**The BACKSPACE flag lives in `M.absorb`** (`spellless.lua:641`) and nowhere
+**The BACKSPACE flag lives in `M.absorb`** (`spellless.lua`) and nowhere
 else, because that gear runs before the speller and is therefore the only one
 that sees every key — a letter is consumed by the speller and never reaches the
 processor below.
@@ -1820,7 +1825,7 @@ processor below.
 ### D.6 Absorbing a word already in the document
 
 ```
-M.absorb.func(key, env):                                 // spellless.lua:632
+M.absorb.func(key, env):                                 // spellless.lua
     ... note-keeping (BACKSPACE, LITERAL, PICKED) ...
     if not cfg.absorb_fragment: return kNoop
     if not may_edit_document(context, engine): return kNoop
@@ -1845,7 +1850,7 @@ history is a guess — cleared by the very Backspace that creates this situation
 ### D.7 Digit selection, the `PICKED` note, and notation
 
 ```
-// M.absorb.func, on every key                            spellless.lua:661
+// M.absorb.func, on every key                            spellless.lua
 page ← min(env.engine.schema.page_size or 9, 9)
 picked ← context:is_composing()
       and 0x31 ≤ key.keycode ≤ 0x30 + page
@@ -1874,7 +1879,7 @@ looser `ident_caps` pattern you can swap in at exactly that cost. The consequenc
 is §C.7's `after_digit`, and one more branch:
 
 ```
-// a number our own spacing would otherwise split         spellless.lua:879
+// a number our own spacing would otherwise split         spellless.lua
 if auto_space and reclaim_space and not composing and the key is a digit
    and no shift and may_edit_document():
     if commit_tail(history) matches "%d[%.,:] $":
@@ -1889,7 +1894,7 @@ to get `3.14` without either guessing ahead or leading spaces. It covers
 ### D.8 The `qq` command mode
 
 ```
-handle_magic(key, context, engine):                      // spellless.lua:1064
+handle_magic(key, context, engine):                      // spellless.lua
     prefix ← cfg.magic_prefix ("qq");  if "": return nil
     if ARMED = context.input and context.input ends with prefix:
         ARMED ← ""
@@ -1948,7 +1953,7 @@ means "that word is done".
 ### D.9 ASCII mode, `$`, and editor snippets
 
 ```
-M.handover.func(key, env):                               // spellless.lua:1120
+M.handover.func(key, env):                               // spellless.lua
     if not ascii_mode:
         if DELIMITER ≠ "": DELIMITER ← ""        // the run ended by some other route
         magic ← handle_magic(...);  if magic ≠ nil: return magic
@@ -2045,13 +2050,13 @@ range keeps its characters and the text still goes in.
 ```
 FRONTEND_READS ← false                                   // MODULE scope, never cleared
 
-document_tail(context):                                  // spellless.lua:307
+document_tail(context):                                  // spellless.lua
     text ← context:get_property("surrounding_text")
     if text = nil or "": return nil
     FRONTEND_READS ← true
     return text
 
-may_edit_document(context, engine):                      // spellless.lua:382
+may_edit_document(context, engine):                      // spellless.lua
     if not FRONTEND_READS:               return false    // ← what lets all three ship ON
     if context:get_option("commit_only"): return false
     if context:get_option("edit_document"): return true  // the human overrules the list
@@ -2148,7 +2153,7 @@ interesting half and the word list below can be thousands of lines.
 ### E.1 What is recorded, and when
 
 ```
-// the commit notifier, connected UNCONDITIONALLY in M.init   spellless.lua:206
+// the commit notifier, connected UNCONDITIONALLY in M.init   spellless.lua
 on commit(ctx):
     committed ← ctx:get_commit_text()
     engine:learn(committed)                                   // always
@@ -2171,7 +2176,7 @@ personal store, not the sentence bookkeeping that also lives here. The gearing o
 `cfg.learn` is inside `Engine:learn` and `Engine:learn_choice`.
 
 ```
-Engine:learn(text):                                      // engine.lua:953
+Engine:learn(text):                                      // engine.lua
     if not cfg.learn: return
     text ← trim(text)                                    // ← the automatic space is OURS
     if text does not match ^%a[%a']*$: return
@@ -2182,7 +2187,7 @@ Engine:learn(text):                                      // engine.lua:953
     if dirty ≥ cfg.flush_every (4) or now − last_flush ≥ cfg.flush_interval_ms (5000):
         user:flush()
 
-Engine:worth_remembering(text, word):                    // engine.lua:865
+Engine:worth_remembering(text, word):                    // engine.lua
     if text = word: return false
     if text = Titlecase(word) or text = UPPER(word):
         return not Engine:dictionary_explains(word)
@@ -2216,7 +2221,7 @@ one.
 write it" stays honest and the store can be corrected by using it.
 
 ```
-Engine:learn_choice(typed, text):                        // engine.lua:916
+Engine:learn_choice(typed, text):                        // engine.lua
     if not cfg.learn: return
     trim both; refuse empties
     if lower(typed) = cfg.version_query: return          // ← "> zzver  app code.exe, …"
@@ -2244,7 +2249,7 @@ how you *read* it, and without the guard the store fills up with
 ### E.2 How the store is read back
 
 ```
-Engine:learned_capital(word):                            // engine.lua:172
+Engine:learned_capital(word):                            // engine.lua
     for c in user:choices_for(word):
         if c.count ≥ cfg.choice_confirm_count (2)
            and c.text ≠ word and lower(c.text) = word:
@@ -2302,7 +2307,7 @@ what the other had learned.
 ### E.3 Undo
 
 ```
-Engine:forget(text):                                     // engine.lua:892
+Engine:forget(text):                                     // engine.lua
     gone ← user:forget_word(lower(trim(text)))
     for typed in user.choices:                           // AND every correction
         if user:forget_choice(typed, text): gone ← true  // that produced it
@@ -2330,8 +2335,9 @@ at once.
 
 ### E.4 Nothing in the store is repaired on load
 
-This is stated as a rule, at `engine.lua:64`, **because three repairs have looked
-obviously right and all three were wrong.**
+This is stated as a rule, at `engine.lua`, **because two repairs of this store
+shipped and both were wrong, and a third was never attempted for the same
+reason** — that nothing in the file records where a row came from.
 
 1. **Lowercasing a stored spelling that differs only by a leading capital on a
    word the dictionary knows** — `the → The` — on the argument that automatic
@@ -2551,6 +2557,15 @@ optimum at −0.45 turns out to be `cost_weight` in disguise) and recalibrating
 
 ### G.2 The benchmark cannot see most of the program
 
+**It is also blind to the commonest keystroke there is.** Every generated case
+is a misspelling, so almost none of the 1,535 is an exact dictionary hit — but
+in real prose 44% of keystrokes are, measured over 65,306 of them from this
+repository's own documents. That is the class where the fuzzy skeleton leg used
+to dominate, and gating it (`generate.lua`, `add_skeletons`) moved p95 on those
+keystrokes from 4.21 ms to 1.64 while the 1,535-case latency table barely
+noticed. Any latency figure quoted from that table is measured on the 60% of
+keystrokes that are cheapest to defend.
+
 This is the sharpest thing to know before reading any accuracy number.
 
 `lua bench/evaluate.lua -- affix_words=false` returns **bit-identical** accuracy,
@@ -2659,114 +2674,17 @@ that are both defensible. The classes are morphological siblings
 (`mtns → meetings` where `motions` was wanted), short input (`frm` legitimately
 offers from/form/firm/farm/forum), and deliberate ties (`its`/`it's`).
 
-### G.6 Things I found while reading that look wrong
+### G.6 Two open questions about which source of truth to read
 
-**Eleven of these twelve have been fixed since.** They are kept in full rather
-than deleted, because the *class* of each is the useful part for a critic: what
-kind of mistake this codebase makes, and which of its guards did not catch it.
-Where a fix exists it is named. Only finding 12 is still open, and it is an
-observation rather than a defect.
-
-**1. The shipped schema turns off the three features that config, README and
-DESIGN all say now ship on.** Commit `7214c78` flipped `reclaim_space`,
-`absorb_fragment` and `word_backspace` to `true` in `config.lua` and rewrote the
-prose accordingly, but did not touch `rime/spellless.schema.yaml`, which still
-has: **Fixed in `64fb607`.**
-
-```yaml
-spellless:
-  reclaim_space: false
-  absorb_fragment: false
-  word_backspace: false
-```
-
-`schema_overrides` (`spellless.lua:103`) reads every key whose default is a
-boolean with `get_bool`, and `false` is not `nil`, so these become overrides. On
-a real install all three are **off**, whatever the documentation says, and the
-schema's own comments still carry the superseded reasoning ("Needs the Spellless
-build of Weasel… Leave it false on a stock install"). `scripts/package.py`'s
-generated release README says the same. The test that guards this file only
-checks that each key *exists* in `config.lua`, not that the values agree.
-
-**2. The same drift silently disables the macOS half of `commit_only_apps`.**
-`config.lua` lists ten bundle identifiers (`com.apple.terminal`,
-`com.googlecode.iterm2`, `com.microsoft.vscode`, …); the schema's
-`commit_only_apps` line stops at `putty.exe`. Because the schema value overrides
-the default, a Squirrel fork typing into Terminal.app would not be refused
-document edits. Today that is masked by finding 1 — but fixing finding 1 without
-also fixing this one would expose it. **Fixed in `64fb607`.**
-
-**3. `generate_possessive` is unreachable.** It is called only from the `else`
-branch of `if stem then` in `Engine:suggest`, i.e. only when the query does *not*
-split into stem + `'s`/`'` — but `Engine:possessive_stem` requires the query to
-end in `'s`. An exhaustive search over every string of length ≤ 7 over
-`{a, s, '}` finds the branch reachable only for inputs whose stem begins with an
-apostrophe (`'a's`), which the speller's `initials` cannot produce and for which
-no dictionary lookup can succeed anyway. The productive possessive is delivered
-entirely by the stem/suffix split at the top of `suggest`. (`possessive_stem`
-itself is still live, via `has_exact`.) **Removed in `ab8b561`.**
-
-**4. `read_behind` computes `out.fragment` and nothing reads it.** `M.absorb`
-computes its own fragment from the document. The field costs one pattern match
-per keystroke whenever `absorb_fragment` is on and the document is readable. **Removed in `ab8b561`.**
-
-**5. `write_note` (`spellless.lua:82`) is dead**, because both writers inline
-`SENTENCE_YES .. ":0"` — they need to stamp with 0 rather than the current size.
-`UserDB:forget_surface` is referenced nowhere at all; `UserDB:words()` and
-`util.popcount26` are used only by tests. **`write_note` and `forget_surface` removed in `ab8b561`; `UserDB:words()` is live (the personal index calls it) and `popcount26` is kept as the reference the masks are tested against.**
-
-**6. `config.lua`'s `cost_weight` comment is arithmetically stale.** It says "a
-repair also has to cross `base_exact - base_typo = 25`, and 41 points is 17.4
-nats… a full-price repair *never* beats an exact dictionary match at any
-frequency — it is a veto, not a price". With `base_exact = 84` and
-`base_typo = 75` that gap is **9**, so the total is 25 points ≈ 10.6 nats and a
-full-price repair *can* in principle win. `docs/ALGORITHM.md` §4.8 has the
-corrected version; the code comment does not. **Fixed in `ab8b561`.**
-
-**7. Every long-form document is a dictionary behind.** `docs/ALGORITHM.md`,
-`EVALUATION.md`, `DESIGN.md` and `data/README.md` all say **83,364 entries**;
-`generated/spellless.build.json` says **83,414**. ALGORITHM.md and EVALUATION.md
-report **89.6% / 98.9%** top-1/top-5 on the shipped seed; `lua bench/evaluate.lua`
-prints **91.1% / 99.0%** today. README.md's `zzver` example shows `83137 words,
-622 forms`; it is 83,414 words and 809 forms. **Fixed in `ab8b561` and `849376f`.**
-
-**8. Three sections of the long-form docs describe code that no longer exists.**
-ALGORITHM.md §4.7 and its §4 diagram, and DESIGN.md §7 "How it is used", all
-describe the personal store as "a linear pass over the ≤400 most-used entries"
-capped by `personal_scan_limit` — the design that commit `bf30bc7` replaced with
-`Corpus.of_words` precisely because the cap was a promise the software could not
-keep. DESIGN.md §7 also names `repair_personal`, which was removed by `7baac34`
-along with the whole idea of repairing the store on load. DESIGN.md §5.6 and
-§“`$` hands the keyboard over” name the gear `lua_processor@*spellless*delimiter`;
-it is `*spellless*handover`. DESIGN.md §10 lists "remember the input, not just
-the word" as the top next step; it shipped. **Fixed in `ab8b561`.**
-
-**9. `scripts/build_dictionary.py:parse_vocab_file`'s docstring describes the
-`+` marker system that was replaced.** It says at length that "a capitalised
-entry followed by `+` … keeps *both* spellings" and that "without the marker the
-capitals replace". The function no longer parses a `+` at all; `additive` is
-derived in `main()` from base-corpus membership and `#!capitals replace`. The
-docstring even carries the reasoning for why the build "cannot decide this for
-you and should not try", which is now exactly what it does. **Fixed in `ab8b561`.**
-
-**10. ALGORITHM.md contradicts itself about slip tolerance.** §8.4 says it
-"ships off for latency (§8.9)"; §8.9 says "The second is now **on**". The code
-ships it on (`cue_slip_cost = 10.0`). **Fixed in `ab8b561`; §8.4 now says on.**
-
-**11. The bare-verb measurement is quoted twice with two different numbers.**
-`config.lua` (`bare_verb_window`) says the predicate "fires on 3,979" of 374,090
-slots; `docs/ALGORITHM.md` §8.1 says "it fires on **3,994**". Both then report 11
-improvements against 0 regressions, so one of the two counts is stale. **Fixed in `ab8b561`; 3,994 is right, 3,979 predated the phrase list.**
-
-**12. Two smaller inconsistencies that each have a defence, but are worth a
-second opinion.** `M.filter` judges the space after punctuation against
+Two places read the commit history where the document is available and
+stronger, and each has a defence, but both are worth a second opinion. `M.filter` judges the space after punctuation against
 `commit_tail` alone, never `document_tail`, so on a frontend that can read the
 document the filter is working from the weaker source (this path only runs with
 `ascii_punct` off, so it is rarely exercised). And the digit-reclaim branch at
-`spellless.lua:882` likewise reads `commit_tail` rather than `text_behind`; here
+`spellless.lua` likewise reads `commit_tail` rather than `text_behind`; here
 the justification given elsewhere in the file — "any word above has already been
 committed, so the history is current" — does not obviously apply, because no word
-was committed on that path. **Still open.**
+was committed on that path.
 
 ---
 
@@ -2774,7 +2692,7 @@ was committed on that path. **Still open.**
 
 ```bash
 make                                   # dictionary, indexes, generated test sets
-lua tests/run.lua                      # 2,316 checks
+lua tests/run.lua                      # 2,349 checks
 lua bench/evaluate.lua                 # the accuracy and latency tables
 lua bench/probe.lua                    # the two harsher probes
 lua bench/try.lua --debug mthmtcs satfcatn tnk    # ask it anything

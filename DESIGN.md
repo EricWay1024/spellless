@@ -787,9 +787,9 @@ Three details that are easy to get wrong, and were:
   keeps a spelling only when the dictionary cannot already account for it: an
   inner capital, an acronym, or a word the corpus has never heard of. A plain
   lowercase commit clears one, so the store can be corrected by using it.
-  Nothing repairs the store on load, and three separate repairs have looked
-  obviously right and been wrong — see the note above `Engine.new`, which
-  keeps the reasoning.
+  Nothing repairs the store on load. Two repairs of it shipped and both were
+  wrong; a third was never attempted, for the same reason — see the note above
+  `Engine.new`, which keeps all three arguments.
 
 ### How it is used
 

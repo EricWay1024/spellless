@@ -196,6 +196,34 @@ function Engine:possessive_stem(query)
   return nil
 end
 
+--- Which possessive ending a word can actually take.
+---
+--- The apostrophe you typed says which you meant, and that was treated as the
+--- end of the matter: whatever you typed was stuck onto every candidate.  But
+--- it says something about the *stem you typed*, and the stem matches words of
+--- both numbers -- so "mther's" offered `mothers's` at slot 2, "it's" offered
+--- `its's` and `items's`, and "mthers'" offered `mother'`.  None of those is
+--- ever the right spelling of anything.
+---
+--- A plural already ending in `s` takes a bare apostrophe and a singular takes
+--- `'s`, so the ending is a property of the candidate and not of the input.
+--- Recognising the plural is the trick `past_inflection` uses: `s` on the end
+--- and the rest is a word -- two lookups, because "bosses" loses `es` where
+--- "mothers" loses `s`.
+---
+--- It is not perfect and cannot be.  A singular ending in `s` whose stem is
+--- also a word reads as plural: `physics'` rather than `physics's`, `its'`
+--- rather than `its's`.  Both are wrong, one is less wrong, and the surname
+--- plurals -- "the Williams's" -- are the case where the raw form was right;
+--- they survive because `willia` and `willi` are not words.
+local function possessive_of(self, word, typed)
+  if typed ~= "'s" and typed ~= "'" then return typed or "" end
+  local plural = word:sub(-1) == "s"
+      and (self.corpus:lookup(word:sub(1, -2)) ~= nil
+           or self.corpus:lookup(word:sub(1, -3)) ~= nil)
+  return plural and "'" or "'s"
+end
+
 --- How a candidate should be capitalised.
 --- An explicit capital in the input always wins: if you typed "mathe" at the
 --- start of a sentence you meant a capital, but if you typed "MATHE" you meant
@@ -576,7 +604,7 @@ function Engine:suggest(raw, limit, opts)
       -- is the spelling the store has; asking for the stem alone found
       -- nothing and gave back "mcdonald's".  `surface` falls back to the
       -- stem's own spelling when the possessive has none of its own.
-      text = self:surface(item.word .. (suffix or ""), style),
+      text = self:surface(item.word .. possessive_of(self, item.word, suffix), style),
       source = item.source,
       score = item.score,
       cost = item.cost,

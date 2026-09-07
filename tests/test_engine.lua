@@ -101,6 +101,41 @@ H.eq(texts("an")[1], "an")
 H.eq(texts("th")[1], "the")
 H.eq(texts("mathe")[1], "mathematics", "and ordinary input is unaffected")
 
+H.suite("engine: the possessive ending follows the candidate, not the input")
+-- The apostrophe you type says which ending you meant -- but it says it about
+-- the *stem you typed*, and the stem matches words of both numbers.  Sticking
+-- it onto every candidate filled the list with forms that are never right:
+-- `mothers's` at slot 2 under "mther's", `its's` and `items's` under "it's",
+-- `mother'` under "mthers'".
+do
+  local function list(q)
+    local t = {}
+    for i, c in ipairs(engine:suggest(q, 6)) do t[i] = c.text:gsub("%s+$", "") end
+    return " " .. table.concat(t, " ") .. " "
+  end
+  -- The forms that are never right, each one previously on the first page.
+  -- Stated as the exact strings rather than as a pattern, because "boss's" and
+  -- "motherless's" are correct -- a singular ending in `s` does take `'s`, and
+  -- only the stem lookup can tell the two apart.
+  for _, bad in ipairs({ { "mther's", "mothers's" }, { "it's", "its's" },
+                         { "it's", "items's" }, { "boss's", "bosses's" },
+                         { "mthers'", "mother'" }, { "teachers'", "teacher'" },
+                         { "mothers'", "mother'" }, { "james'", "jameson'" } }) do
+    H.ok(not list(bad[1]):find(" " .. bad[2]:gsub("'", "%%'") .. " "),
+         ("%s no longer offers %s"):format(bad[1], bad[2]))
+  end
+  -- Both numbers stay reachable, which is the point of matching the stem.
+  H.ok(list("mther's"):find(" mother's "), "the singular you asked for")
+  H.ok(list("mther's"):find(" mothers' "), "and the plural, spelled correctly")
+  H.ok(list("teachers'"):find(" teachers' "), "a plural typed as a plural")
+  H.ok(list("teachers'"):find(" teacher's "), "with the singular behind it")
+  -- A singular ending in `s` keeps `'s`, because its stem is not a word.
+  H.ok(list("class's"):find(" class's "), "`class's`, not `class'`")
+  -- And a taught spelling still carries through.
+  H.eq(engine:suggest("milnor's", 1)[1].text:gsub("%s+$", ""), "Milnor's",
+       "a name keeps its capitals")
+end
+
 H.suite("engine: a name you taught keeps its spelling through the possessive")
 -- You write "McDonald's" far more often than you write "McDonald", so that is
 -- the spelling the store ends up holding.  The possessive path matched the
@@ -726,6 +761,38 @@ do
        "`tqft` is not a word, so TQFT simply is the spelling")
   H.eq(engine:suggest("africa", 1)[1].text:gsub("%s+$", ""), "Africa",
        "and a place name is not made ambiguous by a lowercase corpus")
+end
+
+H.suite("engine: a word spelled correctly is not searched as a bad abbreviation")
+-- The fuzzy leg of the skeleton channel looks for a *mistyped* abbreviation,
+-- and a mistyped abbreviation of a word you have just spelled correctly is not
+-- a thing that happens.  Leaving it ungated was most of the cost of ordinary
+-- typing: 44% of keystrokes in real prose land on a dictionary word, and on
+-- those p95 was 4.21 ms against 1.64 with the gate.
+do
+  local function list(q)
+    local t = {}
+    for i, c in ipairs(engine:suggest(q, 12)) do t[i] = c.text:gsub("%s+$", "") end
+    return " " .. table.concat(t, " ") .. " "
+  end
+  -- What the gate removes: a rival reachable only by mangling the skeleton of
+  -- a word that was typed out in full.
+  H.ok(not list("academy"):find(" academic "),
+       "`academy` does not offer `academic`: " .. list("academy"))
+  H.ok(not list("always"):find(" airways "), "nor `always` `airways`")
+  H.ok(not list("spanish"):find(" punished "), "nor `spanish` `punished`")
+
+  -- And what it must not touch: the same word as an actual abbreviation.
+  H.ok(list("acdmy"):find(" academy "), "`acdmy` still finds academy")
+  H.ok(list("alghrith"):find(" algorithm "),
+       "and a slip inside a real abbreviation still resolves: " .. list("alghrith"))
+  H.ok(list("mthmtcs"):find(" mathematics "), "as does a long skeleton")
+
+  -- The exact reading leads either way; the gate is not allowed to change that.
+  for _, w in ipairs({ "academy", "always", "teachers", "mothers", "written" }) do
+    H.eq(engine:suggest(w, 1)[1].text:gsub("%s+$", ""), w,
+         ("a correctly spelled word still leads with itself: %s"):format(w))
+  end
 end
 
 H.suite("engine: words coined out of an affix and a word")
