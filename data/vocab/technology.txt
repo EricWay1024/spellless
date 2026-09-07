@@ -179,19 +179,19 @@ FastAPI
 # in this file.
 RAM +
 ARM +
-CPU +		# `cpu` is not a word, but ARM/CPU read as a pair
+CPU
 REST +
 CRUD +
 POP +
-IMAP +
+IMAP
 CD +
-DVD +
+DVD
 CAD +
 CAM +
-ML +
-AI +
-UI +
-OS +
+ML +	# millilitres, which is why this one keeps the +
+AI
+UI
+OS
 IT +
 Bash +
 React +
@@ -222,13 +222,13 @@ Steam +
 Unity +
 Processing +
 LaTeX +
-BibTeX +
+BibTeX
 Sage +
 Maple +
 Lean +
-Coq +
-Agda +
-Idris +
+Coq
+Agda
+Idris
 Julia +
 Rocket +
 Spark +
@@ -237,6 +237,6 @@ Kafka +
 Storm +
 Flow +
 Next +
-Nuxt +
-Astro +
+Nuxt
+Astro
 Remix +

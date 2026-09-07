@@ -47,7 +47,6 @@ function Engine.new(opts)
   self.user = UserDB.load(personal or "", cfg)
   self.user.path = personal
   self.last_flush = 0
-  self:repair_personal()
 
   -- Abbreviations the user defined.  Read once: it is a handful of lines that
   -- someone edits deliberately, and a redeploy picks up changes.
@@ -62,47 +61,38 @@ function Engine.new(opts)
   return self
 end
 
---- Drop stored spellings that only differ by a leading capital on a word the
---- dictionary already knows.
----
---- Those are not preferences, they are sentence positions: automatic
---- capitalisation used to hand "The" to the learner, which then insisted on
---- "The" in the middle of every later sentence.  `learn` no longer creates
---- them; this clears out any that an earlier version wrote to the file.
-function Engine:repair_personal()
-  local user = self.user
-  for word, spelling in pairs(user.surfaces) do
-    if spelling == word:sub(1, 1):upper() .. word:sub(2) and self:dictionary_explains(word) then
-      user:forget_surface(word)
-    end
-  end
-  -- An ALL CAPS spelling is deliberately *not* swept up with them, though
-  -- `worth_remembering` now declines to make new ones.  The two have different
-  -- provenance and the difference is the whole argument: a leading capital on
-  -- a known word was probably written by this software, since automatic
-  -- capitalisation is what puts one there, so removing it destroys nothing
-  -- anybody meant.  Nothing capitalises a whole word automatically -- an all
-  -- caps spelling in the store was typed that way, on purpose, by a person.
-  --
-  -- It is weak evidence, possibly from a single shout, which is why it is no
-  -- longer accepted going forward.  It is still evidence, and a repair that
-  -- deleted it would have taken `pc -> PC` and `vs -> VS` out of a real store
-  -- along with the accidents.  Ctrl+Shift+D removes one that is wrong.
-  -- The corrections are deliberately *not* repaired the same way, and the
-  -- reason is worth writing down because the repair looks obviously right.
-  --
-  -- A correction is keyed by the lowercased input, so by the time it is on
-  -- disk "> windows Windows 2" and "> but But 6" are the same shape: one is
-  -- somebody who typed a capital W and took the candidate by its number, the
-  -- other is our own sentence capital learned back in the days before
-  -- `learn_choice` guarded against it.  Nothing in the file tells them apart.
-  -- A fold that lowercases both therefore destroys `learned_capital` -- the
-  -- whole point of which is that "Windows" survives -- and destroys it
-  -- permanently, on the next engine the process builds, because the store is
-  -- shared and flushed.  So the guard lives where the information still
-  -- exists, at record time in `learn_choice`, and old bad rows are removed the
-  -- way any other unwanted row is: Ctrl+Shift+D on the candidate.
-end
+-- Nothing in the personal store is repaired on load, and the reason is worth
+-- writing down, because two different repairs have looked obviously right and
+-- both were wrong.
+--
+-- The first lowercased a stored spelling that differed only by a leading
+-- capital on a word the dictionary knows -- "the -> The" -- on the argument
+-- that automatic capitalisation is the only thing that puts one there, so
+-- removing it destroys nothing anybody meant.  That argument held until
+-- scripts/import_pack.py existed.  An imported pack writes exactly that shape
+-- on purpose: `dijkstra -> Dijkstra` is a word the dictionary has, spelled
+-- lower case, and the whole point of importing is to respell it.  The repair
+-- silently ate every such entry, which is a far worse failure than a stale
+-- row -- and by then it was cleaning nothing, because `learn` had already
+-- refused to create the rows for long enough that a real store of 1,689 words
+-- had none left.
+--
+-- The second would have lowercased ALL CAPS spellings too, and never shipped:
+-- simulated against a real store it took `pc -> PC` and `vs -> VS` out along
+-- with the accidents.  Nothing capitalises a whole word automatically, so one
+-- in the store was typed that way, by a person, on purpose.
+--
+-- The corrections were never repaired at all, for the reason that now applies
+-- to all three.  A correction is keyed by the lowercased input, so on disk
+-- "> windows Windows 2" and "> but But 6" are the same shape: one is somebody
+-- who typed a capital W and took the candidate by its number, the other is our
+-- own sentence capital from before `learn_choice` guarded against it, and
+-- nothing in the file tells them apart.  A fold that lowercases both destroys
+-- `learned_capital`, permanently, on the next engine the process builds.
+--
+-- So the guards live where the information still exists -- at record time, in
+-- `learn_choice` and `worth_remembering` -- and a row that is wrong is removed
+-- the way any other unwanted row is: Ctrl+Shift+D on the candidate.
 
 -- ---------------------------------------------------------------------------
 -- capitalisation

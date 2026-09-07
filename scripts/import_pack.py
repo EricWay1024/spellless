@@ -50,7 +50,38 @@ from install import resolve_user_dir  # noqa: E402
 
 REPO = Path(__file__).resolve().parent.parent
 PACKS = REPO / "data" / "packs"
+GENERATED = REPO / "generated"
 STORE = "spellless_user.txt"
+
+
+def dictionary_words() -> set[str]:
+    """The shipped word list, or an empty set if it has not been built."""
+    path = GENERATED / "spellless.words"
+    return set(path.read_text(encoding="utf-8").split()) if path.exists() else set()
+
+
+def respells(words: list[str], known: set[str]) -> list[str]:
+    """Entries that change how a word already in the dictionary is spelled.
+
+    A personal entry written with capitals *replaces* the spelling of its key,
+    everywhere -- that is what makes `Grothendieck` work, and it is why
+    importing `Bloom` would cost you the flower.  The shipped vocabulary can
+    say "keep both" with a trailing "+"; a personal file has nowhere to put
+    that, so the choice belongs to whoever wrote the pack.
+
+    Stated as a fact rather than judged, because the judgement is not available
+    here.  Corpus rank looks like it would separate a word from a surname and
+    does not: `bloom` is the 8,858th token and `shannon` the 8,139th, and
+    `prim` at 27,141 is rarer than `turing` at 22,189.  Google Books keeps
+    proper nouns as ordinary lowercase tokens, so this is the same wall every
+    other automatic capitalisation rule in this project has hit.
+    """
+    out = []
+    for w in words:
+        key = re.sub(r"[^a-z']", "", w.lower())
+        if w != key and key in known and len(key) > 2:
+            out.append(w)
+    return out
 
 
 def read_pack(path: Path) -> list[str]:
@@ -136,6 +167,7 @@ def main() -> int:
         where = f"{store}   ({how})"
     print(f"importing into {where}")
 
+    known = dictionary_words()
     have = existing_words(store)
     lines: list[str] = []
     added = skipped = 0
@@ -155,6 +187,14 @@ def main() -> int:
         added += len(new)
         skipped += len(words) - len(new)
         print(f"  {path.name}: {len(new)} new, {len(words) - len(new)} already there")
+        changed = respells(new, known)
+        if changed:
+            print(f"    {len(changed)} of them respell a word the dictionary "
+                  f"already has: " + ", ".join(changed[:8])
+                  + (" ..." if len(changed) > 8 else ""))
+            print("    That is usually the point -- `dijkstra` should be Dijkstra -- but")
+            print("    a personal entry replaces a spelling and cannot offer both, so a")
+            print("    capital on an ordinary word costs you the ordinary word.")
 
     if not lines:
         print("nothing to do")

@@ -255,23 +255,35 @@ do
   os.remove(path)
 end
 
-H.suite("engine: repairing a store an older version contaminated")
+H.suite("engine: the personal store is read as written, never repaired")
+-- Two repairs have looked obviously right here and both were wrong.  The one
+-- that shipped lowercased a stored spelling differing only by a leading
+-- capital on a known word, on the argument that only automatic capitalisation
+-- puts one there.  scripts/import_pack.py falsifies that argument: an imported
+-- pack writes `dijkstra -> Dijkstra` deliberately, and the repair ate it.  By
+-- then it was cleaning nothing -- a real store of 1,689 words had no such rows
+-- left, because `learn` had long since stopped making them.
 do
   local path2 = os.tmpname()
   local fh2 = assert(io.open(path2, "w"))
   fh2:write("the\tThe\t9\nawodey\tAwodey\t3\nmaclane\tMacLane\t2\n" ..
-            "pc\tPC\t5\n")
+            "pc\tPC\t5\ndijkstra\tDijkstra\t4\n")
   fh2:close()
   require("spellless.userdb").forget(path2)
-  local repaired = assert(Engine.new{ data_dir = DATA, personal_path = path2 })
-  H.eq(repaired.user:surface("the"), nil, "a sentence capital on a known word is dropped")
-  H.eq(repaired.user:surface("awodey"), "Awodey", "a name is kept")
-  H.eq(repaired.user:surface("maclane"), "MacLane", "so is an inner capital")
-  -- ALL CAPS is deliberately not swept up with it.  Nothing capitalises a
-  -- whole word automatically, so one in the store was typed that way on
-  -- purpose -- weak evidence, but evidence, and not ours to delete.
-  H.eq(repaired.user:surface("pc"), "PC", "a shouted spelling is left alone")
-  H.eq(repaired.user:count("the"), 9, "and the counts are untouched")
+  local loaded = assert(Engine.new{ data_dir = DATA, personal_path = path2 })
+  H.eq(loaded.user:surface("awodey"), "Awodey", "a name is kept")
+  H.eq(loaded.user:surface("maclane"), "MacLane", "so is an inner capital")
+  -- Nothing capitalises a whole word automatically, so one in the store was
+  -- typed that way on purpose -- weak evidence, but evidence, and not ours.
+  H.eq(loaded.user:surface("pc"), "PC", "a shouted spelling is left alone")
+  -- The two that used to be dropped.  `dijkstra` is the case that matters:
+  -- it is a word the dictionary has, spelled lower case, and respelling it is
+  -- exactly what importing a pack is for.
+  H.eq(loaded.user:surface("dijkstra"), "Dijkstra",
+       "and an imported capital on a dictionary word survives")
+  H.eq(loaded:surface("dijkstra", "lower"), "Dijkstra", "all the way to the candidate")
+  H.eq(loaded.user:surface("the"), "The", "as does a row nobody has cleaned up")
+  H.eq(loaded.user:count("the"), 9, "and the counts are untouched")
   os.remove(path2)
 end
 

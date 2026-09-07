@@ -188,6 +188,12 @@ def main() -> int:
     freqs = parse_frequency_list(SOURCE)
 
     ranked = sorted(freqs.items(), key=lambda kv: (-kv[1], kv[0]))
+    # Base-corpus ranks, before a single supplemental word is merged in.  Used
+    # only to check the "+" markers below, never to infer them: this corpus
+    # keeps proper nouns as lowercase tokens, so `africa` looks exactly as
+    # common as `ram` and inferring from rank marks 371 entries, Africa among
+    # them.  See data/README.md.
+    base_rank = {w: i + 1 for i, (w, _) in enumerate(ranked)}
     default_freq = ranked[min(args.vocab_rank, len(ranked)) - 1][1]
     print(f"  supplemental default frequency = {default_freq:,} (rank {args.vocab_rank})")
 
@@ -209,6 +215,16 @@ def main() -> int:
                 freqs[word] = freq
                 added += 1
         print(f"  {path.name}: {len(extra)} entries")
+    # A "+" only means something when the lowercase spelling is one somebody
+    # might mean.  Usually that makes it a base-corpus word, and when it is not
+    # the marker is either pointless or actively harmful -- it puts a reading
+    # nobody wants in front of the real one.  `ml` is the honest exception: not
+    # a word, but millilitres all the same, and the entry itself is what puts
+    # `ml` in the dictionary for the acronym to sit beside.
+    for key in sorted(additive):
+        if key not in base_rank:
+            print(f"    note: {vocab_forms[key]!r} is marked + but {key!r} is not "
+                  f"a word in the base corpus -- is the lowercase reading real?")
     print(f"  {added} new words, {promoted} promoted, "
           f"{len(vocab_forms)} carrying capitals "
           f"({len(additive)} of them alongside a real word)")

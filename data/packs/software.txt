@@ -1,0 +1,196 @@
+#!rank 40000
+# Computer science and software engineering: the vocabulary the base corpus is
+# too old or too literary to have.
+#
+# A pack rather than shipped vocabulary.  data/vocab/technology.txt carries the
+# part everybody needs -- API, CLI, JSON, macOS, GitHub -- and this is the part
+# you only want if you write software: syscalls, spectral vocabulary from
+# concurrency, the names attached to algorithms, and the tools.
+#
+# Every entry here was checked against the shipped dictionary: 86 candidates
+# were dropped because they are already in it and spelled correctly (monad,
+# functor, currying, idempotent, semaphore, deadlock, refactor, boilerplate,
+# telemetry, generics, lifetimes, Kubernetes, Nginx, Redis).  A pack that
+# repeats the dictionary is noise.
+#
+# Names are here only where the lowercase spelling is not itself a word, since
+# a personal entry *replaces* a spelling: Dijkstra and Knuth yes, Bloom and
+# Raft and Prim no -- those would cost you the flower, the boat and the
+# adjective.  They appear as phrases instead, where the key cannot collide.
+
+# --- algorithms and data structures
+memoization
+memoisation
+memoize
+quicksort
+mergesort
+heapsort
+radixsort
+hashmap
+hashtable
+linkedlist
+dequeue
+deque
+trie
+bitmask
+bitwise
+bitset
+nand
+automata
+tokenizer
+tokeniser
+transpile
+transpiler
+bytecode
+uncurry
+contravariance
+idempotence
+idempotency
+
+# --- names attached to algorithms, where the lowercase is not a word
+Dijkstra
+Kruskal
+Warshall
+Tarjan
+Kosaraju
+Knuth
+Turing
+Hoare
+Lamport
+Torvalds
+Ritchie
+Kernighan
+Stroustrup
+Liskov
+Codd
+Karp
+Rivest
+Shamir
+Adleman
+Diffie
+Hellman
+Huffman
+Merkle
+Paxos
+Floyd
+Backus
+McCarthy
+
+# --- and as phrases, where the name alone would cost you an English word
+Bloom filter
+Bellman-Ford
+Raft consensus
+Prim's algorithm
+Ford-Fulkerson
+
+# --- concurrency and systems
+mutex
+livelock
+reentrant
+coroutine
+coroutines
+goroutine
+goroutines
+async
+promisify
+backpressure
+sharding
+failover
+rollout
+mmap
+syscall
+userspace
+cacheline
+epoll
+deallocate
+freelist
+heapdump
+coredump
+stacktrace
+nullptr
+segfault
+NUMA
+TLB
+
+# --- language and type-system vocabulary
+namespace
+namespaces
+enum
+enums
+struct
+structs
+typedef
+typeclass
+typechecker
+docstring
+monomorphization
+borrowck
+
+# --- tooling and practice
+linter
+linting
+bundler
+minify
+minified
+uglify
+polyfill
+monorepo
+rebase
+cherrypick
+changelog
+semver
+hotfix
+runbook
+serialise
+deserialize
+deserialise
+unmarshal
+middleware
+webhook
+ratelimit
+
+# --- protocols, formats and services
+NFA
+DFA
+PDA
+regexes
+gRPC
+GraphQL
+WebSocket
+WebSockets
+SAML
+LDAP
+Kerberos
+Dockerfile
+containerd
+runc
+systemd
+cron
+crontab
+Datadog
+CircleCI
+Vercel
+Netlify
+Heroku
+DigitalOcean
+Supabase
+
+# --- the shell, which the corpus has never heard of
+tmux
+neovim
+scp
+rsync
+sed
+awk
+chmod
+chown
+sudo
+stdin
+stdout
+stderr
+argv
+argc
+printf
+malloc
+calloc
+realloc
