@@ -76,6 +76,18 @@ function Engine:repair_personal()
       user:forget_surface(word)
     end
   end
+  -- An ALL CAPS spelling is deliberately *not* swept up with them, though
+  -- `worth_remembering` now declines to make new ones.  The two have different
+  -- provenance and the difference is the whole argument: a leading capital on
+  -- a known word was probably written by this software, since automatic
+  -- capitalisation is what puts one there, so removing it destroys nothing
+  -- anybody meant.  Nothing capitalises a whole word automatically -- an all
+  -- caps spelling in the store was typed that way, on purpose, by a person.
+  --
+  -- It is weak evidence, possibly from a single shout, which is why it is no
+  -- longer accepted going forward.  It is still evidence, and a repair that
+  -- deleted it would have taken `pc -> PC` and `vs -> VS` out of a real store
+  -- along with the accidents.  Ctrl+Shift+D removes one that is wrong.
   -- The corrections are deliberately *not* repaired the same way, and the
   -- reason is worth writing down because the repair looks obviously right.
   --
@@ -743,14 +755,31 @@ end
 
 --- Is the way `text` is capitalised worth remembering as a preference?
 ---
---- A leading capital on a word the dictionary already knows is not one.  It is
---- overwhelmingly a sentence position -- ours, in fact, since automatic
---- capitalisation put it there -- and storing it made "The" come back in the
---- middle of every later sentence.  Anything else is real evidence:
---- "Grothendieck" (unknown to the dictionary), "TQFT", "MacLane".
+--- Neither shape of capital counts, when the dictionary already knows the word.
+---
+--- A *leading* capital is overwhelmingly a sentence position -- ours, in fact,
+--- since automatic capitalisation put it there -- and storing it made "The"
+--- come back in the middle of every later sentence.
+---
+--- *All* capitals are the same mistake wearing a different hat, and cost the
+--- same afternoon to find: write MATHEMATICS once, in a heading or for
+--- emphasis, and `mathe` offered MATHEMATICS and nothing else from then on.
+--- The ordinary word was not merely demoted, it was gone -- the two spellings
+--- deduplicate to one candidate and the stored one wins.  Shouting a word once
+--- is not a statement about how it is spelled.
+---
+--- Anything else is real evidence: "Grothendieck" (unknown to the dictionary),
+--- "TQFT" and "MacLane" (not explained by it either), "MacOS" (mixed, so
+--- neither branch below).
+---
+--- What remains for the deliberate case is the route that asks for evidence
+--- rather than inferring it: pick the capitalised candidate by its number
+--- twice and `learned_capital` offers it thereafter, `choices_for` promotes it
+--- once confirmed, and both spellings stay reachable throughout.
 function Engine:worth_remembering(text, word)
   if text == word then return false end
-  if text == word:sub(1, 1):upper() .. word:sub(2) then
+  if text == word:sub(1, 1):upper() .. word:sub(2)
+     or text == word:upper() then
     return not self:dictionary_explains(word)
   end
   return true

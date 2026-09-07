@@ -141,23 +141,65 @@ H.eq(spaced:suggest("teh", 3)[1].text, "the", "so mid-sentence is unaffected")
 -- ... but capitals the dictionary cannot explain still are
 spaced:learn("MacLane")
 H.eq(spaced.user:surface("maclane"), "MacLane", "an inner capital is real evidence")
-spaced:learn("TQFT")
-H.eq(spaced.user:surface("tqft"), "TQFT", "so is an acronym")
+-- An acronym too -- but one the dictionary does not ship.  `TQFT` used to be
+-- the example here and stopped testing anything the day it went into
+-- proper_nouns.txt: the shipped form already answers it, so there is nothing
+-- left for the store to prove.
+spaced:learn("ZFC")
+H.eq(spaced.user:surface("zfc"), "ZFC", "so is an acronym the dictionary lacks")
+H.eq(spaced:suggest("tqft", 1)[1].text, "TQFT", "while a shipped one needs no help")
 spaced:learn("awodey")
 H.eq(spaced.user:surface("awodey"), nil,
      "and committing the plain lowercase form takes a spelling back")
+
+H.suite("engine: shouting a word once is not a preference")
+-- Write MATHEMATICS in a heading, and `mathe` offered MATHEMATICS and nothing
+-- else from then on -- the ordinary word was not demoted but *gone*, the two
+-- spellings deduplicating to one candidate with the stored one winning.
+-- All capitals are the sentence-capital mistake wearing a different hat.
+do
+  local path = os.tmpname()
+  require("spellless.userdb").forget(path)
+  local shout = assert(Engine.new{ data_dir = DATA, personal_path = path })
+  local function top(q) return shout:suggest(q, 1)[1].text:gsub("%s+$", "") end
+
+  H.eq(top("mathe"), "mathematics", "the ordinary word to begin with")
+  shout:learn("MATHEMATICS")
+  H.eq(shout.user:surface("mathematics"), nil, "shouting it stores no spelling")
+  H.eq(top("mathe"), "mathematics", "and the ordinary word still leads")
+
+  -- The deliberate route still works, and offers both throughout.
+  shout:learn_choice("mathe", "MATHEMATICS")
+  H.eq(top("mathe"), "mathematics", "one pick is not evidence either")
+  shout:learn_choice("mathe", "MATHEMATICS")
+  H.eq(top("mathe"), "MATHEMATICS", "two deliberate picks are")
+  local list = table.concat(out_texts(shout:suggest("mathe", 4)), " ")
+  H.ok(list:find("mathematics", 1, true),
+       "and the ordinary spelling is still right there: " .. list)
+
+  -- A word the dictionary cannot account for is still worth keeping, which is
+  -- the whole reason this function exists.
+  shout:learn("ZFC")
+  H.eq(shout.user:surface("zfc"), "ZFC", "an unknown acronym is still learned")
+  os.remove(path)
+end
 
 H.suite("engine: repairing a store an older version contaminated")
 do
   local path2 = os.tmpname()
   local fh2 = assert(io.open(path2, "w"))
-  fh2:write("the\tThe\t9\nawodey\tAwodey\t3\nmaclane\tMacLane\t2\n")
+  fh2:write("the\tThe\t9\nawodey\tAwodey\t3\nmaclane\tMacLane\t2\n" ..
+            "pc\tPC\t5\n")
   fh2:close()
   require("spellless.userdb").forget(path2)
   local repaired = assert(Engine.new{ data_dir = DATA, personal_path = path2 })
   H.eq(repaired.user:surface("the"), nil, "a sentence capital on a known word is dropped")
   H.eq(repaired.user:surface("awodey"), "Awodey", "a name is kept")
   H.eq(repaired.user:surface("maclane"), "MacLane", "so is an inner capital")
+  -- ALL CAPS is deliberately not swept up with it.  Nothing capitalises a
+  -- whole word automatically, so one in the store was typed that way on
+  -- purpose -- weak evidence, but evidence, and not ours to delete.
+  H.eq(repaired.user:surface("pc"), "PC", "a shouted spelling is left alone")
   H.eq(repaired.user:count("the"), 9, "and the counts are untouched")
   os.remove(path2)
 end
