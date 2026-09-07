@@ -201,6 +201,19 @@ Nothing has to guess whether the lowercase is "really a word" — which is just
 as well, because corpus rank cannot: `bloom` is the 8,858th token and `shannon`
 the 8,139th, and `prim` at 27,141 is rarer than `turing` at 22,189.
 
+Reviewing what the packs hold, all of them at once:
+
+```bash
+python3 scripts/export_packs.py --out packs-review.txt   # 1,177 lines
+# delete the lines you want to keep, then
+python3 scripts/export_packs.py --remove packs-review.txt
+```
+
+The second command rewrites `data/packs/*.txt` in place, keeps their comments
+and their order, drops a section heading whose whole section has gone, and says
+what it took out of each. A listed line that matches nothing is counted and
+ignored.
+
 Writing your own pack needs no tooling — it is a text file in this format, and
 `import_pack.py` takes a path as readily as a name.
 
