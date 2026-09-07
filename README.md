@@ -125,11 +125,15 @@ training figure is optimism.
 ## Install
 
 Everything here is data and Lua, so it runs wherever Rime does: **Weasel** on
-Windows, **Squirrel** on macOS, `ibus-rime` or `fcitx5-rime` on Linux. Lua
-support is already there — official librime release builds bundle
-`librime-lua`, and every frontend above ships those builds — so there is
-nothing to compile, no plugin to install and no administrator rights needed.
-You need **Python 3.8+** to run the installer, and only for that.
+Windows, **Squirrel** on macOS, `ibus-rime` or `fcitx5-rime` on Linux. You
+need **Python 3.8+** to run the installer, and only for that.
+
+Lua support is already there on Windows and macOS: official librime release
+builds bundle `librime-lua`, and Weasel and Squirrel ship those builds, so
+there is nothing to compile and no administrator rights needed. On Linux the
+distribution builds librime itself and packages the plugin separately —
+`fcitx5-rime` and `ibus-rime` normally pull it in, and if Spellless loads no
+candidates at all that is the first thing to check.
 
 ### Step 1 — choose your frontend
 
@@ -137,7 +141,7 @@ Three features need the input method to reach into the document and take text
 back out, which is further than any schema goes. That is the entire difference
 between the two paths:
 
-| | stock Weasel / Squirrel / `ibus-rime` / `fcitx5-rime` | **spellless-weasel** / **spellless-squirrel** |
+| | stock Weasel / Squirrel / `ibus-rime` / `fcitx5-rime` | **spellless-weasel** / **spellless-squirrel** / **spellless-fcitx5** |
 | --- | :---: | :---: |
 | everything under [Everything it does](#everything-it-does) | ✓ | ✓ |
 | punctuation takes its space back — `you` <kbd>Space</kbd> `.` gives `you. `, not `you . ` | — | ✓ |
@@ -146,19 +150,33 @@ between the two paths:
 | what you have to configure | `leading_space`, [step 4](#step-4--stock-rime-only-turn-on-leading_space) | nothing |
 
 **The fork is the better experience, and it does not displace anything.**
+
 [spellless-weasel](https://github.com/EricWay1024/spellless-weasel) is Weasel
 with that one convention added, rebuilt to install *beside* the Weasel you
 already have — its own GUIDs, pipe, registry key and user directory — so a
 Chinese input method on the same machine carries on untouched and both appear
 in the input-method list. It also carries the schema inside it, so on Windows
 **it is the only download you need**: run it and go to step 3.
+
 [spellless-squirrel](https://github.com/EricWay1024/spellless-squirrel) is the
 same for macOS, built by GitHub Actions on a macOS runner, but ships the
 frontend alone — install it, then do step 2.
 
-Both are GPL-3.0, like the projects they fork; this repository is MIT. Both
-ship unsigned, as upstream Squirrel's own releases do: right-click → **Open**
-the first time.
+[spellless-fcitx5](https://github.com/EricWay1024/spellless-fcitx5) is
+`fcitx5-rime` with the same convention, and is **newer and rougher than the
+other two**. Build it from source — there are no packages yet — and note two
+things before you do. It tracks upstream `fcitx5-rime`, which needs
+fcitx5 ≥ 5.1.22, so Arch, Fedora 41+ and Tumbleweed are fine and Ubuntu 24.04
+LTS is not; and on Linux it is the *client* that has to offer surrounding
+text, which GTK and Qt do, much of Chromium does not, and no terminal does.
+Where a client will not answer you get stock behaviour, silently — the right
+failure, but it does mean these three features are not everywhere. Everything
+in [Everything it does](#everything-it-does) works regardless.
+
+Each is licensed as the project it forks — GPL-3.0 for Weasel and Squirrel,
+GPL-2.0-or-later for `fcitx5-rime`; this repository is MIT. The Windows and
+macOS builds ship unsigned, as upstream Squirrel's own releases do:
+right-click → **Open** the first time.
 
 **Staying on the Rime you already have** costs you those three rows and nothing
 else. Do steps 2, 3 and 4.
@@ -211,7 +229,8 @@ guessing.
 ### Step 3 — redeploy, and check it took
 
 Redeploy the frontend — the Weasel tray icon → **Deploy** (「重新部署」), the
-Squirrel menu-bar icon → **Deploy**, or `ibus restart` — then press
+Squirrel menu-bar icon → **Deploy**, `ibus restart` or `fcitx5-remote -r` —
+then press
 <kbd>F4</kbd> and choose **Spellless**. On Windows the tray icon and the
 language-bar button turn into an **S**, and tapping Shift into plain typing
 brings back Weasel's **A**.
@@ -644,7 +663,11 @@ on the document, so it can read the few characters in front of the caret and
 hand them over, and it can take a character back. On Windows that handle is a
 TSF range; on macOS it is an `IMKTextInput`, where
 `insertText(_:replacementRange:)` does in one call what TSF needs an edit
-session for.
+session for. fcitx5 has both halves as first-class `InputContext` operations
+already — `surroundingText()` and `deleteSurroundingText()` — which is why the
+Linux fork is much the smallest of the three. It pays for that elsewhere:
+there is no atomic replace, so taking a space back is a delete followed by a
+commit rather than one operation, and a client may apply them out of order.
 
 They work where the document is a document; a terminal has already forwarded
 what it was given, so the attempt replays its buffer instead of correcting it.
@@ -656,7 +679,8 @@ they cannot collide and the schema needs no platform branch. Press <kbd>F4</kbd>
 and turn on **edits document** while writing prose in one of those; it resets
 when you next deploy.
 
-The schema finds out which frontend it is talking to rather than being told:
+Three frontends carry that convention now — one for each platform — and the
+schema finds out which it is talking to rather than being told:
 nothing is asked of a frontend until it has set `surrounding_text` at least
 once, and no stock build ever does. So the three ship **on** and are simply
 inert on a stock Weasel or Squirrel, whatever the configuration says.
