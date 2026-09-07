@@ -26,7 +26,7 @@ A person knows a word and cannot reliably produce its spelling at the speed
 they think. They type an approximation. The system must return a short ranked
 list containing the word they meant, fast enough that typing does not stutter.
 
-**Formally.** A dictionary `D` of `N = 83,364` English words, each carrying a
+**Formally.** A dictionary `D` of `N = 83,414` English words, each carrying a
 normalised log-frequency `f(w) ∈ [0,1]`. A query `q ∈ Σ*` where
 `Σ = {a…z, '}`. Return an ordered list `C = (c₁ … c_k)`, `k ≤ 20`, of strings,
 with `q` itself guaranteed to appear somewhere in it. Maximise
@@ -82,7 +82,7 @@ than an application of a known technique.
 | | |
 | --- | --- |
 | **Latency** | Runs on every keystroke inside the IME process. ~2.5 ms mean, under 10 ms at p95. Single-threaded interpreted Lua 5.4, no JIT. |
-| **Scale of the budget** | A naive weighted edit distance against all 83,364 words, *with* the budget and early abort, costs **165 ms per query**. The budget is therefore under 1/70th of a full scan. |
+| **Scale of the budget** | A naive weighted edit distance against all 83,414 words, *with* the budget and early abort, costs **165 ms per query**. The budget is therefore under 1/70th of a full scan. |
 | **Memory** | ~17 MB resident, ~100 ms to load, once per process. |
 | **Dependencies** | None. Pure Lua, no compiled extension, no network, no GPU. The shipped data is 1.3 MB. |
 | **No context** | One composition is one word. The preceding word is available only as an unreliable string of what the IME itself last committed — a mouse click that moves the caret is invisible. There is no sentence, no document, no application state. |
@@ -102,7 +102,7 @@ what remains is a search problem with a hand-built scoring function.
 SCOWL, MIT-licensed, 82,834 entries as vendored), filtered to `[a-z]+` plus
 genuine contractions, merged with 771 hand-added entries — technical
 vocabulary, proper nouns, given names, multi-word phrases, deliberate
-shorthand. **83,364 entries.**
+shorthand. **83,414 entries.**
 
 One preprocessing step is worth noting because it is a general hazard: the
 corpus gives all 64 contractions the same tail count, which is an artefact of
@@ -478,11 +478,24 @@ never worth preferring". A fixed place does.
 ### 4.7 Personal vocabulary
 
 A plain text file of `word → count`, plus optionally the surface form the user
-actually wrote. Every query runs a linear pass over the ≤400 most-used entries,
-applying the same alignments to each. It is a linear pass rather than an index
-lookup on purpose: it guarantees that a word the user has actually chosen is
-always in the running, and cannot be squeezed out of a frequency-ranked
-shortlist by commoner neighbours.
+actually wrote. It is searched by **exactly the machinery that searches the
+dictionary**: `Corpus.of_words` builds the same letter masks, the same
+(length, first letter) buckets and the same two sorted permutations over the
+list in memory, and the same `generate.generate` runs across it. No cap, and
+the whole of a 1,689-word store costs less than the capped scan it replaced.
+
+It used to be a second matcher — a linear pass over the 400 most-used entries
+with its own copies of the exact, prefix, typo, skeleton and cue tests — and
+the cap was load-bearing because that pass cost 4 ms where the indexed scan of
+83,414 dictionary words costs 3 ms. A cap on a store the user fills themselves
+is a promise the software cannot keep: `reidemeister`, learned correctly and
+sitting in the file with a count of 3, was unreachable from every shorthand of
+it because 400 other words were used more often. Unifying them took
+reachability from a real store from 95.8% to 98.3% from a skeleton and from
+88.6% to 92.3% from a four-letter prefix, at half the latency. The second
+implementation had also drifted: it ran the elastic profile over the raw query
+and the raw word rather than over their skeletons, which is where `instead` as
+a reading of `immsn` came from.
 
 This is also how unknown words enter the system: commit `Grothendieck` once and
 `grthndck`, `gthndck` and `grtdck` all find it afterwards, capitalised.
@@ -1232,8 +1245,8 @@ Two things were hiding in this item and **one of them is now done**. A slip
 *inside* shorthand needed only a substitution transition in the subsequence DP
 and a letter-set test relaxed from "every letter appears" to "at most one does
 not" — same scan, same budget structure. It takes corrupted shorthands from
-28% to 85% on the first page and ships off for latency (§8.9), not because it does not
-work.
+28% to 85% on the first page and **ships on**, which spends about a third of
+the remaining p95 headroom (§8.9).
 
 Fuzzy *segmentation* is the expensive half and is still open: `exctlyrght` →
 `exactly right`. The obvious formulation is a lattice — run the fuzzy search at

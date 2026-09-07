@@ -133,7 +133,7 @@ shipped in `generated/` (about 1.3 MB in total):
 
 | File | Size | What it is |
 | --- | --- | --- |
-| `spellless.words` | 756 kB | 83,364 words, newline separated, **most frequent first**. A word's id is its 1-based line number. |
+| `spellless.words` | 756 kB | 83,414 words, newline separated, **most frequent first**. A word's id is its 1-based line number. |
 | `spellless.weights` | 83 kB | one byte per word: log-frequency rescaled onto 0–255. Read straight out of the string with `string.byte`; no parsing, no scaling constants in the Lua. |
 | `spellless.alpha` | 249 kB | word ids sorted alphabetically, 3 bytes each. Exact and prefix lookup. |
 | `spellless.skel` | 249 kB | word ids sorted by consonant skeleton, 3 bytes each. Abbreviation lookup. |
@@ -624,7 +624,7 @@ ordinary punctuation: the branch below ends the word, works out the spacing and
 writes the mark, and all that is added is the switch and a note of which
 character opened the run. The closing one arrives in ASCII mode, where
 `ascii_composer` rejects printable keys where it stands — first in the
-processor list — so nothing behind it runs. Hence `lua_processor@*spellless*delimiter`,
+processor list — so nothing behind it runs. Hence `lua_processor@*spellless*handover`,
 in front of it, which answers for one character in one state and returns
 `kNoop` for everything else.
 
@@ -786,20 +786,25 @@ Three details that are easy to get wrong, and were:
   middle of every later sentence, and written to disk. `worth_remembering`
   keeps a spelling only when the dictionary cannot already account for it: an
   inner capital, an acronym, or a word the corpus has never heard of. A plain
-  lowercase commit clears one, so the store can be corrected by using it, and
-  `repair_personal` drops any that an earlier version wrote.
+  lowercase commit clears one, so the store can be corrected by using it.
+  Nothing repairs the store on load, and three separate repairs have looked
+  obviously right and been wrong — see the note above `Engine.new`, which
+  keeps the reasoning.
 
 ### How it is used
 
-Personal words are matched by a **linear pass over the whole list** rather than
-through the indexes. That is deliberate: it means a word you have actually
-chosen before is always in the running and cannot be squeezed out of a
-frequency-ranked shortlist by commoner neighbours, and it makes a word the
-static corpus has never heard of a candidate the moment it is committed once.
-The list is capped at `personal_scan_limit` (400) so a long history cannot slow
-the matcher down. The cap keeps the words chosen *most often*: the file is
-written back sorted by descending count, so taking the tail of insertion order
-would keep exactly the words you have used least.
+Personal words are matched **through the same indexes as the dictionary**.
+`Corpus.of_words` builds the letter masks, the buckets and the two sorted
+permutations over the list in memory, and `generate.generate` runs across it
+unchanged — so a word you taught it is found by the machinery that finds a
+dictionary word, and a word the static corpus has never heard of becomes a
+candidate the moment it is committed once.
+
+There is no cap and there must not be one. There used to be: the personal half
+was a separate linear matcher, slower per word than the indexed one by two
+orders of magnitude, and the cap existed because of it. What the cap actually
+did was make a word unreachable once you had taught the system four hundred
+others.
 
 A separate mechanism handles vocabulary you know about in advance:
 `data/vocab/*.txt` is merged into the main dictionary at build time

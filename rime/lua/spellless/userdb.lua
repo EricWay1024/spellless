@@ -175,15 +175,6 @@ function UserDB:forget_word(word)
   return true
 end
 
---- Forget how a word is spelled, keeping its count.
-function UserDB:forget_surface(word)
-  if self.surfaces[word] then
-    self.surfaces[word] = nil
-    self.dirty = self.dirty + 1
-    self.dirty_stamp = self.dirty_stamp + 1
-  end
-end
-
 --- How the user last wrote this word, if that was not simply lower case.
 function UserDB:surface(word)
   return self.surfaces[word]

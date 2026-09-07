@@ -82,17 +82,25 @@ def parse_vocab_file(
     it goes through the same fuzzy matching as any other word, which is the
     point: "hongkong" is a thing you can misspell.
 
-    A capitalised entry followed by "+" -- `RAM +`, `React +` -- keeps *both*
-    spellings instead of replacing the lowercase one.  Use it whenever the
-    lowercase word means something on its own: `ram` is an animal, `react` is a
-    verb, and taking either away to gain an acronym is a bad trade.  Without
-    the marker the capitals replace, which is what a name wants: nobody means
-    `grothendieck` or `tqft`.
+    Capitals do not take a lowercase reading away.  `RAM` is offered beside
+    `ram`, `React` beside `react`, `Bloom` beside `bloom` -- both spellings,
+    one keystroke apart.  They replace only where there is nothing to replace:
+    a key never written in lower case anywhere, which is `TQFT`, `CLI`, `Coq`,
+    `Grothendieck`.  That is looked up (`k in base_rank or k in written_lower`)
+    rather than judged, so `ml` gets its millilitres back by appearing as its
+    own lowercase entry beside `ML`.
 
-    The build cannot decide this for you and should not try.  Corpus rank
-    looks like it would work -- `ram` is the 3,032nd word and `tqft` is absent
-    -- but this corpus keeps proper nouns as ordinary lowercase tokens, so
-    `africa` is the 1,500th word and would be classified alongside `ram`.
+    The lookup is wrong about exactly one class, which `#!capitals replace`
+    handles: this corpus keeps proper nouns as ordinary lowercase tokens, so
+    `africa` is its 1,500th word and looks exactly like `ram`.  A file of names
+    says so once.  Treating those 400 names as ambiguous costs three points of
+    top-1, measured.
+
+    An earlier version asked the author to mark each additive entry with a
+    trailing "+".  It was wrong twice over: it is not needed, since keeping
+    both costs one candidate and losing one costs a word; and the judgement it
+    asked for is one nobody makes reliably -- twelve of the first sixty markers
+    written were wrong, and `ml` needed one the rule called pointless.
     """
     freqs: dict[str, int] = {}
     forms: dict[str, str] = {}
@@ -191,11 +199,12 @@ def main() -> int:
     freqs = parse_frequency_list(SOURCE)
 
     ranked = sorted(freqs.items(), key=lambda kv: (-kv[1], kv[0]))
-    # Base-corpus ranks, before a single supplemental word is merged in.  Used
-    # only to check the "+" markers below, never to infer them: this corpus
-    # keeps proper nouns as lowercase tokens, so `africa` looks exactly as
-    # common as `ram` and inferring from rank marks 371 entries, Africa among
-    # them.  See data/README.md.
+    # Base-corpus membership, before a single supplemental word is merged in.
+    # This is what says whether a key has a lowercase reading to keep, so it
+    # has to be measured English rather than our own additions -- every
+    # supplemental word would otherwise look like one.  Membership only: rank
+    # is deliberately not consulted, because it cannot separate a word from a
+    # surname (`bloom` 8,858th, `shannon` 8,139th).  See data/README.md.
     base_rank = {w: i + 1 for i, (w, _) in enumerate(ranked)}
     default_freq = ranked[min(args.vocab_rank, len(ranked)) - 1][1]
     print(f"  supplemental default frequency = {default_freq:,} (rank {args.vocab_rank})")

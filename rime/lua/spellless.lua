@@ -79,10 +79,6 @@ local FORCED_CASE = "spellless_case"
 local ARMED = "spellless_armed"
 local SENTENCE_YES, SENTENCE_NO = "1", "0"
 
-local function write_note(context, value)
-  context:set_property(SENTENCE, value .. ":" .. tostring(context.commit_history.size))
-end
-
 --- The note, if it still describes the text we are looking at.
 local function read_note(context)
   local value, stamp = context:get_property(SENTENCE):match("^([01]):(%d+)$")
@@ -454,11 +450,6 @@ local function read_behind(engine, context, input)
     -- returns "" for unset and "" is truthy in Lua, so assigning it straight
     -- across would silently defeat every automatic capital there is.
     force_style = nil,
-    -- The word fragment the caret is sitting against, if any: delete the space
-    -- after "so" and start typing again and this is "so".  Only ever set from
-    -- the document, because absorbing it means deleting it, and a guess is not
-    -- good enough to delete on.
-    fragment = nil,
   }
   if cfg.version_query ~= "" and input and input:lower() == cfg.version_query then
     -- Read back by the version query, which is the one place that has to
@@ -471,9 +462,6 @@ local function read_behind(engine, context, input)
   local forced = context:get_property(FORCED_CASE)
   if forced ~= "" then out.force_style = forced end
 
-  if document and cfg.absorb_fragment then
-    out.fragment = document:match("([%a][%a']*)$")
-  end
   if not cfg.auto_capitalize then return out end
 
   -- The commit history alone cannot say whether a sentence just ended,

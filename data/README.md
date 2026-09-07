@@ -55,7 +55,7 @@ has an unambiguous permissive licence.
 6. writes the words, and one byte per word holding
    `round(255 · (log f − log f_min) / (log f_max − log f_min))`.
 
-Rejected: 1 entry. Result: **83,364 entries** (82,833 kept + 481 new from the
+Rejected: 1 entry. Result: **83,414 entries** (82,833 kept + 481 new from the
 supplemental files + 50 apostrophe-free contraction spellings).
 
 ### Known weaknesses of this corpus

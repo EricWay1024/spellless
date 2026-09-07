@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-07T19:00:30+00:00",
+  "generated_at": "2026-09-07T19:34:35+00:00",
   "generator": "scripts/build_dictionary.py",
   "entries": 83414,
   "parameters": {
@@ -88,16 +88,5 @@
       "origin": "this repository",
       "licence": "MIT"
     }
-  ],
-  "indexes": {
-    "alpha": {
-      "entries": 83414,
-      "encoding": "u24le"
-    },
-    "skel": {
-      "entries": 83414,
-      "encoding": "u24le",
-      "distinct_skeletons": 62518
-    }
-  }
+  ]
 }

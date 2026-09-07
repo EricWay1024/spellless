@@ -23,7 +23,7 @@ and `install.py` prints it too — and then, in any text box, **type `zzver`**:
 
 ```
 zzver  →  spellless 0.1.3 installed 2026-09-07 01:12
-          83364 words, 799 forms, 3 shortcuts
+          83414 words, 809 forms, 3 shortcuts
           cue 70/9.0, slip 10.0, learn on
           reclaim on, absorb on, word-backspace on
           app com.apple.Notes, document readable, edits allowed

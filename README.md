@@ -427,7 +427,7 @@ twenty minutes ago" stops being a guess.
 
 ```
 zzver  →  spellless 41223bf installed 2026-09-06 12:34
-          83137 words, 622 forms, 3 shortcuts
+          83414 words, 809 forms, 3 shortcuts
           cue 70/9.0, slip 10.0, learn on
 ```
 

@@ -196,16 +196,6 @@ function Engine:possessive_stem(query)
   return nil
 end
 
---- English possessives are productive, and no word list can contain them all.
---- "<stem>'s" inherits the stem's frequency, and through `Engine:surface` its
---- spelling, so it ranks and reads like the name it is built from.
-local function generate_possessive(self, query, out)
-  local stem, weight = self:possessive_stem(query)
-  if not stem then return end
-  out[#out + 1] = { word = stem .. "'s", source = "exact", cost = 0, extra = 0,
-                    freq = weight }
-end
-
 --- How a candidate should be capitalised.
 --- An explicit capital in the input always wins: if you typed "mathe" at the
 --- start of a sentence you meant a capital, but if you typed "MATHE" you meant
@@ -529,9 +519,13 @@ function Engine:suggest(raw, limit, opts)
         end
       end
       items = kept
-    else
-      generate_possessive(self, query, items)
     end
+    -- There is no `else` here, and there is no second way to build a
+    -- possessive.  One used to sit here, generating "<stem>'s" as a word of
+    -- its own for a query the stem split had not taken -- and it could never
+    -- run: the guard above requires the query to match ^[a-z][a-z']*$, so a
+    -- query ending in "'s" always leaves a stem matching it too, and `stem` is
+    -- never nil when it matters.  Everything productive is the split.
   end
 
   local corpus, user = self.corpus, self.user

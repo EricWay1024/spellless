@@ -285,12 +285,13 @@ M.defaults = {
   -- dictionary's log-frequency range is 14.41 nats, so freq_weight buys 2.36
   -- points per nat and one unit of edit cost is priced at 6.78 nats, about
   -- 880:1.  But that is not the number that governs anything: a repair also
-  -- has to cross base_exact - base_typo = 25, and 41 points is 17.4 nats,
-  -- while the entire dynamic range of the corpus is 14.4.  So a full-price
-  -- repair never beats an exact dictionary match at any frequency -- it is a
-  -- veto, not a price -- and in the rank band people actually type, the whole
-  -- frequency spread available is 4.7 nats, enough to overturn a cost gap of
-  -- 0.69 but never a whole edit.
+  -- has to cross base_exact - base_typo = 9, and 25 points is 10.6 nats against
+  -- a corpus whose entire dynamic range is 14.4.  So a full-price repair *can*
+  -- in principle beat an exact dictionary match, and needs a word about 40,000
+  -- times commoner to do it -- which never arises in the band people type,
+  -- where the whole frequency spread available is 4.7 nats: enough to overturn
+  -- a cost gap of 0.69, never a whole edit.  (This comment said 25 and "never"
+  -- until base_exact came down from 100; ALGORITHM.md 4.8 has the working.)
   --
   -- A sweep says the optimum is cost_weight 13-14 rather than 16, worth 0.005
   -- of tuning objective, three or four cases in 1,484 against a standard error
@@ -316,7 +317,7 @@ M.defaults = {
   -- only where English has no choice -- after a modal, after a modal and its
   -- adverbs, and after an infinitive `to` -- and the trigger list in
   -- spellless/preceding.lua carries the measurement that decided where it
-  -- stops.  Over 374,090 slots of real prose it fires on 3,979 and improves
+  -- stops.  Over 374,090 slots of real prose it fires on 3,994 and improves
   -- 11 readings against 0 regressions.
   --
   -- 5 is a page.  The rule reorders that page and cannot touch anything below
@@ -508,7 +509,7 @@ M.defaults = {
   ------------------------------------------------------------------- commands
   -- Two letters that mean "the next key is an instruction, not a letter".
   --
-  -- `qq` because English does not contain it -- one word in 83,364 does, and
+  -- `qq` because English does not contain it -- one word in 83,414 does, and
   -- that one is a corpus artefact -- so it can be typed mid-word without ever
   -- being mistaken for part of one.  What follows it acts on the candidate
   -- list rather than joining the query: see `magic_keys` and spellless.lua.
