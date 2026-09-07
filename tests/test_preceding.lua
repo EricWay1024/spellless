@@ -117,3 +117,17 @@ local ab = { ["e.g."] = true }
 H.ok(not P.ends_sentence("see e.g.", ab), "in the middle of a tail")
 H.ok(not P.ends_sentence("Hello. E.g.", ab), "capitalised at a sentence start")
 H.ok(P.ends_sentence("Hello.", ab), "and an ordinary stop is unaffected")
+
+H.suite("preceding: a modal calls for the bare form of the verb after it")
+for _, tail in ipairs({ "you would ", "we could", "it should  ", "I will ",
+                        "they might ", "that can ", "one must " }) do
+  H.ok(P.expects_bare_verb(tail), ("a bare verb follows %q"):format(tail))
+end
+-- The closed class stops where the grammar does.  After `is/are` an -ed word
+-- is the passive and perfectly ordinary -- 16% of the time in real prose --
+-- and after `have` it is the participle, so neither belongs here.
+for _, tail in ipairs({ "it is ", "they have ", "we are ", "he had ",
+                        "the ", "to ", "", "should not ", "would have " }) do
+  H.ok(not P.expects_bare_verb(tail), ("but not after %q"):format(tail))
+end
+H.ok(not P.expects_bare_verb(nil), "and not with nothing behind at all")

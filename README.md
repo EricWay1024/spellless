@@ -321,6 +321,14 @@ start of an empty text box — but only if you typed the word in lower case, so
 `MATHE` and `kubectl` are left alone. Your own capitals are kept: `Mathe` gives
 `Mathematics`, `RECIEVE` gives `RECEIVE`.
 
+**After a modal, the list prefers the bare verb.** `would rlt` puts `relate`
+ahead of `related`, because English has no "would related" — the nine words
+`would could should must may might shall will can` take the infinitive, and
+nothing else in the sentence is looked at. If you did mean the past tense, type
+its `d`: `rlted` still gives `related`, because a shorthand keeps its
+consonants and typing one is how you say what you meant. Nothing is removed,
+and nothing moves off the first page either way.
+
 **Dropped apostrophes are typography rather than spelling**, so `dont` gives
 `don't`, `youre` gives `you're`, and `its` gives `its` with `it's` right
 behind it. A bare `i` gives `I`, and `eg` gives `e.g.` — committing the

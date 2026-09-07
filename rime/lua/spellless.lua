@@ -440,6 +440,10 @@ local function read_behind(engine, context, input)
   local out = {
     literal_first = preceding.expects_literal(tail),
     sentence_start = false,
+    -- "would relate", never "would related".  Read from the same tail as
+    -- everything else here, so it works from the commit history alone and does
+    -- not wait on a frontend that can read the document.
+    prefer_bare = preceding.expects_bare_verb(tail),
     -- Asked for outright with `qq`, and therefore beating everything the rest
     -- of this function infers.  Set below rather than here: get_property
     -- returns "" for unset and "" is truthy in Lua, so assigning it straight
@@ -513,6 +517,7 @@ local function suggest(engine, input, behind)
   -- letters was still sitting here.
   local key = tostring(behind.sentence_start) .. tostring(behind.literal_first)
       .. tostring(behind.client_app) .. tostring(behind.force_style)
+      .. tostring(behind.prefer_bare)
   if cache.engine == engine and cache.input == input and cache.key == key
      and cache.stamp == engine.user.dirty_stamp then
     return cache.result

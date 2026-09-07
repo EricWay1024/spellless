@@ -533,6 +533,26 @@ function Engine:suggest(raw, limit, opts)
     user = function(item) return user:score(item.word, cfg.user_saturation) end,
     tiebreak = function(item) return item.id or (corpus.n + 1) end,
     previous_class = self:context_class(opts and opts.previous_word),
+    -- After a modal, prefer the bare form -- unless the typist typed the `d`.
+    --
+    -- That escape is what makes the rule safe rather than merely cheap.  A
+    -- consonant skeleton keeps the `d` of an -ed ending, so somebody who means
+    -- "would have called" writes `clld` and not `cll`; over 427,000 words of
+    -- real prose, all twelve genuine -ed forms following a modal had a
+    -- shorthand ending in `d`, so all twelve would have been left alone.  The
+    -- rule can therefore only act where the input itself is silent about it.
+    prefer_bare = (opts and opts.prefer_bare) == true
+        and search:sub(-1) ~= "d",
+    -- An -ed *inflection*, not a word that merely ends in those letters:
+    -- `called` yes, `need` and `proceed` and `indeed` no.  Two lookups, and
+    -- without them the rule demotes "will need", which is most of what follows
+    -- a modal that ends in `ed` at all.
+    past_inflection = function(item)
+      local w = item.word
+      if not w or w:sub(-2) ~= "ed" then return false end
+      return corpus:lookup(w:sub(1, -2)) ~= nil
+          or corpus:lookup(w:sub(1, -3)) ~= nil
+    end,
   }
   local ranked = rank.rank(items, search, cfg, ctx)
 

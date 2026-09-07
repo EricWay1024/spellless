@@ -962,7 +962,14 @@ before being abandoned:
   descent leaves it at −0.15, worth one case in the 1,484 that existed then.
 **They do not interact.**
 - **A part-of-speech class bigram** on the previous word (§8.1). Loses on every
-  previous word it has an opinion about.
+  previous word it has an opinion about. The modal rule that did ship is not a
+  smaller version of this one: it is a constraint rather than a preference, it
+  fires after nine words rather than all of them, and the input can overrule it.
+- **Scoring that rule instead of ordering it.** Eight points off an `-ed`
+  reading after a modal sent `related` from first to fourteenth — the field
+  around a short skeleton is dense, and a penalty small enough to be safe
+  elsewhere is a disappearance here. Reordering one page has the same benefit
+  and a bounded cost.
 - **Deleting the tail charge** from the shorthand channel once the model was
   normalised, on the theory that the normaliser made it redundant. It did not:
   1.6 points of top-1.
@@ -998,7 +1005,9 @@ Stated up front because they rule out otherwise attractive designs:
 This was listed first, as "the single biggest lever". **It was built and
 measured, and the honest answer is that one previous word is worth about 0.4
 points of top-1.** The reasoning that got it wrong is worth spelling out,
-because the same mistake is easy to make about the rest of this list.
+because the same mistake is easy to make about the rest of this list. What
+finally shipped is at the end of the section, and it is not a model of the
+previous word at all — it is one grammatical fact about nine of them.
 
 The chain was: morphological siblings are 24% of misses → siblings differ in
 part of speech → the previous word predicts part of speech. Each link leaks:
@@ -1050,6 +1059,49 @@ data rather than guessed (every sibling sits within 9.8 points of the word that
 beat it; every *exact* match that beat its sibling leads by at least 19.7), and
 points-per-nat matched to the frequency term. `lua bench/context.lua` scores a
 replacement table in one command.
+
+**One context rule does ship, and the contrast is the useful part.** After a
+modal — `would could should must may might shall will can` — English takes the
+bare infinitive, so an `-ed` reading of the next word is not unlikely, it is
+ungrammatical. That is a different kind of claim from anything in the table
+above, and it behaves differently:
+
+```
+  words following        n        -ed     -ing      -s
+  a modal            4,295       0.4%     0.0%    1.7%
+  have / has / had   2,242       4.7%     1.0%    9.8%
+  is / are / was    18,503      16.1%     0.8%    3.5%
+  to                 7,370       1.6%     1.6%    7.4%
+```
+
+(427,498 words of the prose this is for. The closed class stops at the modals
+because the next row is already 4.7%: after `have` the `-ed` form is the
+participle, and after `is` it is the passive.)
+
+Three things keep it honest, and each of them is a thing the class table did
+not have:
+
+* **It tests an inflection, not an ending.** `called` is the past of `call`;
+  `need`, `proceed` and `indeed` are not the past of anything. One dictionary
+  lookup separates them, and without it the rule demotes "will need", which is
+  most of what follows a modal and ends in `-ed` at all.
+* **The input overrules it.** A consonant skeleton keeps its `d`, so somebody
+  who means "would have called" types `clld`, not `cll`. When the query ends in
+  `d` the rule stands down entirely. All twelve genuine post-modal `-ed` forms
+  in the sample had a shorthand ending in `d`, so all twelve are untouched.
+* **It reorders one page and cannot reach past it.** This is where the first
+  attempt was wrong: an 8-point penalty — small, by the standards of §4.8 —
+  moved `related` from first to *fourteenth*, because the field around a
+  three-letter skeleton is dense enough that eight points spans a dozen words.
+  A stable partition of the first five says what grammar knows (which readings
+  are wrong here) and nothing about what it does not (how much better `result`
+  is than `reality`), and bounds the damage at four places.
+
+Measured the same way as the table above, over the 381 distinct post-modal
+targets that are worth typing as shorthand at all: **6 improve, 0 regress**,
+and an `-ed` word leads the list for 20 → 14 of the tokens. That is a small
+number, and it is a real one — which is more than the class table managed at
+any weight.
 
 **So what is still open.** A counted class table from a tagged lexicon, which
 would fix the classifier half. A real word bigram, which is the only thing that

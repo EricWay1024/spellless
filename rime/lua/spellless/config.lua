@@ -308,6 +308,23 @@ M.defaults = {
   extra_weight      = 8,    -- x how much longer the completion is than the input
 
   ---------------------------------------------------------------- context
+  -- How far down the list the modal rule is allowed to reach.
+  --
+  -- Unlike `context_class` below, this one is on, and the difference is the
+  -- difference between a grammatical constraint and a statistical preference.
+  -- That table fired after every word and lost; this fires after nine, where
+  -- English genuinely forbids the inflected form.  Measured over 427,000 words
+  -- of the prose this is for: an -ed word follows a modal 0.4% of the time,
+  -- and every one of the twelve genuine cases would be spared by the `d`
+  -- escape in Engine:suggest.  After `is/are` the same rate is 16.1%, which is
+  -- why the closed class stops where it does.
+  --
+  -- 5 is a page.  The rule reorders that page and cannot touch anything below
+  -- it, so a reading it is wrong about falls to fifth and no further -- which
+  -- is the whole reason this is a partition and not points; see
+  -- rank.defer_inflections.
+  bare_verb_window = 5,
+
   -- One previous word, read as a coarse part-of-speech class.  Off, and while
   -- it is off nothing below is consulted and the ranking is bit-for-bit what it
   -- was -- verified over all 16,429 candidate rows the case files produce.

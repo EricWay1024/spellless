@@ -182,6 +182,38 @@ function M.hold_exact(out)
   end
 end
 
+--- After a modal, sink the -ed readings to the back of the first page.
+---
+--- A reordering and not a score: the two are not the same thing, and the
+--- difference showed up the first time this was tried.  Eight points off
+--- `related` moved it from first to *fourteenth*, because the field around a
+--- three-letter skeleton is dense enough that eight points spans a dozen
+--- words.  That is removal wearing the clothes of a demotion.
+---
+--- A stable partition of the first page says exactly what the rule knows and
+--- nothing more.  Grammar knows which readings are wrong here; it does not
+--- know how much better `result` is than `reality`, so it is not allowed an
+--- opinion about that, and the relative order on each side of the partition is
+--- the ranker's throughout.  The bound is the point: a demoted word cannot
+--- leave the page it was on, so the worst case is one glance rather than one
+--- lost word.
+---
+--- Applied after the sort, because it is about positions and not about scores.
+function M.defer_inflections(out, cfg, ctx)
+  if not ctx.prefer_bare then return end
+  local window = math.min(cfg.bare_verb_window, #out)
+  if window < 2 then return end
+  local keep, sunk = {}, {}
+  for i = 1, window do
+    local item = out[i]
+    if ctx.past_inflection(item) then sunk[#sunk + 1] = item
+    else keep[#keep + 1] = item end
+  end
+  if #sunk == 0 or #keep == 0 then return end
+  for i = 1, #keep do out[i] = keep[i] end
+  for i = 1, #sunk do out[#keep + i] = sunk[i] end
+end
+
 --- Rank `items`, keeping the best-scoring entry per word.
 --- Returns a list ordered by descending score.
 function M.rank(items, query, cfg, ctx)
@@ -218,6 +250,7 @@ function M.rank(items, query, cfg, ctx)
     if a.score ~= b.score then return a.score > b.score end
     return ctx.tiebreak(a) < ctx.tiebreak(b)
   end)
+  M.defer_inflections(out, cfg, ctx)
   return out
 end
 

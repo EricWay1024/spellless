@@ -656,3 +656,46 @@ do
   H.eq(rank_of("instead"), 1, "a word you use is still first when it fits")
   os.remove(path)
 end
+
+H.suite("engine: after a modal, the bare verb comes forward")
+do
+  local rank_of = function(query, word, bare)
+    for i, c in ipairs(engine:suggest(query, 12, { prefer_bare = bare })) do
+      if c.text:gsub("%s+$", "") == word then return i end
+    end
+  end
+  -- The reported case: "would rlt" offered `related` first, which cannot be
+  -- what follows a modal.
+  H.eq(rank_of("rlt", "related", false), 1, "`rlt` alone reads as related")
+  H.ok(rank_of("rlt", "related", true) > 1,
+       "but after a modal something else leads")
+  H.ok(rank_of("ddc", "deduce", true) < rank_of("ddc", "deduce", false),
+       "and the bare verb rises: ddc -> deduce")
+
+  -- Reordering, and bounded: the demoted reading is still on the first page,
+  -- so a typist writing something the rule did not imagine pays one glance.
+  -- Scoring it instead of ordering it sent `related` to fourteenth.
+  H.ok(rank_of("rlt", "related", true) <= 5,
+       "the demoted form does not leave the page it was on")
+
+  -- The escape: a consonant skeleton keeps the `d`, so typing it is how you
+  -- say you meant the inflection, and the rule stands down.
+  H.eq(rank_of("rlted", "related", true), rank_of("rlted", "related", false),
+       "typing the d overrules the grammar")
+  H.eq(rank_of("clld", "called", true), 1, "`would have clld` is left alone")
+
+  -- A word that merely ends in those letters is not an inflection of anything,
+  -- and "will need" is most of what follows a modal and ends in -ed at all.
+  H.eq(rank_of("nd", "need", true), rank_of("nd", "need", false),
+       "`need` is not the past of `nee`")
+  H.eq(rank_of("prcd", "proceed", true), rank_of("prcd", "proceed", false),
+       "nor `proceed` of `procee`")
+
+  -- Nothing below the page moves, in either direction.
+  local plain = engine:suggest("rlt", 30)
+  local bare = engine:suggest("rlt", 30, { prefer_bare = true })
+  H.eq(#bare, #plain, "no candidate is removed")
+  for i = 6, #plain do
+    H.eq(bare[i].text, plain[i].text, ("position %d is untouched"):format(i))
+  end
+end

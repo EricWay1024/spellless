@@ -251,6 +251,32 @@ local caps = mock.translate(spellless, "kubectl", mock.segment({ "abc" }, 0, 7),
 H.eq(caps[#caps].text:gsub(" $", ""), "kubectl",
      "but the literal candidate is never capitalised")
 
+H.suite("adapter: the word before decides whether an -ed reading can lead")
+-- The wiring, not the rule: `preceding` and the ranker are tested where they
+-- live, and what is checked here is that the commit history reaches them.  It
+-- has to work from the history alone, because the frontends that can read the
+-- document are the newer half and this is not worth waiting for.
+do
+  local function lead_for(input)
+    ctx:set_property("spellless_sentence", "")
+    local out = mock.translate(spellless, input,
+                               mock.segment({ "abc" }, 0, #input), env)
+    return (out[1].text:gsub(" $", ""))
+  end
+
+  mock.history:clear(); mock.history:push("exact", "hello")
+  H.eq(lead_for("rlt"), "related", "after an ordinary word, nothing changes")
+
+  mock.history:clear(); mock.history:push("exact", "would")
+  H.ok(lead_for("rlt") ~= "related", "after a modal, an -ed form cannot lead")
+
+  -- The cache is keyed on everything that decides the answer, and this field
+  -- was very nearly left out of it -- which is how `qqc` once did nothing.
+  mock.history:clear(); mock.history:push("exact", "hello")
+  H.eq(lead_for("rlt"), "related",
+       "and the cached answer is not served across the change")
+end
+
 H.suite("adapter: telling a new line from a correction")
 -- Rime clears its commit history for Return and for Backspace alike, so the
 -- processor has to record which one happened.

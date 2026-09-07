@@ -215,6 +215,30 @@ function M.expects_literal(previous)
   return byte(previous, #previous) == byte("\\")
 end
 
+-- The nine words after which English takes a bare infinitive.  A closed class,
+-- and small, which is the entire reason this is worth doing at all: a rule
+-- that fires after every word is a statistical preference and loses (see
+-- docs/ALGORITHM.md §8.1), while a rule that fires after nine is a grammatical
+-- constraint and does not.
+--
+-- `have/has/had` and `is/are/was/were` are deliberately absent.  They take a
+-- past participle, not a bare form, and measuring 427,000 words of real prose
+-- says an -ed word follows them 4.7% and 16.1% of the time against 0.4% after
+-- a modal.  A rule that treated them alike would be wrong six times an hour.
+local MODAL = {}
+for word in ("would could should must may might shall will can"):gmatch("%a+") do
+  MODAL[word] = true
+end
+
+--- Does the text behind the caret call for a bare verb?
+--- The last word of `previous`, if it is a modal.  Nil-safe: no text behind
+--- means no opinion, which is the same answer as an ordinary word.
+function M.expects_bare_verb(previous)
+  if not previous or previous == "" then return false end
+  local last = previous:lower():match("(%a+)%A*$")
+  return last ~= nil and MODAL[last] == true
+end
+
 --- Also used by the tests to document the contract for CJK text.
 M.CLOSERS, M.TERMINATORS = CLOSERS, TERMINATORS
 M.HUGS_PREVIOUS, M.OPENERS = HUGS_PREVIOUS, OPENERS
