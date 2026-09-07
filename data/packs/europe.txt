@@ -1,0 +1,172 @@
+#!rank 40000
+# Travelling in Europe: airports by name, the airlines and railways, and the
+# cities and regions the corpus has only in lower case.
+#
+# A pack rather than shipped vocabulary, for the same reason china.txt and
+# britain.txt are: it is a fact about where you go, not about English.
+#
+# Airports are their names rather than their codes.  Codes were tried and are
+# not worth it: a third of the useful ones collide with ordinary words -- HER,
+# MAN, GOT, INN, MAD, HAM, DUB, BUD, NAP, VIE -- and `her` is the 132nd word in
+# the language.  A capital no longer replaces a lowercase reading, so nothing
+# would have broken, but `HER` leading over `her` is not a trade worth making
+# for an airport code you can also just type.
+#
+# `LOT` and `TAP` are airlines and also the 839th and 6,468th words, so they
+# appear as phrases; `Nice` and `Split` are cities and also ordinary words, and
+# are left out entirely -- add them yourself if you are going.
+#
+# Not included, because the dictionary already spells them correctly: Amsterdam
+# Athens Barcelona Basel Berlin Brussels Budapest Copenhagen Cologne Edinburgh
+# Florence Frankfurt Geneva Hamburg Helsinki Istanbul Lisbon Madrid Milan Munich
+# Naples Oslo Porto Prague Rotterdam Seville Stockholm Valencia Venice Vienna
+# Warsaw Zurich Norwegian Swiss Austrian, and every ordinary travel word from
+# `passport` and `layover` to `funicular` and `turnstile`.
+
+# --- airports, by the name people say
+Heathrow
+Gatwick
+Stansted
+Luton
+Schiphol
+Charles de Gaulle
+Orly
+Beauvais
+Fiumicino
+Ciampino
+Malpensa
+Linate
+Marco Polo
+Brandenburg
+Tegel
+Tempelhof
+Fraport
+Arlanda
+Bromma
+Kastrup
+Gardermoen
+Vantaa
+Keflavik
+Kloten
+Barajas
+El Prat
+Zaventem
+Schwechat
+Chopin
+Otopeni
+Ruzyne
+Ataturk
+Sabiha
+Venizelos
+
+# --- airlines
+easyJet
+Ryanair
+Vueling
+Eurowings
+Transavia
+Wizz Air
+Finnair
+Alitalia
+Aegean
+Lufthansa
+Iberia
+Aer Lingus
+KLM
+SAS
+ITA Airways
+TAP Portugal
+LOT Polish
+
+# --- trains, coaches, and the apps for them
+Eurostar
+Thalys
+Trenitalia
+Italo
+Renfe
+Interrail
+Eurail
+Flixbus
+BlaBlaCar
+Omio
+Deutsche Bahn
+Trainline
+
+# --- the words the corpus is missing
+Schengen
+checkin
+couchette
+validator
+eurozone
+
+# --- cities the corpus has only in lower case
+Belgrade
+Bergen
+Bilbao
+Bologna
+Bordeaux
+Bratislava
+Bremen
+Bucharest
+Dresden
+Dubrovnik
+Dusseldorf
+Genoa
+Ghent
+Gothenburg
+Granada
+Innsbruck
+Krakow
+Lausanne
+Leipzig
+Ljubljana
+Lyon
+Malaga
+Malmo
+Marseille
+Monaco
+Nantes
+Nuremberg
+Palermo
+Reykjavik
+Riga
+Salzburg
+Santorini
+Sofia
+Strasbourg
+Stuttgart
+Tallinn
+Thessaloniki
+Toulouse
+Trieste
+Turin
+Utrecht
+Verona
+Vilnius
+Zagreb
+
+# --- regions
+Andalusia
+Algarve
+Alsace
+Apennines
+Balearics
+Balkans
+Baltics
+Bavaria
+Benelux
+Brittany
+Carpathians
+Catalonia
+Cyclades
+Dalmatia
+Dolomites
+Flanders
+Lapland
+Normandy
+Peloponnese
+Provence
+Pyrenees
+Tuscany
+Umbria
+Wallonia

@@ -171,6 +171,7 @@ python3 scripts/import_pack.py topology china
 | --- | --- |
 | `topology.txt` | names, objects and adjectives from topology and geometry |
 | `software.txt` | computer science and software engineering, past what everyone needs |
+| `europe.txt` | airports by name, airlines, railways, cities and regions |
 | `britain.txt` | British institutions, mostly acronyms |
 | `china.txt` | provinces, and words English borrowed |
 
