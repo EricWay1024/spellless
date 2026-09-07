@@ -133,7 +133,7 @@ shipped in `generated/` (about 1.3 MB in total):
 
 | File | Size | What it is |
 | --- | --- | --- |
-| `spellless.words` | 756 kB | 83,169 words, newline separated, **most frequent first**. A word's id is its 1-based line number. |
+| `spellless.words` | 756 kB | 83,364 words, newline separated, **most frequent first**. A word's id is its 1-based line number. |
 | `spellless.weights` | 83 kB | one byte per word: log-frequency rescaled onto 0–255. Read straight out of the string with `string.byte`; no parsing, no scaling constants in the Lua. |
 | `spellless.alpha` | 249 kB | word ids sorted alphabetically, 3 bytes each. Exact and prefix lookup. |
 | `spellless.skel` | 249 kB | word ids sorted by consonant skeleton, 3 bytes each. Abbreviation lookup. |

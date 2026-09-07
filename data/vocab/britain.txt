@@ -1,0 +1,52 @@
+#!rank 40000
+# British institutions, mostly acronyms, and a few words the corpus is too old
+# for.
+#
+# The place names are already there and this file deliberately does not repeat
+# them: Google Books has read a great deal about Oxford, Cornwall, Snowdonia
+# and the Cotswolds, and every one of eighteen cities and sixteen counties
+# checked was already in the dictionary. What it has not read is a form filled
+# in this century.
+#
+# Same bar as technology.txt: nothing whose lowercase spelling is a word
+# someone might mean. `NICE` is out for that reason -- the institute exists,
+# and so does the adjective, which is rank 1,237. `MoD` and `Queens` likewise.
+
+# ------------------------------------------------------------------- bodies
+NHS
+BBC
+HMRC
+DEFRA
+Ofsted
+Ofcom
+OFGEM
+UCAS
+DVLA
+FCDO
+DWP
+ONS
+MHRA
+RSPB
+RNLI
+
+# research councils, which are how a grant is described
+EPSRC
+STFC
+UKRI
+JISC
+
+# ------------------------------------------------- Oxford colleges the corpus lacks
+# Balliol, Magdalen, Keble, Linacre, Pembroke, Worcester, Exeter and Jesus are
+# already in it -- several because they are also ordinary words or places, which
+# is exactly why they are not repeated here.
+Wadham
+Somerville
+Nuffield
+Wolfson
+Brasenose
+
+# --------------------------------------------------------------------- words
+Brexit
+Holyrood
+Stormont
+Hogmanay

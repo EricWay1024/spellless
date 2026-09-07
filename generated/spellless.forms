@@ -2,15 +2,18 @@ accordingto	according to
 accra	Accra
 adams	Adams
 adrian	Adrian
+aes	AES
 afghanistan	Afghanistan
 africa	Africa
 african	African
 agreatdealof	a great deal of
+ai	AI
 aint	ain't
 alexander	Alexander
 alexei	Alexei
 algeria	Algeria
 alice	Alice
+alipay	Alipay
 allofthem	all of them
 allofwhich	all of which
 alotof	a lot of
@@ -21,13 +24,16 @@ amsterdam	Amsterdam
 andrei	Andrei
 andrew	Andrew
 angela	Angela
+anhui	Anhui
 ankara	Ankara
 anna	Anna
+ansible	Ansible
 antarctica	Antarctica
 anthony	Anthony
 anton	Anton
 antwerp	Antwerp
 anumberof	a number of
+api	API
 april	April
 arabic	Arabic
 arent	aren't
@@ -36,6 +42,7 @@ arthur	Arthur
 arxiv	arXiv
 asaresult	as a result
 asawhole	as a whole
+ascii	ASCII
 asfaras	as far as
 asfollows	as follows
 asia	Asia
@@ -55,6 +62,7 @@ auckland	Auckland
 australia	Australia
 australian	Australian
 austria	Austria
+aws	AWS
 baghdad	Baghdad
 baltimore	Baltimore
 banach	Banach
@@ -65,6 +73,7 @@ barbara	Barbara
 barcelona	Barcelona
 basel	Basel
 bath	Bath
+bbc	BBC
 becauseof	because of
 beijing	Beijing
 belgium	Belgium
@@ -72,7 +81,9 @@ benjamin	Benjamin
 berkeley	Berkeley
 berlin	Berlin
 bernard	Bernard
+bilibili	Bilibili
 birmingham	Birmingham
+bitbucket	Bitbucket
 bockstein	Bockstein
 bogota	Bogota
 bolivia	Bolivia
@@ -83,8 +94,10 @@ bothofthem	both of them
 botswana	Botswana
 bott	Bott
 bourbaki	Bourbaki
+brasenose	Brasenose
 brazil	Brazil
 brazilian	Brazilian
+brexit	Brexit
 brian	Brian
 brisbane	Brisbane
 bristol	Bristol
@@ -120,15 +133,22 @@ chinese	Chinese
 christina	Christina
 christopher	Christopher
 clara	Clara
+cli	CLI
+clojure	Clojure
+cloudflare	Cloudflare
 cologne	Cologne
 colombia	Colombia
 copenhagen	Copenhagen
 costarica	Costa Rica
 couldnt	couldn't
 couldve	could've
+cpu	CPU
 croatia	Croatia
 croatian	Croatian
+css	CSS
+csv	CSV
 cuba	Cuba
+cuda	CUDA
 cw	CW
 czech	Czech
 czechrepublic	Czech Republic
@@ -139,6 +159,7 @@ darent	daren't
 david	David
 december	December
 dedekind	Dedekind
+defra	DEFRA
 delhi	Delhi
 deligne	Deligne
 denmark	Denmark
@@ -148,14 +169,19 @@ despitethefactthat	despite the fact that
 detroit	Detroit
 diana	Diana
 didnt	didn't
+django	Django
 dmitri	Dmitri
+dns	DNS
 doesnt	doesn't
 dont	don't
 douglas	Douglas
+douyin	Douyin
 dublin	Dublin
 dueto	due to
 durham	Durham
 dutch	Dutch
+dvla	DVLA
+dwp	DWP
 eachofwhich	each of which
 eachother	each other
 ecuador	Ecuador
@@ -171,8 +197,11 @@ elizabeth	Elizabeth
 emil	Emil
 emma	Emma
 english	English
+epsrc	EPSRC
 erdos	Erdos
 eric	Eric
+erlang	Erlang
+eslint	ESLint
 estonia	Estonia
 ethiopia	Ethiopia
 euclidean	Euclidean
@@ -182,13 +211,17 @@ evenif	even if
 eventhough	even though
 exeter	Exeter
 fabian	Fabian
+fastapi	FastAPI
+fcdo	FCDO
 february	February
 felix	Felix
+figma	Figma
 finland	Finland
 finnish	Finnish
 florence	Florence
 forexample	for example
 forinstance	for instance
+fortran	Fortran
 fourier	Fourier
 france	France
 francis	Francis
@@ -197,20 +230,34 @@ french	French
 friday	Friday
 friedrich	Friedrich
 frobenius	Frobenius
+fudan	Fudan
+fujian	Fujian
 galois	Galois
+gansu	Gansu
 geneva	Geneva
 george	George
 gerald	Gerald
 german	German
 germany	Germany
 ghana	Ghana
+gif	GIF
+github	GitHub
+gitlab	GitLab
 glasgow	Glasgow
+golang	Golang
+gpg	GPG
+gps	GPS
+gpu	GPU
+grafana	Grafana
 grassmannian	Grassmannian
 greece	Greece
 greek	Greek
 gregory	Gregory
 grothendieck	Grothendieck
+guangdong	Guangdong
 guangzhou	Guangzhou
+gui	GUI
+guizhou	Guizhou
 hadnt	hadn't
 hamburg	Hamburg
 hamiltonian	Hamiltonian
@@ -221,21 +268,33 @@ hasnt	hasn't
 hausdorff	Hausdorff
 havana	Havana
 havent	haven't
+hdd	HDD
+hebei	Hebei
 hebrew	Hebrew
 hed	he'd
+hefei	Hefei
 heinrich	Heinrich
 helena	Helena
 helsinki	Helsinki
+henan	Henan
 henry	Henry
 hessian	Hessian
 hilbert	Hilbert
 hindi	Hindi
 hirzebruch	Hirzebruch
+hmrc	HMRC
+hogmanay	Hogmanay
+hokkien	Hokkien
+holyrood	Holyrood
 hongkong	Hong Kong
 houston	Houston
 howd	how'd
 howll	how'll
 howre	how're
+html	HTML
+http	HTTP
+https	HTTPS
+hubei	Hubei
 hugo	Hugo
 hungarian	Hungarian
 hungary	Hungary
@@ -244,13 +303,16 @@ i'd	I'd
 i'll	I'll
 i'm	I'm
 i've	I've
+iaas	IaaS
 iceland	Iceland
 icelandic	Icelandic
+ide	IDE
 idk	I don't know
 ie	i.e.
 ifandonlyif	if and only if
 igor	Igor
 im	I'm
+imap	IMAP
 inaddition	in addition
 incontrast	in contrast
 india	India
@@ -267,8 +329,11 @@ inpractice	in practice
 inprinciple	in principle
 inspiteof	in spite of
 insteadof	instead of
+intellij	IntelliJ
 intermsof	in terms of
 inthesensethat	in the sense that
+ios	iOS
+ipados	iPadOS
 iran	Iran
 iranian	Iranian
 iraq	Iraq
@@ -299,15 +364,22 @@ japanese	Japanese
 jeffrey	Jeffrey
 jennifer	Jennifer
 jerusalem	Jerusalem
+jiangsu	Jiangsu
+jiangxi	Jiangxi
+jisc	JISC
 john	John
 jonathan	Jonathan
 joseph	Joseph
+jpeg	JPEG
+json	JSON
 julia	Julia
 julian	Julian
 july	July
 june	June
+jupyter	Jupyter
 jurgen	Jurgen
 justin	Justin
+jwt	JWT
 kahler	Kahler
 kan	Kan
 karachi	Karachi
@@ -320,11 +392,14 @@ kindof	kind of
 klaus	Klaus
 korea	Korea
 korean	Korean
+kotlin	Kotlin
 kualalumpur	Kuala Lumpur
+kubernetes	Kubernetes
 kyoto	Kyoto
 lagos	Lagos
 lagrangian	Lagrangian
 lahore	Lahore
+lan	LAN
 laos	Laos
 laplace	Laplace
 laplacian	Laplacian
@@ -342,6 +417,7 @@ lima	Lima
 lisbon	Lisbon
 lithuania	Lithuania
 liverpool	Liverpool
+llm	LLM
 london	London
 losangeles	Los Angeles
 louis	Louis
@@ -350,6 +426,7 @@ ludwig	Ludwig
 lurie	Lurie
 luxembourg	Luxembourg
 maclane	MacLane
+macos	macOS
 madrid	Madrid
 malaysia	Malaysia
 manchester	Manchester
@@ -359,6 +436,7 @@ maria	Maria
 marta	Marta
 martin	Martin
 mathscinet	MathSciNet
+matlab	MATLAB
 matthew	Matthew
 matthias	Matthias
 melbourne	Melbourne
@@ -367,6 +445,7 @@ mesopotamia	Mesopotamia
 mexican	Mexican
 mexico	Mexico
 mexicocity	Mexico City
+mhra	MHRA
 miami	Miami
 michael	Michael
 michelle	Michelle
@@ -375,22 +454,26 @@ mikhail	Mikhail
 milan	Milan
 milnor	Milnor
 monday	Monday
+mongodb	MongoDB
 mongolia	Mongolia
 montreal	Montreal
 morethan	more than
 morocco	Morocco
 moscow	Moscow
 mostofwhich	most of which
+mp	MP4
 msg	message
 mumbai	Mumbai
 munich	Munich
 mustnt	mustn't
 mustve	must've
 myanmar	Myanmar
+mysql	MySQL
 nairobi	Nairobi
 namibia	Namibia
 nanjing	Nanjing
 naples	Naples
+nas	NAS
 natalia	Natalia
 needlesstosay	needless to say
 neednt	needn't
@@ -402,11 +485,16 @@ newmexico	New Mexico
 neworleans	New Orleans
 newyork	New York
 newzealand	New Zealand
+nginx	Nginx
+nhs	NHS
 nicholas	Nicholas
 nicole	Nicole
 nigeria	Nigeria
 nigerian	Nigerian
 nikolai	Nikolai
+ningbo	Ningbo
+ningxia	Ningxia
+nlp	NLP
 noether	Noether
 nolonger	no longer
 noneofthem	none of them
@@ -417,20 +505,32 @@ norwegian	Norwegian
 notethat	note that
 nottingham	Nottingham
 november	November
+nuffield	Nuffield
+oauth	OAuth
 oclock	o'clock
+ocr	OCR
 october	October
+ofcom	Ofcom
 ofcourse	of course
+ofgem	OFGEM
+ofsted	Ofsted
 olga	Olga
 onaverage	on average
 onceagain	once again
 oneanother	one another
+ons	ONS
 ontheotherhand	on the other hand
+opengl	OpenGL
+opensuse	openSUSE
+orm	ORM
+os	OS
 osaka	Osaka
 oscar	Oscar
 oslo	Oslo
 ottawa	Ottawa
 owingto	owing to
 oxford	Oxford
+paas	PaaS
 pakistan	Pakistan
 paraguay	Paraguay
 paris	Paris
@@ -440,43 +540,59 @@ paul	Paul
 paula	Paula
 pavel	Pavel
 pde	PDE
+pdf	PDF
 persian	Persian
 perth	Perth
 peru	Peru
 peter	Peter
+pgp	PGP
 philadelphia	Philadelphia
 philip	Philip
 philippines	Philippines
 pittsburgh	Pittsburgh
 pls	please
+png	PNG
 poincare	Poincare
 poland	Poland
 porto	Porto
 portugal	Portugal
 portuguese	Portuguese
+postgres	Postgres
+postgresql	PostgreSQL
 postnikov	Postnikov
+powershell	PowerShell
 prague	Prague
 princeton	Princeton
 providedthat	provided that
 puertorico	Puerto Rico
+pycharm	PyCharm
+pytorch	PyTorch
 qft	QFT
+qinghai	Qinghai
 quillen	Quillen
 rachel	Rachel
 ratherthan	rather than
 rebecca	Rebecca
 recallthat	recall that
+redis	Redis
+renminbi	Renminbi
 ricci	Ricci
 richard	Richard
 riemann	Riemann
 riodejaneiro	Rio de Janeiro
+rnli	RNLI
 robert	Robert
 romania	Romania
 romanian	Romanian
 rome	Rome
 ronald	Ronald
 rotterdam	Rotterdam
+rsa	RSA
+rspb	RSPB
+rss	RSS
 russia	Russia
 russian	Russian
+saas	SaaS
 samuel	Samuel
 sandiego	San Diego
 sanfrancisco	San Francisco
@@ -488,6 +604,7 @@ saudiarabia	Saudi Arabia
 scandinavia	Scandinavia
 scotland	Scotland
 scottish	Scottish
+sdk	SDK
 seattle	Seattle
 sebastian	Sebastian
 segal	Segal
@@ -499,8 +616,11 @@ serbian	Serbian
 sergei	Sergei
 serre	Serre
 seville	Seville
+sha	SHA
+shaanxi	Shaanxi
 shanghai	Shanghai
 shant	shan't
+shanxi	Shanxi
 sheffield	Sheffield
 shenzhen	Shenzhen
 shouldnt	shouldn't
@@ -512,10 +632,12 @@ singapore	Singapore
 slovakia	Slovakia
 slovenia	Slovenia
 smth	something
+smtp	SMTP
 sobolev	Sobolev
 sofar	so far
 somebodys	somebody's
 someofwhich	some of which
+somerville	Somerville
 sophia	Sophia
 sophie	Sophie
 sortof	sort of
@@ -524,19 +646,26 @@ southafrica	South Africa
 southkorea	South Korea
 spain	Spain
 spanish	Spanish
+sql	SQL
+sqlite	SQLite
 srilanka	Sri Lanka
+ssd	SSD
+ssl	SSL
 stanford	Stanford
 steenrod	Steenrod
 stephanie	Stephanie
 stephen	Stephen
 steven	Steven
+stfc	STFC
 sth	something
 stockholm	Stockholm
+stormont	Stormont
 stpetersburg	St Petersburg
 suchthat	such that
 sunday	Sunday
 supposethat	suppose that
 svetlana	Svetlana
+svg	SVG
 swahili	Swahili
 sweden	Sweden
 swedish	Swedish
@@ -546,8 +675,10 @@ sylow	Sylow
 taipei	Taipei
 tanzania	Tanzania
 tatiana	Tatiana
+tcp	TCP
 tehran	Tehran
 telaviv	Tel Aviv
+tensorflow	TensorFlow
 teresa	Teresa
 thai	Thai
 thailand	Thailand
@@ -567,41 +698,69 @@ thomas	Thomas
 thursday	Thursday
 thx	thanks
 timothy	Timothy
+tls	TLS
 tmr	tomorrow
 tmrw	tomorrow
 tokyo	Tokyo
 toronto	Toronto
 tqft	TQFT
+tsinghua	Tsinghua
+tsv	TSV
 tuesday	Tuesday
 tunisia	Tunisia
 turkish	Turkish
+tvos	tvOS
+typst	Typst
+ucas	UCAS
+udp	UDP
+uefi	UEFI
 uganda	Uganda
+ui	UI
 ukraine	Ukraine
 ukrainian	Ukrainian
+ukri	UKRI
 unitedkingdom	United Kingdom
 unitedstates	United States
 upto	up to
+uri	URI
+url	URL
 uruguay	Uruguay
+usb	USB
+utf	UTF
+uuid	UUID
+ux	UX
 valencia	Valencia
 vancouver	Vancouver
 venezuela	Venezuela
 venice	Venice
+verilog	Verilog
 veronica	Veronica
+vhdl	VHDL
 vienna	Vienna
 vietnam	Vietnam
 vietnamese	Vietnamese
 viktor	Viktor
 vincent	Vincent
+vm	VM
+vpn	VPN
+vscode	VSCode
+wadham	Wadham
 warsaw	Warsaw
 warwick	Warwick
 wasnt	wasn't
+watchos	watchOS
+webassembly	WebAssembly
+webgl	WebGL
+wechat	WeChat
 wednesday	Wednesday
+weibo	Weibo
 weil	Weil
 wellington	Wellington
 welsh	Welsh
 werent	weren't
 weve	we've
 weyl	Weyl
+whatsapp	WhatsApp
 whitehead	Whitehead
 whod	who'd
 wholl	who'll
@@ -612,9 +771,16 @@ wilhelm	Wilhelm
 william	William
 withrespectto	with respect to
 wolfgang	Wolfgang
+wolfson	Wolfson
 wouldnt	wouldn't
 wouldve	would've
+wsl	WSL
 wuhan	Wuhan
+xcode	Xcode
+xiaohongshu	Xiaohongshu
+xinjiang	Xinjiang
+xml	XML
+yaml	YAML
 yau	Yau
 yoneda	Yoneda
 york	York
@@ -626,5 +792,8 @@ yuhang	Yuhang
 yuri	Yuri
 zambia	Zambia
 zariski	Zariski
+zhejiang	Zhejiang
 zimbabwe	Zimbabwe
+zotero	Zotero
+zsh	Zsh
 zurich	Zurich

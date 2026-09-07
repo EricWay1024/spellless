@@ -14,7 +14,7 @@ lua bench/probe.lua                    # the two harsher probes below
 ```
 
 Numbers below are from a single-threaded Lua 5.4.7 build on WSL2
-(x86-64 laptop), dictionary of 83,169 words.
+(x86-64 laptop), dictionary of 83,364 words.
 
 ---
 
@@ -264,7 +264,7 @@ skipped entirely whenever the query is itself a word — which is most of what
 anyone types.
 
 For scale: running just the typo source naively — weighted edit distance
-against all 83,169 words, no buckets, no prefilter — measures **105–115 ms per
+against all 83,364 words, no buckets, no prefilter — measures **105–115 ms per
 query** in the same Lua build (`bench/naive.lua`). The bucketing and prefilters
 described in DESIGN.md §4.5 do that work *and* the skeleton and cue searches in
 about 2.5 ms, roughly a 40× reduction with no measured loss of recall.

@@ -448,21 +448,27 @@ do
   local e = assert(Engine.new{ data_dir = DATA, personal_path = path })
   local function first(q) return e:suggest(q, 5)[1].text:gsub("%s+$", "") end
 
-  local before = first("cli")
-  H.ok(before ~= "CLI", "nothing is promoted to begin with: " .. before)
-  e:learn_choice("cli", "CLI")
-  H.eq(first("cli"), before, "one selection changes nothing")
-  e:learn_choice("cli", "CLI")
-  H.eq(first("cli"), "CLI", "the second puts it first")
-  H.eq(first("CLI"), "CLI", "however the input was capitalised")
+  -- A word the dictionary does *not* answer, which is the case this is about:
+  -- `cli` used to be one until data/vocab/technology.txt put CLI in, and the
+  -- test then passed for the wrong reason.
+  local before = first("kubectl")
+  H.ok(before ~= "kubectl!", "nothing is promoted to begin with: " .. before)
+  e:learn_choice("kubectl", "kubectl!")
+  H.eq(first("kubectl"), before, "one selection changes nothing")
+  e:learn_choice("kubectl", "kubectl!")
+  H.eq(first("kubectl"), "kubectl!", "the second puts it first")
+  -- Found however the input was capitalised, and cased to the input rather
+  -- than to the day it was learned -- which is what surface() is for.  The
+  -- older version of this test used CLI and could not tell the two apart.
+  H.eq(first("KUBECTL"), "KUBECTL!", "found however the input was capitalised")
 
   -- It is placed, not scored, so frequency does not argue with it.
   e:learn_choice("teh", "hello"); e:learn_choice("teh", "hello")
   H.eq(first("teh"), "hello", "even over an overwhelming correction")
 
   -- And the forget key takes it back, or it would lead for ever.
-  e:forget("CLI")
-  H.eq(first("cli"), before, "forgetting the word forgets the correction too")
+  e:forget("kubectl!")
+  H.eq(first("kubectl"), before, "forgetting the word forgets the correction too")
 
   -- Return commits the raw input, which is a refusal to choose rather than a
   -- choice; the adapter never calls this for it, and it declines junk anyway.

@@ -55,7 +55,7 @@ has an unambiguous permissive licence.
 6. writes the words, and one byte per word holding
    `round(255 · (log f − log f_min) / (log f_max − log f_min))`.
 
-Rejected: 1 entry. Result: **83,169 entries** (82,833 kept + 286 new from the
+Rejected: 1 entry. Result: **83,364 entries** (82,833 kept + 481 new from the
 supplemental files + 50 apostrophe-free contraction spellings).
 
 ### Known weaknesses of this corpus
@@ -90,10 +90,32 @@ remembers the capitals as a surface form, so `grthndck` gives back
 spelling would be wrong — `Noether` yes, `manifold` no, and `latex` and
 `noetherian` deliberately not, because their lowercase readings are real.
 
-`vocab/math_sample.txt` is a **sample**, provided to demonstrate the mechanism.
-It contains around 300 words of pure mathematics, its working vocabulary and
-the names that go with it. Nothing in `rime/lua/` refers to it, and deleting it
-changes nothing but the dictionary contents.
+The shipped files, and what each is for:
+
+| file | what it holds |
+| --- | --- |
+| `proper_nouns.txt` | words only ever written with a capital |
+| `given_names.txt` | first names, so a colleague is typeable |
+| `technology.txt` | acronyms, platforms and libraries the corpus is too old for |
+| `britain.txt` | British institutions, mostly acronyms |
+| `china.txt` | provinces, and words English borrowed |
+| `contractions.txt` | the ones the base list lost or misspelled |
+| `interjections.txt` | `oh`, `ah`, `ok` — absent from the base list entirely |
+| `abbreviations.txt` | `eg`, `ie`, typed without their dots |
+| `shorthand.txt` | `sth`, `tmrw` — typed *instead of* the word |
+| `phrases.txt` | word groups that behave as one word |
+| `math_sample.txt` | ~300 words of pure mathematics, as a **sample** of the mechanism |
+
+**The bar for a capitalised entry is sharper than it looks**, and
+`technology.txt` states it at length because acronyms are where it bites.
+Giving a key a written form applies that form *everywhere*: adding `RAM` makes
+`ram` commit as `RAM`, including when you meant the animal. So an entry is only
+safe when nobody means the lowercase spelling — which rules out `REST`, `POP`,
+`CD`, `ARM`, `CAD`, `Bash`, `React`, `Notion` and `Fedora`, and also `ML`,
+because `ml` is millilitres even though it is not a word.
+
+Nothing in `rime/lua/` refers to any of these files, and deleting one changes
+nothing but the dictionary contents.
 
 For vocabulary you want to add without rebuilding, use the personal file
 instead — `<rime user dir>/spellless_user.txt`, same format, read at startup.

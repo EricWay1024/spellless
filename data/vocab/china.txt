@@ -1,0 +1,65 @@
+#!rank 40000
+# Chinese provinces, and words English has borrowed without the corpus
+# noticing.
+#
+# The cities were already there -- twenty-three of twenty-five checked,
+# Shenzhen and Chengdu and Harbin included -- because Google Books has read
+# about them. The provinces mostly were not, which is the sort of asymmetry a
+# books corpus produces: places are written about, administrative divisions are
+# filled in on forms.
+#
+# Romanisation is pinyin without tone marks, which is what anyone types.
+# `Shanxi` and `Shaanxi` are two different provinces and both are here; the
+# doubled `a` is the only thing distinguishing them in this spelling, and
+# getting it wrong is a mistake the matcher should be able to repair rather
+# than one it should make.
+
+# --------------------------------------------------------------- provinces
+Guangdong
+Zhejiang
+Jiangsu
+Fujian
+Hubei
+Henan
+Hebei
+Shanxi
+Shaanxi
+Gansu
+Xinjiang
+Guizhou
+Anhui
+Jiangxi
+Ningxia
+Qinghai
+
+# ------------------------------------------------------------------ cities
+Ningbo
+Hefei
+
+# ------------------------------------------------------- borrowed into English
+hanzi
+hanyu
+putonghua
+Hokkien
+wuxia
+hutong
+qipao
+hanfu
+guanxi
+baijiu
+xiaolongbao
+mapo
+kungfu
+taiji
+qigong
+fengshui
+Renminbi
+
+# --------------------------------------------- universities and what people use
+Tsinghua
+Fudan
+Alipay
+Weibo
+Douyin
+Bilibili
+Xiaohongshu

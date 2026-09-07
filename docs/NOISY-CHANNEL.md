@@ -8,7 +8,7 @@
 
 Let $\Sigma = \{\texttt{a},\dots,\texttt{z},\texttt{'}\}$ and let $V = \{\texttt{a},\texttt{e},\texttt{i},\texttt{o},\texttt{u}\} \subset \Sigma$ be the vowels.
 
-Let $D \subset \Sigma^{*}$ be the dictionary, $N = |D| = 83{,}169$, equipped with a normalised log-frequency
+Let $D \subset \Sigma^{*}$ be the dictionary, $N = |D| = 83{,}364$, equipped with a normalised log-frequency
 $$f : D \to [0,1], \qquad f(w) = \frac{\log \nu(w) - \log \nu_{\min}}{\log \nu_{\max} - \log \nu_{\min}},$$
 where $\nu$ is a corpus count. The dynamic range $\log \nu_{\max} - \log \nu_{\min}$ is $14.41$ nats; this constant sets the exchange rate in §5.
 

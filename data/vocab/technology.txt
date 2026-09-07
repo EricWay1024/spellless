@@ -1,0 +1,173 @@
+#!rank 30000
+# Words the computer put into English after the corpus stopped reading.
+#
+# `frequency_dictionary_en_82_765.txt` is built from Google Books and knows
+# `docker`, `python` and `linux` -- which have other lives -- while having
+# never heard of `macOS`, `JSON`, `kubectl` or `numpy`. That is not a gap in
+# English; it is a gap between when the books were written and when these were
+# named.
+#
+# The bar is the one in proper_nouns.txt, applied twice over, because an
+# acronym is a much more dangerous entry than a place name.
+#
+#   1. **The lowercase spelling must not already be a word.** Adding `RAM`
+#      gives the key `ram` a written form, so typing `ram` commits `RAM` --
+#      everywhere, including when you meant the animal. The same objection
+#      retires `REST`, `POP`, `CD`, `ARM`, `SIM`, `CAD`, `RAID`, `WAN`, `MOD`
+#      and `ROM`, and on the same grounds `Bash`, `React`, `Notion`, `Fedora`
+#      (a hat), `Nice`, `Rest` and `Trinity`. Every one of those is still
+#      typeable; it simply keeps the spelling English gave it.
+#
+#   2. **It has to be something you would type in prose.** Not every acronym in
+#      a standards document belongs in a dictionary that has to rank `API`
+#      against every four-letter word.
+#
+# Ranked at 30,000 -- below ordinary prose, above the tail -- because these are
+# common in one kind of writing and absent from every other.
+
+# ------------------------------------------------------------------ acronyms
+API
+CLI
+GUI
+URL
+URI
+JSON
+YAML
+XML
+HTML
+CSS
+SQL
+HTTP
+HTTPS
+TCP
+UDP
+DNS
+VPN
+LAN
+CPU
+GPU
+SSD
+HDD
+USB
+PDF
+CSV
+TSV
+IDE
+SDK
+ORM
+OAuth
+JWT
+UUID
+ASCII
+UTF
+SVG
+PNG
+JPEG
+GIF
+MP3
+MP4
+RSS
+SMTP
+IMAP
+TLS
+SSL
+AES
+RSA
+SHA
+GPG
+PGP
+UEFI
+NAS
+SaaS
+IaaS
+PaaS
+NLP
+OCR
+GPS
+LLM
+
+# Two letters, and deliberately few: at this length an entry is a rival for
+# half the short input there is. These earn it by being unambiguous.
+#
+# `ML` is not among them, and the reason generalises. It is not a word, so it
+# passes the test above -- but `ml` is millilitres, which people write in
+# ordinary prose, and giving it a form makes that impossible to type. The test
+# is really "is the lowercase spelling meant by anyone", and units count.
+#
+# Losing it costs almost nothing, which is the other half of the argument:
+# typing `ML` with the shift held offers `ML` as the literal anyway. What an
+# entry here buys is the *lowercase* route -- `json` giving `JSON` -- and for
+# `ml` that route is the one worth blocking.
+OS
+VM
+UI
+UX
+AI
+
+# ---------------------------------------------------- systems and platforms
+macOS
+iOS
+iPadOS
+watchOS
+tvOS
+openSUSE
+WSL
+Kubernetes
+GitHub
+GitLab
+Bitbucket
+VSCode
+Xcode
+IntelliJ
+PyCharm
+Nginx
+Postgres
+PostgreSQL
+MySQL
+SQLite
+MongoDB
+Redis
+Ansible
+Grafana
+Cloudflare
+AWS
+Zotero
+Figma
+WhatsApp
+WeChat
+
+# ------------------------------------------------------------------ languages
+Golang
+Kotlin
+MATLAB
+Typst
+Erlang
+Clojure
+Fortran
+Verilog
+VHDL
+Zsh
+PowerShell
+CUDA
+OpenGL
+WebGL
+WebAssembly
+
+# ------------------------------------------------------------------ libraries
+numpy
+scipy
+PyTorch
+TensorFlow
+scikit
+sklearn
+matplotlib
+seaborn
+Jupyter
+conda
+npm
+pnpm
+webpack
+ESLint
+pytest
+Django
+FastAPI
