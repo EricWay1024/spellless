@@ -578,6 +578,11 @@ how to tell whether it actually did, and the ways it silently does not. Short
 version: `make && make test && python3 scripts/install.py`, redeploy the
 frontend, then type `zzver` and check the revision.
 
+[docs/NOISY-CHANNEL.md](docs/NOISY-CHANNEL.md) — the same algorithm as a
+decision problem over a family of noisy channels, for a reader who would rather
+see the decomposition stated than described. Shorter than ALGORITHM.md and
+carries none of the evaluation.
+
 [docs/RELEASING.md](docs/RELEASING.md) — how to cut the two release products:
 the schema archive, which runs on every platform Rime does, and the bundled
 Windows installer. `make release VERSION=0.1.0` builds the first.
