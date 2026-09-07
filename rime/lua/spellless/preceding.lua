@@ -215,28 +215,150 @@ function M.expects_literal(previous)
   return byte(previous, #previous) == byte("\\")
 end
 
--- The nine words after which English takes a bare infinitive.  A closed class,
--- and small, which is the entire reason this is worth doing at all: a rule
--- that fires after every word is a statistical preference and loses (see
--- docs/ALGORITHM.md §8.1), while a rule that fires after nine is a grammatical
--- constraint and does not.
+-- Where English requires a bare infinitive.
 --
--- `have/has/had` and `is/are/was/were` are deliberately absent.  They take a
--- past participle, not a bare form, and measuring 427,000 words of real prose
--- says an -ed word follows them 4.7% and 16.1% of the time against 0.4% after
--- a modal.  A rule that treated them alike would be wrong six times an hour.
+-- A closed class, and that is the entire reason this is worth doing: a rule
+-- that fires after every word is a statistical preference and loses (see
+-- docs/ALGORITHM.md 8.1), while one that fires only where the grammar is
+-- actually forced is a constraint and does not.  Everything below was measured
+-- on 427,000 words of the prose this is for, and the rate quoted is how often
+-- an -ed inflection really does turn up in that slot:
+--
+--   a modal                 2,598 slots   0.5%
+--   modal + adverbs           518 slots   0.8%
+--   `to`, licensed            856 slots   0.1%
+--   ------------------------------------------- the line, and what is over it
+--   `to`, unlicensed        5,670 slots   1.4%
+--   have / has / had        1,296 slots   6.6%
+--   a / an                 17,306 slots   5.4%
+--
+-- `have` and `is` take a past participle rather than a bare form, and `a`/`an`
+-- are followed by participial adjectives all day long -- `an ordered pair`, `a
+-- related result`.  They are not near misses; they are the rule's opposite.
 local MODAL = {}
-for word in ("would could should must may might shall will can"):gmatch("%a+") do
+for word in ([[would could should must may might shall will can cannot
+               wouldn't couldn't shouldn't mustn't mightn't mayn't
+               shan't won't can't]]):gmatch("[%a']+") do
   MODAL[word] = true
 end
 
+-- `to` is the infinitive marker about a seventh of the time and a preposition
+-- otherwise, and in mathematics the preposition dominates: `isomorphic to`,
+-- `with respect to`, `restricts to`, `due to`.  The word in front of it is the
+-- only local evidence, and it is enough -- licensing on this list takes the
+-- -ed rate in the slot from 1.4% to 0.1%, which is cleaner than the modals.
+local TO_LICENSOR = {}
+for word in ([[want wants wanted need needs needed able unable try tries tried
+               trying have has had having going go goes seems seem seemed
+               appears appear likely unlikely enough used easy hard difficult
+               possible impossible order wish wishes hope hopes hoped aim aims
+               aimed intend intends intended attempt attempts attempted decide
+               decides decided choose chooses chose fail fails failed manage
+               manages managed allow allows allowed require requires required
+               suffices suffice remains remain ought how what where whether
+               tends tend tended prefer prefers preferred continue continues
+               continued expect expects expected seek seeks sought]]):gmatch("%a+") do
+  TO_LICENSOR[word] = true
+end
+
+-- Adverbs stand between the trigger and the verb -- "would not relate", "could
+-- also deduce", "may in fact hold" -- and skipping them is worth a fifth again
+-- as many slots at the same error rate.
+--
+-- The chain stops of its own accord at exactly the right place, which is worth
+-- noticing: `be` and `have` are not adverbs, so "would be related" and "would
+-- have related" -- both perfectly good English -- are never reached.
+local ADVERB = {}
+for word in ([[not never always also still only just probably certainly
+               therefore thus then now well further again instead actually
+               indeed perhaps simply readily generally usually often sometimes
+               rather even already hardly barely nevertheless otherwise
+               however hence first later soon almost nearly quite very]]):gmatch("%a+") do
+  ADVERB[word] = true
+end
+
+-- Adverbials that are two words rather than one.  "may in fact hold" is the
+-- commonest thing standing between a modal and its verb in this prose after
+-- the plain adverbs, and `in` alone must not be skippable -- "interested in
+-- related work" is not a bare-verb slot.
+local IN_PHRASE = {}
+for word in ("fact particular general principle turn practice addition effect"):gmatch("%a+") do
+  IN_PHRASE[word] = true
+end
+
+-- Everything else ending in -ly is an adverb, an adjective or a noun, and only
+-- a verb can be what a modal is waiting for -- so the pattern is safe as long
+-- as the English verbs ending in -ly are named.  There are sixteen, and the
+-- exception is not hypothetical: `apply`, `imply` and `rely` all turn up in
+-- the verb slot in the sample.  The pattern is worth 65 more slots than the
+-- list alone, and more than that in prose less clipped than a maths notebook.
+local LY_VERB = {}
+for word in ("apply comply imply multiply ply reply rely supply fly rally tally dally sally bully sully ally"):gmatch("%a+") do
+  LY_VERB[word] = true
+end
+
+local function adverbial(word)
+  if ADVERB[word] then return true end
+  return #word > 3 and word:sub(-2) == "ly" and not LY_VERB[word]
+end
+
+-- How many adverbs may stand between the trigger and the verb, and how much
+-- text is read to find them.  Three is past the point of diminishing returns
+-- ("would not in fact simply relate") and the bound matters: this runs on
+-- every keystroke.
+local ADVERB_CHAIN = 3
+local LOOKBACK = 96
+
 --- Does the text behind the caret call for a bare verb?
---- The last word of `previous`, if it is a modal.  Nil-safe: no text behind
---- means no opinion, which is the same answer as an ordinary word.
+---
+--- Nil-safe, and silent by default: anything it cannot read confidently is a
+--- `false`, which is the same answer as an ordinary word and costs nothing.
 function M.expects_bare_verb(previous)
   if not previous or previous == "" then return false end
-  local last = previous:lower():match("(%a+)%A*$")
-  return last ~= nil and MODAL[last] == true
+  -- A frontend that turns apostrophes into typographic ones must not be
+  -- able to hide "wouldn't" from this.
+  local tail = previous:lower():gsub('\226\128\153', "'")
+  if #tail > LOOKBACK then tail = tail:sub(-LOOKBACK) end
+  -- Only the current sentence.  Otherwise "we could. However, related work..."
+  -- walks back over the full stop and demotes a word in a new sentence.
+  tail = tail:match("[^.!?;:]*$")
+
+  -- Tokens, with the gap that follows each, because the gaps decide as much as
+  -- the words do: "would relate" is a bare slot and "would-relate" is not.
+  local words, gaps, n = {}, {}, 0
+  local pos = 1
+  while true do
+    local a, b = tail:find("[%a']+", pos)
+    if not a then break end
+    n = n + 1
+    words[n] = tail:sub(a, b)
+    if n > 1 then gaps[n - 1] = tail:sub(pos, a - 1) end
+    pos = b + 1
+  end
+  if n == 0 then return false end
+  -- Whatever follows the last word, up to the caret.  A space, or a comma and
+  -- a space; anything else -- a bracket, a dash, a digit -- and the word in
+  -- front is not the word in front of the *verb*.
+  if not tail:sub(pos):match("^[%s,]*$") then return false end
+
+  local i, steps = n, 0
+  while i >= 1 and steps <= ADVERB_CHAIN do
+    local word = words[i]
+    if MODAL[word] then return true end
+    if word == "to" then return TO_LICENSOR[words[i - 1] or ""] == true end
+    if i > 1 and IN_PHRASE[word] and words[i - 1] == "in" then
+      i = i - 2
+    elseif adverbial(word) then
+      i = i - 1
+    else
+      return false
+    end
+    -- The gap the step just crossed.  A comma is allowed -- "would, however,
+    -- relate" is one clause -- and a bracket or a dash is not.
+    if i >= 1 and not gaps[i]:match("^[%s,]*$") then return false end
+    steps = steps + 1
+  end
+  return false
 end
 
 --- Also used by the tests to document the contract for CJK text.

@@ -321,13 +321,30 @@ start of an empty text box — but only if you typed the word in lower case, so
 `MATHE` and `kubectl` are left alone. Your own capitals are kept: `Mathe` gives
 `Mathematics`, `RECIEVE` gives `RECEIVE`.
 
-**After a modal, the list prefers the bare verb.** `would rlt` puts `relate`
-ahead of `related`, because English has no "would related" — the nine words
-`would could should must may might shall will can` take the infinitive, and
-nothing else in the sentence is looked at. If you did mean the past tense, type
-its `d`: `rlted` still gives `related`, because a shorthand keeps its
-consonants and typing one is how you say what you meant. Nothing is removed,
-and nothing moves off the first page either way.
+**Where English requires a bare verb, the list prefers one.** `would rlt` puts
+`relate` ahead of `related`, because there is no "would related". The trigger
+is a closed class and nothing else in the sentence is looked at:
+
+* the nine modals and their negations — `would could should must may might
+  shall will can`, `wouldn't`, `won't`, `can't`, `cannot`;
+* with any adverbs in between — `would not relate`, `could also deduce`,
+  `may in fact hold`, `should equivalently define`;
+* and `to` when the word in front of it makes it an infinitive — `want to`,
+  `in order to`, `able to`, `how to` — but not when it is a preposition, which
+  is what `to` mostly is in mathematics: `isomorphic to`, `due to`, `restricts
+  to` are all left alone.
+
+`would be related` and `would have related` are good English and are never
+touched, because `be` and `have` end the chain. Neither is `to doing` — only
+`-ed` readings are affected.
+
+**If you did mean the past tense, type its `d`.** `rlted` still gives
+`related`, and `would have clld` still gives `called`: a shorthand keeps its
+consonants, so typing the `d` is how you say what you meant, and the rule
+stands down completely. It only acts where your input said nothing either way.
+
+Nothing is removed and nothing moves off the first page — it reorders the top
+five and cannot reach past them.
 
 **Dropped apostrophes are typography rather than spelling**, so `dont` gives
 `don't`, `youre` gives `you're`, and `its` gives `its` with `it's` right

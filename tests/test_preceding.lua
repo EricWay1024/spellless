@@ -118,16 +118,54 @@ H.ok(not P.ends_sentence("see e.g.", ab), "in the middle of a tail")
 H.ok(not P.ends_sentence("Hello. E.g.", ab), "capitalised at a sentence start")
 H.ok(P.ends_sentence("Hello.", ab), "and an ordinary stop is unaffected")
 
-H.suite("preceding: a modal calls for the bare form of the verb after it")
+H.suite("preceding: where English requires a bare verb")
+-- The trigger itself, in all three shapes.
 for _, tail in ipairs({ "you would ", "we could", "it should  ", "I will ",
-                        "they might ", "that can ", "one must " }) do
+                        "they might ", "that can ", "one must ",
+                        "you wouldn't ", "we can't ", "it won't ", "we cannot ",
+                        "\226\128\152we shan't ", "wouldn\226\128\153t " }) do
   H.ok(P.expects_bare_verb(tail), ("a bare verb follows %q"):format(tail))
 end
+-- Adverbs stand between the modal and the verb, and skipping them is worth a
+-- fifth again as many slots.  The last three are the -ly pattern rather than
+-- the list, which is most of what it is for.
+for _, tail in ipairs({ "would not ", "could also ", "might never ",
+                        "may in fact ", "would not simply ", "would, however, ",
+                        "should probably ", "would equivalently ",
+                        "could algorithmically " }) do
+  H.ok(P.expects_bare_verb(tail), ("an adverb does not break %q"):format(tail))
+end
+-- `to` is the infinitive marker about a seventh of the time; the word in front
+-- of it is the only local evidence and it is enough.
+for _, tail in ipairs({ "want to ", "in order to ", "able to ", "how to ",
+                        "unable to properly ", "we need to " }) do
+  H.ok(P.expects_bare_verb(tail), ("an infinitive follows %q"):format(tail))
+end
+for _, tail in ipairs({ "isomorphic to ", "due to ", "with respect to ",
+                        "restricts to ", "to " }) do
+  H.ok(not P.expects_bare_verb(tail), ("but a preposition does not: %q"):format(tail))
+end
+
 -- The closed class stops where the grammar does.  After `is/are` an -ed word
 -- is the passive and perfectly ordinary -- 16% of the time in real prose --
--- and after `have` it is the participle, so neither belongs here.
+-- and after `have` it is the participle, so neither belongs here.  Both are
+-- reached by the adverb chain and must stop it, which they do by not being
+-- adverbs: "would be related" and "would have related" are good English.
 for _, tail in ipairs({ "it is ", "they have ", "we are ", "he had ",
-                        "the ", "to ", "", "should not ", "would have " }) do
-  H.ok(not P.expects_bare_verb(tail), ("but not after %q"):format(tail))
+                        "would be ", "would have ", "could not be ",
+                        "the ", "to ", "" }) do
+  H.ok(not P.expects_bare_verb(tail), ("not after %q"):format(tail))
+end
+-- The sixteen English verbs ending in -ly are the whole cost of the pattern,
+-- and the exception is not hypothetical: all three of these are in the sample.
+for _, tail in ipairs({ "would apply ", "could imply ", "must rely ",
+                        "should supply ", "can multiply " }) do
+  H.ok(not P.expects_bare_verb(tail),
+       ("an -ly verb is the verb, not an adverb: %q"):format(tail))
+end
+-- Punctuation decides as much as the words do.
+for _, tail in ipairs({ "we could. However, ", "would-", "would (",
+                        "would 3 ", "could. " }) do
+  H.ok(not P.expects_bare_verb(tail), ("the gap rules out %q"):format(tail))
 end
 H.ok(not P.expects_bare_verb(nil), "and not with nothing behind at all")

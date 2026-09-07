@@ -270,6 +270,27 @@ do
   mock.history:clear(); mock.history:push("exact", "would")
   H.ok(lead_for("rlt") ~= "related", "after a modal, an -ed form cannot lead")
 
+  -- The three shapes the predicate knows, each arriving through the commit
+  -- history rather than through a document read.
+  mock.history:clear(); mock.history:push("exact", "wouldn't")
+  H.ok(lead_for("rlt") ~= "related", "a negated modal is still a modal")
+
+  mock.history:clear()
+  mock.history:push("exact", "could "); mock.history:push("exact", "not ")
+  H.ok(lead_for("rlt") ~= "related", "an adverb does not break the chain")
+
+  mock.history:clear()
+  mock.history:push("exact", "want "); mock.history:push("exact", "to ")
+  H.ok(lead_for("rlt") ~= "related", "nor does a licensed infinitive `to`")
+
+  mock.history:clear()
+  mock.history:push("exact", "isomorphic "); mock.history:push("exact", "to ")
+  H.eq(lead_for("rlt"), "related", "but a prepositional `to` is left alone")
+
+  mock.history:clear()
+  mock.history:push("exact", "would "); mock.history:push("exact", "be ")
+  H.eq(lead_for("rlt"), "related", "and `would be related` is good English")
+
   -- The cache is keyed on everything that decides the answer, and this field
   -- was very nearly left out of it -- which is how `qqc` once did nothing.
   mock.history:clear(); mock.history:push("exact", "hello")

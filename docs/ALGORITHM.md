@@ -1060,48 +1060,83 @@ beat it; every *exact* match that beat its sibling leads by at least 19.7), and
 points-per-nat matched to the frequency term. `lua bench/context.lua` scores a
 replacement table in one command.
 
-**One context rule does ship, and the contrast is the useful part.** After a
-modal — `would could should must may might shall will can` — English takes the
-bare infinitive, so an `-ed` reading of the next word is not unlikely, it is
-ungrammatical. That is a different kind of claim from anything in the table
-above, and it behaves differently:
+**One family of context rules does ship, and the contrast is the useful part.**
+Where English *requires* a bare infinitive, an `-ed` reading of the next word
+is not unlikely — it is ungrammatical. That is a different kind of claim from
+anything in the table above, and it behaves differently. The trigger is a
+closed class, and where it stops was decided by measurement, not by taste:
 
 ```
-  words following        n        -ed     -ing      -s
-  a modal            4,295       0.4%     0.0%    1.7%
-  have / has / had   2,242       4.7%     1.0%    9.8%
-  is / are / was    18,503      16.1%     0.8%    3.5%
-  to                 7,370       1.6%     1.6%    7.4%
+  slot                          n        -ed     -ing      -s
+  a modal                   2,598       0.5%     0.1%    3.8%
+  modal + adverbs             518       0.8%     0.0%    2.9%
+  `to`, licensed              856       0.1%     0.1%    0.8%
+  ---------------------------------------------------------- the line
+  `to`, unlicensed          5,670       1.4%     1.9%    7.9%
+  have / has / had          1,296       6.6%     1.3%   11.4%
+  an                        2,631       5.8%     5.9%    1.1%
+  a                        14,675       5.3%     2.4%    5.1%
 ```
 
-(427,498 words of the prose this is for. The closed class stops at the modals
-because the next row is already 4.7%: after `have` the `-ed` form is the
-participle, and after `is` it is the passive.)
+(427,498 words of the prose this is for.) The rows under the line are not near
+misses, they are the rule's opposite: `have` and `is` take a past participle,
+and what follows `a`/`an` is a participial adjective all day long — the `-ed`
+words after `an` are `ordered` (125), `oriented`, `associated`, `induced`.
 
-Three things keep it honest, and each of them is a thing the class table did
-not have:
+Three parts, each of which the class table lacked:
 
-* **It tests an inflection, not an ending.** `called` is the past of `call`;
-  `need`, `proceed` and `indeed` are not the past of anything. One dictionary
-  lookup separates them, and without it the rule demotes "will need", which is
-  most of what follows a modal and ends in `-ed` at all.
-* **The input overrules it.** A consonant skeleton keeps its `d`, so somebody
-  who means "would have called" types `clld`, not `cll`. When the query ends in
-  `d` the rule stands down entirely. All twelve genuine post-modal `-ed` forms
-  in the sample had a shorthand ending in `d`, so all twelve are untouched.
+* **The trigger is grammatical, not statistical.** Nine modals and their
+  negations, plus `to` when the word in front licenses an infinitive —
+  `want to`, `in order to`, `able to`, but not `isomorphic to` or `due to`,
+  which is what `to` mostly is in mathematics. That one test takes the slot
+  from 1.4% to 0.1%, cleaner than the modals themselves. Adverbs are skipped
+  (`would not relate`, `may in fact hold`), and the chain stops of its own
+  accord in exactly the right place: `be` and `have` are not adverbs, so
+  "would be related" and "would have related" are never reached.
+* **The input overrules it.** A consonant skeleton keeps every consonant, so
+  an `-ed` inflection *always* has a `d` in its shorthand: somebody who means
+  "would have called" types `clld`, not `cll`. When the query ends in `d` the
+  rule stands down. This is structural rather than empirical — across every
+  trigger family measured, all 1,118 genuine `-ed` inflections keep their `d`.
+  The rule can only act in the gap where the input said nothing.
 * **It reorders one page and cannot reach past it.** This is where the first
   attempt was wrong: an 8-point penalty — small, by the standards of §4.8 —
   moved `related` from first to *fourteenth*, because the field around a
   three-letter skeleton is dense enough that eight points spans a dozen words.
-  A stable partition of the first five says what grammar knows (which readings
-  are wrong here) and nothing about what it does not (how much better `result`
-  is than `reality`), and bounds the damage at four places.
+  That is removal wearing the clothes of a demotion. A stable partition of the
+  first five says what grammar knows (which readings are wrong here) and
+  nothing about what it does not (how much better `result` is than `reality`),
+  and bounds the loss at four places.
 
-Measured the same way as the table above, over the 381 distinct post-modal
-targets that are worth typing as shorthand at all: **6 improve, 0 regress**,
-and an `-ed` word leads the list for 20 → 14 of the tokens. That is a small
-number, and it is a real one — which is more than the class table managed at
-any weight.
+Run over 374,090 real slots with their real left context, through the shipped
+predicate: it fires on **3,979** of them, and on the 473 distinct
+(shorthand, word) pairs that produces, **11 improve and 0 regress** — 40 tokens
+of the sample, `gnrlz → generalize`, `ddc → deduce`, `imps → impose`,
+`endw → endow`, `rlt → relate`. Small, and real, which is more than the class
+table managed at any weight. It costs 5 µs a keystroke against a 3 ms budget.
+
+**Why this generalises and the class table did not.** Both are "look at the
+word before". The difference is that a class bigram asks what is *likely* and
+gets an answer that is 60/40 at best, while a closed-class trigger asks what is
+*possible* and gets an answer that is 99.5/0.5 — and then only acts where the
+input has not already settled the question. The lever is not a better
+classifier. It is finding the places where English has no choice.
+
+**Where the same shape could go next**, in rough order of what the sample says
+they are worth:
+
+* `an` requires a vowel-initial word, which is orthography rather than syntax
+  and completely reliable — 2,631 slots, and unlike everything above it
+  constrains the *first* letter, which is where the search is widest;
+* a determiner or quantifier requires agreement in number: `a` forbids a
+  plural, `three` and `many` require one;
+* `have`/`has`/`had` and `is`/`are` are the mirror image — they *want* the
+  participle, so the same machinery run with the sign flipped, though the
+  6.6% and 16.1% rates say the ambiguity with the main verb `have` is real.
+
+What none of them reach is the vowel-identity class (`motions`/`meetings`,
+`blocks`/`blacks`), which is noun against noun. That needs a word bigram, and
+it is still the largest thing on this list.
 
 **So what is still open.** A counted class table from a tagged lexicon, which
 would fix the classifier half. A real word bigram, which is the only thing that
