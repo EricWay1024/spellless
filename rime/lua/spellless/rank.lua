@@ -33,7 +33,43 @@ end
 function M.score(item, cfg, ctx)
   local base = cfg[BASE_KEY[item.source]]
   if not base then return -math.huge end
-  local familiarity = cfg.user_weight * ctx.user(item)
+  -- Familiarity is evidence about the *word*; cost is evidence about the
+  -- *reading*.  Multiplying one by the other is the mistake: that you write
+  -- "instead" sixteen times a day is no reason at all to think `immsn` was it.
+  --
+  -- It was, though.  `immsn` put the literal first and `immersion` third,
+  -- because "instead" came back through the skeleton channel at cost 1.55 --
+  -- a stretch by any measure -- and eighteen points of familiarity covered the
+  -- 16.5 the extra cost had taken off, winning by 0.1.  Then, the leader being
+  -- that loose, nothing was trustworthy and the literal was promoted over a
+  -- perfectly good cost-0.52 reading sitting right behind it.
+  --
+  -- So familiarity stops where trust does.  `confidence_cost` already means
+  -- "a reading this loose is not to be relied on"; this says that knowing the
+  -- word does not make it any more reliable.  Below the threshold nothing
+  -- changes, which is every ordinary correction.
+  -- Familiarity is evidence about the *word*; cost is evidence about the
+  -- *reading*.  That you write "instead" sixteen times a day is a reason to
+  -- prefer it among readings that explain the input equally well, and no
+  -- reason at all to accept a reading that explains it much worse.
+  --
+  -- It was accepted.  `immsn` put the literal first and `immersion` third,
+  -- because "instead" came back at cost 1.55 -- and eighteen points of
+  -- familiarity covered the 16.5 the extra cost had taken off, winning by 0.1
+  -- over a cost-0.52 reading.  The leader being that loose, nothing was
+  -- trustworthy and the literal was promoted over the good answer behind it.
+  --
+  -- So the bonus is withdrawn from a reading that is *much worse than the best
+  -- one on offer* -- not from a poor reading as such.  The absolute cost is
+  -- the wrong test and a sweep over a real store proved it: a flat threshold
+  -- lost nine recorded corrections, `buracitc` -> bureaucratic among them,
+  -- which are exactly the hard repairs familiarity is there to rescue.  Those
+  -- are the best reading available; "instead" was not.
+  local excess = item.cost - (ctx.best_cost or 0)
+  local familiarity = 0
+  if excess <= cfg.user_cost_margin then
+    familiarity = cfg.user_weight * ctx.user(item)
+  end
   item.familiarity = familiarity
   local s = base
       + cfg.freq_weight * ctx.freq(item)
@@ -150,6 +186,13 @@ end
 --- Returns a list ordered by descending score.
 function M.rank(items, query, cfg, ctx)
   ctx.abbreviation_likeness = 1 - skeleton.vowel_ratio(query)
+  -- How well the best reading on offer explains the input, which is what every
+  -- other reading's cost is judged against; see the familiarity note above.
+  local best_cost = math.huge
+  for i = 1, #items do
+    if items[i].cost < best_cost then best_cost = items[i].cost end
+  end
+  ctx.best_cost = best_cost < math.huge and best_cost or 0
 
   local best, order, count = {}, {}, 0
   for i = 1, #items do

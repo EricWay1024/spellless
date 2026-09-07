@@ -14,6 +14,13 @@ H.eq(Engine.apply_case("mathematics", "lower"), "mathematics")
 
 local engine = assert(Engine.new{ data_dir = DATA })
 
+local function out_texts(candidates)
+  local t = {}
+  for i, c in ipairs(candidates) do t[i] = c.text end
+  return t
+end
+
+
 local function texts(input, n)
   local out = {}
   for i, c in ipairs(engine:suggest(input, n or 8)) do out[i] = c.text end
@@ -422,12 +429,6 @@ do
        "and a real correction keeps the slot the split used to take")
 end
 
-local function out_texts(candidates)
-  local t = {}
-  for i, c in ipairs(candidates) do t[i] = c.text end
-  return t
-end
-
 H.suite("engine: which build is running")
 -- The question this answers cannot be answered from outside the process, and
 -- getting a stale answer is exactly the failure it exists to prevent -- so the
@@ -611,4 +612,47 @@ do
   H.eq(P.opens_after_word("-"), false, "nor does it open anything")
   H.eq(engine:suggest("me", 2)[1].text:gsub("%s+$", ""), "me",
        "so each part is just a word")
+end
+
+H.suite("engine: familiarity settles a tie, it does not overturn evidence")
+-- `immsn` put the literal first and `immersion` third.  Sixteen commits of
+-- "instead" were worth eighteen points, which covered the 16.5 that a cost of
+-- 1.55 against 0.52 had taken off, and it won by 0.1 -- then, the leader being
+-- that loose, nothing was trustworthy and the literal was promoted over a
+-- perfectly good reading sitting behind it.
+do
+  local path = os.tmpname()
+  local fh = assert(io.open(path, "wb"))
+  fh:write("instead\t16\n")            -- a word typed a great deal
+  fh:close()
+  require("spellless.userdb").forget(path)
+
+  local e = assert(Engine.new{ data_dir = DATA, personal_path = path })
+  local first = e:suggest("immsn", 1)[1]
+  H.eq(first.text:gsub("%s+$", ""), "immersion",
+       "a much better reading is not overturned by a familiar word")
+
+  -- The margin is relative, and that is the whole point: a hard repair that is
+  -- itself the best reading available still collects the bonus, which is what
+  -- familiarity is for.  Testing the absolute cost lost nine such corrections
+  -- from a real store.
+  local loose = assert(Engine.new{ data_dir = DATA, personal_path = path,
+                                   config = { user_cost_margin = 99 } })
+  -- With no margin the reported symptom comes straight back, and it is worth
+  -- pinning the *symptom* rather than the cause: what the typist saw was not
+  -- "instead" winning, it was the literal leading.  "instead" won by 0.1 and
+  -- was then too loose to trust, so the literal was promoted over it.
+  H.eq(loose:suggest("immsn", 1)[1].text:gsub("%s+$", ""), "immsn",
+       "and with no margin the literal leads again, which is what was reported")
+
+  -- Familiarity still decides between readings that explain the input equally
+  -- well -- there it is the only evidence there is.
+  local near = assert(Engine.new{ data_dir = DATA, personal_path = path })
+  local rank_of = function(word)
+    for i, c in ipairs(near:suggest("instead", 8)) do
+      if c.text:gsub("%s+$", "") == word then return i end
+    end
+  end
+  H.eq(rank_of("instead"), 1, "a word you use is still first when it fits")
+  os.remove(path)
 end

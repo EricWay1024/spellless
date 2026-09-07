@@ -249,6 +249,24 @@ M.defaults = {
   -- misspelling of.  18 is the lowest value at which twenty selections still
   -- lift a word onto the first page, which is what learning is for.
   user_weight       = 18,   -- x normalised personal frequency, in [0,1]
+  -- How much worse than the best reading on offer a candidate may be and still
+  -- collect the familiarity bonus above.  One unit of cost is about one whole
+  -- edit, so this reads: familiarity settles a choice between readings that
+  -- explain the input comparably well, and does not rescue one that needs an
+  -- extra edit to work.
+  --
+  -- Swept against a real personal store of 566 recorded corrections, scoring
+  -- the fix for `immsn` -- where sixteen commits of "instead" beat "immersion"
+  -- by 0.1 at a full point more cost -- against corrections lost:
+  --
+  --   margin   1.0  0.8  0.6  0.5  0.4  0.3  0.2
+  --   lost       0    1    1    3    4    6   11
+  --
+  -- so 1.0 is not a compromise, it is the whole plateau.  Testing the absolute
+  -- cost instead of the excess is what does not work: a flat threshold at
+  -- confidence_cost lost nine, including `buracitc` -> bureaucratic, because a
+  -- hard repair with no rival is exactly what familiarity is for.
+  user_cost_margin  = 1.0,
   -- What a personal word absent from the dictionary is assumed to be worth.
   -- It has no measured frequency, and "middling" was too generous: it put an
   -- unknown three-letter string ahead of an ordinary English word.  Low enough

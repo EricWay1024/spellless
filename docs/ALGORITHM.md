@@ -556,11 +556,16 @@ directions, and note that the benchmark is blind to all of it (§5.3).
 
 Three of the constants encode a principle rather than a tuning result:
 
-- **`w_u = 18`, deliberately small.** The dictionary is measured English; the
-  personal store is a handful of counts from whatever was typed lately,
-  including mistakes committed while something was broken. At 26 it was worth
-  three-quarters of the entire frequency range, and a word committed three
-  times could lead over the word it was a misspelling of.
+- **`w_u = 18`, deliberately small, and withdrawn from a poor reading.** The
+  dictionary is measured English; the personal store is a handful of counts
+  from whatever was typed lately, including mistakes committed while something
+  was broken. At 26 it was worth three-quarters of the entire frequency range,
+  and a word committed three times could lead over the word it was a
+  misspelling of. It also applies only within `user_cost_margin = 1.0` of the
+  best reading on offer — about one edit — because familiarity is evidence
+  about the *word* and cost is evidence about the *reading*, and sixteen
+  commits of `instead` should not make it a reading of `immsn` when
+  `immersion` explains those letters a whole edit better.
 - **`unknown_penalty = 25`.** Being typed exactly is not the same evidence from
   a word nobody has measured as it is from a word in the dictionary. Without
   it, a mistake committed three times (`eys`) led over the word it was a
@@ -1242,7 +1247,7 @@ it cheaper still.
 ```bash
 git clone https://github.com/EricWay1024/spellless && cd spellless
 make            # rebuild dictionary, indexes and generated test sets
-make test       # 2,151 assertions, including every hand-written case
+make test       # 2,158 assertions, including every hand-written case
 make bench      # the accuracy and latency tables in §5
 lua bench/try.lua --debug mthmtcs satfcatn tnk     # ask it anything
 
