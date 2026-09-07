@@ -147,6 +147,51 @@ mock.translate(spellless, "zzz", mock.segment({ "abc" }, 0, 3), env)  -- evict t
 local reclaimed = mock.translate(spellless, "mathe", mock.segment({ "abc" }, 0, 5), env)
 H.eq(reclaimed[1].text, "Mathematics ", "so the reclaimed full stop still ends a sentence")
 
+H.suite("adapter: the space can lead instead, for a frontend that cannot reclaim")
+-- The trailing space is right wherever the frontend can take one back.  Where
+-- it cannot -- stock Rime -- it survives every punctuation mark that follows
+-- an already-committed word, so ending a sentence after picking a candidate by
+-- number gives "you ." and nothing can be done about it after the fact.
+-- `leading_space` moves the space to the front of the *next* word, where
+-- punctuation never has to argue with it.
+do
+  local cfg = env.spellless.cfg
+  local was_leading, was_reclaim = cfg.leading_space, cfg.reclaim_space
+  cfg.leading_space, cfg.reclaim_space = true, false
+
+  -- The candidate no longer carries a space at all.
+  mock.history:clear()
+  local out = mock.translate(spellless, "mathe", mock.segment({ "abc" }, 0, 5), env)
+  H.eq(out[1].text, "Mathematics", "no trailing space on the candidate")
+
+  -- Punctuation after a committed word needs nothing reclaimed, which is the
+  -- whole point: this is the case stock Rime cannot fix afterwards.
+  ctx0.input = ""
+  mock.selected = nil
+  mock.history:clear(); mock.history:push("exact", "you")
+  local _, written = type_punct(".")
+  H.eq(written, ".", "the mark goes straight in, bare")
+  H.ok(not written:find("\8"), "with nothing asked back from the frontend")
+
+  -- The space appears when the next word starts, so the document reads the
+  -- same as it would have.
+  local function first_letter_after(behind)
+    mock.history:clear()
+    if behind ~= "" then mock.history:push("exact", behind) end
+    local before = #mock.committed
+    spellless.processor.func(mock.key(0x77), env)     -- "w"
+    local out = {}
+    for i = before + 1, #mock.committed do out[#out + 1] = mock.committed[i] end
+    return table.concat(out)
+  end
+  H.eq(first_letter_after("hello"), " ", "a word behind gets the space put in")
+  H.eq(first_letter_after(""), "", "the start of a line does not")
+  H.eq(first_letter_after("see ("), "", "nor an opening bracket")
+  H.eq(first_letter_after("hello "), "", "nor a space that is already there")
+
+  cfg.leading_space, cfg.reclaim_space = was_leading, was_reclaim
+end
+
 H.suite("adapter: a terminal never has text taken back out of it")
 -- The three document-editing features all work by removing characters the
 -- application has already been given, and a terminal has already forwarded

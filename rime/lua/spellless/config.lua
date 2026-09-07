@@ -441,6 +441,20 @@ M.defaults = {
                       "com.microsoft.vscode,com.microsoft.vscodeinsiders," ..
                       "dev.warp.warp-stable,co.zeit.hyper,net.kovidgoyal.kitty," ..
                       "io.alacritty,com.github.wez.wezterm",
+  -- Put the automatic space in front of the next word rather than behind this
+  -- one.  Off, and the default is the right one wherever the frontend can
+  -- reclaim; see the note in spellless.lua for the whole trade.
+  --
+  -- It exists for stock Rime, which cannot take a character back.  There the
+  -- trailing space survives every punctuation mark that follows an
+  -- already-committed word -- "you ." -- which is every sentence you end
+  -- after picking a candidate by number.  Leading the space costs one thing
+  -- instead: stop typing and the line ends flush, with no space after the
+  -- last word.
+  --
+  -- Turning this on makes `reclaim_space` and `enter_space` redundant rather
+  -- than wrong; they simply never have a space to act on.
+  leading_space     = false,
   -- Take that space back when punctuation follows a word that was already
   -- committed, so "you " + "." is "you. " rather than "you . ".
   --

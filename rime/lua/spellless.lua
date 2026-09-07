@@ -537,8 +537,11 @@ function M.func(input, seg, env)
   local debug_comments = engine.cfg.show_debug_comments
   local raw_comment = engine.cfg.raw_comment
   -- The space rides along with the word, so whichever key commits it -- space
-  -- bar, a number, a click -- puts the space in too.
-  local trail = engine.cfg.auto_space and " " or ""
+  -- bar, a number, a click -- puts the space in too.  Unless `leading_space`
+  -- is on, in which case the next word brings its own and this one goes bare;
+  -- see the note in the processor.
+  local trail = (engine.cfg.auto_space and not engine.cfg.leading_space)
+      and " " or ""
 
   for i = 1, #candidates do
     local c = candidates[i]
@@ -574,6 +577,7 @@ end
 function M.filter.func(translation, env)
   local engine = env.spellless
   local spacing = engine and engine.cfg.auto_space
+      and not engine.cfg.leading_space
   -- Judge the mark against what is already behind it, not on its own: a lone
   -- `$` always reads as opening, so `$X$` would never get its following space.
   local behind = spacing and commit_tail(env.engine.context.commit_history) or ""
@@ -781,6 +785,41 @@ function M.processor.func(key, env)
   local composing = context:is_composing()
   local engine = env.spellless
 
+  -- The space in front of the word, for frontends that cannot take one back.
+  --
+  -- Everything else here puts the automatic space *after* the word, which is
+  -- what you want: stop typing anywhere and the text is finished.  It costs
+  -- one thing, and only one -- when punctuation follows a word that has
+  -- already been committed, "you " + "." has to become "you." by asking the
+  -- frontend to take the space back.  Stock Rime cannot, so on it that comes
+  -- out as "you ."  It is not rare: it is every time you pick a candidate by
+  -- number and then end the sentence.
+  --
+  -- With `leading_space` on, the word commits bare and the space is put in by
+  -- the *next word* instead, at the moment it starts.  Punctuation then needs
+  -- nothing taken back because there is nothing behind it to take, and so do
+  -- "3.14", "1,000" and "12:30", which are the other half of what
+  -- `reclaim_space` exists for.
+  --
+  -- Off by default, because the trade is real and goes the other way for
+  -- anyone whose frontend can reclaim: leave the caret after a word and there
+  -- is no space after it until you type again, so a line you stop in the
+  -- middle of ends flush.
+  --
+  -- Written here, on the first letter of the next word, rather than as a
+  -- leading space on the candidate itself.  A candidate carrying its own
+  -- space shows the space in the candidate list, and shows it against every
+  -- reading, which looks like a bug and is read as one.  This way the list is
+  -- exactly what it always was and the document gets the space at the same
+  -- moment it would have got the trailing one.
+  if engine and engine.cfg.auto_space and engine.cfg.leading_space
+     and not composing and not key:shift()
+     and ((code >= 0x61 and code <= 0x7a) or (code >= 0x41 and code <= 0x5a)) then
+    if preceding.needs_space_after(text_behind(context)) then
+      env.engine:commit_text(" ")
+    end
+  end
+
   -- Return's two forgotten cousins.
   --
   -- express_editor binds Return alone, and librime's key binding falls back
@@ -795,7 +834,8 @@ function M.processor.func(key, env)
     -- Shift+Return does not: a space in front of a line break separates
     -- nothing from nothing.
     local trail = (code == XK_KP_Enter and engine and engine.cfg.auto_space
-                   and engine.cfg.enter_space) and " " or ""
+                   and engine.cfg.enter_space
+                   and not engine.cfg.leading_space) and " " or ""
     env.engine:commit_text(text .. trail)
     if engine then engine:learn(text) end
     context:set_property(SENTENCE, "")
@@ -850,7 +890,8 @@ function M.processor.func(key, env)
   -- It is a refusal to choose between readings rather than a choice, so the
   -- word is counted and no input-to-word pair is recorded.
   if composing and code == XK_Return and engine
-     and engine.cfg.auto_space and engine.cfg.enter_space then
+     and engine.cfg.auto_space and engine.cfg.enter_space
+     and not engine.cfg.leading_space then
     local text = context.input
     env.engine:commit_text(text .. " ")
     engine:learn(text)
@@ -949,7 +990,10 @@ function M.processor.func(key, env)
       if stripped then reclaim, behind = "\8", stripped end
     end
 
-    local space = preceding.needs_space_after(behind .. mark) and " " or ""
+    -- With `leading_space` the next word brings its own, so the mark goes in
+    -- bare and the rule stays "a space is put in by whatever follows it".
+    local space = (not engine.cfg.leading_space)
+        and preceding.needs_space_after(behind .. mark) and " " or ""
     env.engine:commit_text(reclaim .. mark .. space)
     -- `$` opens maths, and maths is not English: hand the keyboard over.  The
     -- mark itself has just been written by the ordinary punctuation path, with
@@ -1193,7 +1237,8 @@ function M.handover.func(key, env)
   -- delimiter is followed by a space for the same reason a word is -- the next
   -- word has to be separated from it -- and punctuation takes it back on the
   -- frontend that can (§5.6), exactly as it does after a word.
-  local space = engine.cfg.auto_space and " " or ""
+  local space = (engine.cfg.auto_space and not engine.cfg.leading_space)
+      and " " or ""
   env.engine:commit_text(mark .. space)
   context:set_property(DELIMITER, "")
   context:set_property(SENTENCE, "")

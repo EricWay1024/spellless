@@ -106,6 +106,7 @@ Each line links to where it is explained.
 | Windows, macOS, Linux | one schema; Weasel, Squirrel, `ibus-rime`/`fcitx5-rime` |
 | Editing text already committed | space reclamation, word-backspace, picking up a word in front of the caret |
 | Terminals excepted | where taking text back is unsafe, it does not try |
+| Stock Rime too | `leading_space` puts the space in front of the next word instead |
 
 ## Why this should exist
 
@@ -614,6 +615,32 @@ deliberately absent; `phrases.txt`, for groups that behave as one word
 `math_sample.txt`, around 300 words of mathematics as a sample.
 
 ---
+
+### If you are on stock Rime
+
+The automatic space rides on the word, which is right — stop typing anywhere
+and the text is finished. It costs exactly one thing, and only where the
+frontend cannot take a character back: punctuation after a word you have
+*already* committed leaves the space stranded, so picking `you` by number and
+then ending the sentence gives `you .`
+
+Setting `leading_space: true` in the schema moves the space to the front of
+the next word, where punctuation never has to argue with it:
+
+```
+                        stock frontend, today   with leading_space
+typing "hello. world."   Hello . World .         Hello. World.
+```
+
+It is off by default because the trade goes the other way once your frontend
+*can* reclaim: leave the caret after a word and there is no space behind it
+until you type again, so a line you stop in the middle of ends flush. The
+space still appears the instant the next word starts, so while you are typing
+it looks the same — it is written on the first letter rather than carried by
+the candidate, so the candidate list never shows a leading space either.
+
+`reclaim_space` and `enter_space` become redundant rather than wrong when it is
+on; they simply never have a space to act on.
 
 ## Configuration
 

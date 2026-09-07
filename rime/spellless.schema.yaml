@@ -139,6 +139,14 @@ spellless:
   # backspace character, which that frontend turns into one reclaimed space
   # (and only ever a space -- it checks what it is taking) while stock Weasel
   # would type it in literally.  Leave it false on a stock install.
+  # Put the automatic space in front of the next word instead of after this
+  # one.  Off, and the default is right wherever the frontend can take a
+  # character back.  Turn it on for stock Rime, where it cannot: there a
+  # trailing space survives every punctuation mark that follows a word you
+  # already committed, so "you" picked by number and then a full stop comes
+  # out "you ."  Leading the space costs the opposite thing -- stop typing
+  # and the line ends flush, with no space after the last word.
+  leading_space: false
   reclaim_space: true
   # Start re-typing a word and pick up what is already there: delete the space
   # after "so", type "oner", and the candidates are for "sooner".
