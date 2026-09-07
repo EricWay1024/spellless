@@ -577,6 +577,7 @@ Engine:suggest(raw, limit, opts) → candidates, stats     // engine.lua
 
  6  // placements, in this order — each inserts at a FIXED position       §C.6
     promoted   ← a correction confirmed cfg.choice_confirm_count (2) times → slot 1
+                 (both readings confirmed? the input's own one leads)
     expansions ← a user-written shortcut                                 → slot 1
     trusted    ← expansions or promoted or Engine:trustworthy(ranked.leader, …)
     coined     ← (not trusted) and Engine:find_affix(search, style)      → min(#out+1, limit)
@@ -1376,7 +1377,7 @@ stance, and the reasoning is the same each time: **there is no score that means
 
 | what | where it goes | why not a score |
 | --- | --- | --- |
-| a confirmed correction (`chosen`) | slot 1 | the only evidence that comes from the person rather than from a measurement of English; no amount of frequency argues with it |
+| a confirmed correction (`chosen`) | slot 1 | the only evidence that comes from the person rather than from a measurement of English; no amount of frequency argues with it. Two confirmed readings of one input are the exception: the tally is then a near-tie between two intentions and the input's own reading leads |
 | a user-written shortcut | slot 1 | the one place in the matcher with no guessing to do — they said what they meant |
 | a coinage (`coined`) | `min(#out+1, limit)`, displacing the last | the twentieth guess at what else the letters might have been is not worth the slot; "if there is room" made it appear or not according to how many rivals a query happened to attract |
 | a word split | last among the real answers | scored high it displaced real corrections; scored low it vanished exactly when wanted — `thisday` offered Thursday and Tuesday and no way to say "this day" |
@@ -2257,6 +2258,10 @@ Engine:learned_capital(word):                            // engine.lua
 
 // in Engine:suggest, step 6
 choices ← (not opts.literal_first) and user:choices_for(query)
+// two readings of the same input, both confirmed: the tally does not decide
+if more than one choice is confirmed
+   and one of them has lower(text) = query:
+    move that one to the front of `choices`
 for choice in choices, weakest first:
     if choice.count ≥ cfg.choice_confirm_count:
         text ← Engine:surface(choice.text, style)     // NO suffix: the store is keyed
@@ -2271,6 +2276,20 @@ second selection is different in kind — it says the first was not a slip — a
 is the only signal in the whole matcher that comes from the person rather than
 from a measurement of English. So it is **placed** rather than scored: confirmed
 means first, and no amount of frequency argues with it.
+
+**Except against the input itself.** Type a word you also use as a shorthand for
+another — "were" for `we're`, "its" for `it's`, "windows" for `window` — and both
+readings end up confirmed, at which point the tally is a race between two things
+you meant on different days. In the live store `its` leads `it's` 8 to 7 and
+`windows` and `window` are tied at 2; one keystroke turns either over, after
+which every "its" you type comes out apostrophised. A count that close is not
+evidence about English, and the two readings are not equally reachable: `it's` is
+one apostrophe away, and `its` typed as "its" has no other spelling to ask for.
+So when both are confirmed, the reading that is what you actually typed leads and
+the other keeps the slot below it — however far ahead its count gets, because the
+count is the thing being distrusted. Where only one reading is confirmed — "dont"
+for `don't`, "diff" for `different` — nothing competes and the correction still
+leads, which is what the store is for.
 
 `learned_capital` is keyed on the *word*, so it follows the word rather than the
 keystrokes: teaching it by typing `windows` also reaches it from `wndows`. Both

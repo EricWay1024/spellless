@@ -650,6 +650,45 @@ do
   os.remove(path)
 end
 
+H.suite("engine: when both readings are confirmed, the one you typed leads")
+-- The failure this is about: "were" for `we're`, "its" for `it\'s`, "windows"
+-- for `window`.  Both readings get confirmed, the counts then run neck and
+-- neck -- 8 to 7 in the live store -- and a single keystroke turns the list
+-- over, after which every "its" comes out apostrophised.  The two are not
+-- equally reachable: `we\'re` is one apostrophe away and `were` typed as
+-- "were" has no other spelling to ask for.
+do
+  local path = os.tmpname()
+  require("spellless.userdb").forget(path)
+  local e = assert(Engine.new{ data_dir = DATA, personal_path = path })
+  local function first(q) return e:suggest(q, 5)[1].text:gsub("%s+$", "") end
+  local function second(q) return e:suggest(q, 5)[2].text:gsub("%s+$", "") end
+
+  -- One confirmed reading and nothing against it still leads, which is the
+  -- whole point of the store: this is "dont" for `don\'t`, and "dont" is a
+  -- word in the dictionary too.
+  e:learn_choice("were", "we\'re"); e:learn_choice("were", "we\'re")
+  H.eq(first("were"), "we\'re", "one confirmed reading leads, word or not")
+
+  -- Confirm the other one and the tally stops deciding.
+  e:learn_choice("were", "were"); e:learn_choice("were", "were")
+  H.eq(first("were"), "were", "with both confirmed, the input\'s own reading leads")
+  H.eq(second("were"), "we\'re", "and the other keeps the slot below it")
+
+  -- Not a tiebreak that a bigger count wins: the counts are what is being
+  -- distrusted, so no number of selections turns it over.
+  for _ = 1, 6 do e:learn_choice("were", "we\'re") end
+  H.eq(first("were"), "were", "however far ahead the other reading gets")
+
+  -- A capital you taught is the input\'s own reading, not a rival to it, so
+  -- this must not knock `OK` back down to `ok`.
+  e:learn_choice("ok", "OK"); e:learn_choice("ok", "OK")
+  e:learn_choice("ok", "okay"); e:learn_choice("ok", "okay")
+  H.eq(first("ok"), "OK", "a learned capital is still the reading you typed")
+
+  os.remove(path)
+end
+
 H.suite("engine: a capital you taught follows the word, not the keystrokes")
 -- "Heather" rather than "Windows", which used to be the example here and now
 -- ships an additive capital of its own -- exactly the mechanism this suite

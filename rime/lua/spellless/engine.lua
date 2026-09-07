@@ -674,9 +674,36 @@ function Engine:suggest(raw, limit, opts)
   -- slip -- and it is the only signal here that comes from the person rather
   -- than from a measurement of English.  So it is placed rather than scored:
   -- confirmed means first, and no amount of frequency argues with it.
+  --
+  -- Except against the input itself.  Type a word you also use as a shorthand
+  -- for another -- "were" for `we're`, "its" for `it's`, "windows" for
+  -- `window` -- and both readings end up confirmed, at which point the tally
+  -- is a race between two things you meant on different days: `its` leads
+  -- `it's` 8 to 7 here and one keystroke turns that over, after which every
+  -- "its" you type comes out apostrophised.  A count that close is not
+  -- evidence about English, and the two readings are not equally reachable:
+  -- `it's` is one apostrophe away and `its` typed as `its` has no other
+  -- spelling to ask for.  So when you have confirmed both, the reading that is
+  -- what you actually typed leads and the other follows it.
+  --
+  -- Only when both are confirmed.  Where you have said one thing and one thing
+  -- only -- "dont" for `don't`, "diff" for `different` -- nothing competes and
+  -- the correction still leads, which is what the store is for.
   local promoted = nil
   local choices = not (opts and opts.literal_first) and self.user:choices_for(query)
   if choices then
+    local confirmed, own = 0, nil
+    for i = 1, #choices do
+      -- Sorted by descending count, so the confirmed ones are exactly the
+      -- first `confirmed` entries and `own` is somewhere among them.
+      if choices[i].count >= cfg.choice_confirm_count then
+        confirmed = confirmed + 1
+        if not own and choices[i].text:lower() == query then own = i end
+      end
+    end
+    if confirmed > 1 and own then
+      table.insert(choices, 1, table.remove(choices, own))
+    end
     for i = #choices, 1, -1 do
       local choice = choices[i]
       if choice.count >= cfg.choice_confirm_count then
