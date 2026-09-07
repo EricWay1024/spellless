@@ -1027,26 +1027,39 @@ function M.handover.func(key, env)
       local typed = context.input .. string.char(code)
       local snippet = engine.snippets:get(typed)
       if snippet then
-        -- One character per commit, and that is the whole point of this loop.
+        -- Commit all but the last letter, and let the last one through as a
+        -- real keystroke.
         --
         -- HyperSnips expands an automatic snippet from a document-change event
         -- and drops any change that is not exactly one character long -- its
         -- own comment says "let's try to detect only events that come from
-        -- keystrokes", which is a reasonable guard against expanding on paste
-        -- and which an input method's commit fails.  Committing `xthm` whole
-        -- put the letters in the document and expanded nothing; the same
-        -- letters typed in ASCII mode, where they arrive one keystroke at a
-        -- time, expanded fine.  So they are sent the way the editor is
-        -- watching for.
-        for i = 1, #typed do
-          env.engine:commit_text(typed:sub(i, i))
+        -- keystrokes", which is a fair guard against expanding on paste and
+        -- which a commit fails.  `xthm` arrives as one four-character change
+        -- and expands nothing; the same letters typed in ASCII mode arrive as
+        -- four one-character changes and expand fine.
+        --
+        -- Committing them one at a time does not help, and it is worth writing
+        -- down why so nobody tries it twice: librime accumulates the commits
+        -- of a single keystroke into one string -- `commit_text_ += ...` in
+        -- service.cc -- which the frontend reads once.  Four calls and one
+        -- call put exactly the same four characters in the document, in one
+        -- change.
+        --
+        -- But the guard only looks at the change that just arrived.  How the
+        -- text before it got there is not its business.  So the prefix is
+        -- committed and the final letter is rejected, which in librime means
+        -- "do the OS default processing" -- the key reaches the application as
+        -- itself, the change is one character long, and the context it lands
+        -- in is the whole trigger.
+        if #typed > 1 then
+          env.engine:commit_text(typed:sub(1, #typed - 1))
         end
         context:set_property(SENTENCE, "")
         context:clear()
         -- `xdm` opens maths and `xthm` opens a theorem, whose body is English
         -- and wants the matcher on.  The trigger says which it is.
         if snippet.ascii then context:set_option("ascii_mode", true) end
-        return kAccepted
+        return kRejected
       end
     end
     return kNoop

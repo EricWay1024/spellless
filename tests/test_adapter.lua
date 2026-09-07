@@ -599,27 +599,25 @@ H.suite("adapter: an editor snippet trigger is handed straight to the editor")
 -- has to arrive in the document as those three letters -- no space, no capital,
 -- no candidate list -- or the expansion never fires.
 --
--- And it has to arrive one character at a time.  HyperSnips expands an
+-- The last letter is not committed with the rest.  HyperSnips expands an
 -- automatic snippet from a document-change event and drops any change that is
 -- not exactly one character long -- a guard against expanding on paste, which
--- a whole-word commit fails.  So the count of commits is asserted here, not
--- only their contents: committing "xdm" in one piece put the letters in the
--- document and expanded nothing.
-local function commits_since(n)
-  local out = {}
-  for i = n + 1, #mock.committed do out[#out + 1] = mock.committed[i] end
-  return out
-end
-
+-- a whole-word commit fails.  It only inspects the change that just arrived,
+-- though, so the prefix is committed and the final key is *rejected*: librime
+-- passes a rejected key to the application, where it lands as a genuine
+-- one-character keystroke with the whole trigger behind it.
+--
+-- Committing the letters one at a time instead does not work and the reason is
+-- worth keeping: librime concatenates every commit of a single keystroke into
+-- one string (`commit_text_ += ...`, service.cc), so four calls and one call
+-- reach the document identically.
 env.spellless.snippets = require("spellless.snippets").parse(
     "xdm ascii display maths\nxthm theorem\n")
 ctx:set_option("ascii_mode", false)
 ctx.input = "xd"
-local before_trigger = #mock.committed
-H.eq(spellless.handover.func(mock.key(string.byte("m")), env), 1, "taken before the speller")
-local pieces = commits_since(before_trigger)
-H.eq(table.concat(pieces), "xdm", "committed verbatim, with no space")
-H.eq(#pieces, 3, "one commit per character, which is what the editor watches for")
+H.eq(spellless.handover.func(mock.key(string.byte("m")), env), 0,
+     "the last key is rejected, so the editor sees a keystroke")
+H.eq(mock.committed[#mock.committed], "xd", "and only the prefix is committed")
 H.eq(ctx.input, "", "the composition is finished")
 H.ok(ctx:get_option("ascii_mode"), "and the maths that follows is typed, not guessed at")
 
@@ -627,11 +625,8 @@ H.ok(ctx:get_option("ascii_mode"), "and the maths that follows is typed, not gue
 -- is English, which is the matcher's whole subject.
 ctx:set_option("ascii_mode", false)
 ctx.input = "xth"
-before_trigger = #mock.committed
-H.eq(spellless.handover.func(mock.key(string.byte("m")), env), 1, "the trigger is taken")
-pieces = commits_since(before_trigger)
-H.eq(table.concat(pieces), "xthm", "and committed")
-H.eq(#pieces, 4, "again one at a time")
+H.eq(spellless.handover.func(mock.key(string.byte("m")), env), 0, "the trigger is taken")
+H.eq(mock.committed[#mock.committed], "xth", "prefix committed, last letter passed through")
 H.ok(not ctx:get_option("ascii_mode"), "but the matcher stays on for the prose inside")
 
 -- The whole composition, or nothing: a trigger inside a word is a word.

@@ -1242,7 +1242,7 @@ it cheaper still.
 ```bash
 git clone https://github.com/EricWay1024/spellless && cd spellless
 make            # rebuild dictionary, indexes and generated test sets
-make test       # 2,139 assertions, including every hand-written case
+make test       # 2,137 assertions, including every hand-written case
 make bench      # the accuracy and latency tables in §5
 lua bench/try.lua --debug mthmtcs satfcatn tnk     # ask it anything
 
