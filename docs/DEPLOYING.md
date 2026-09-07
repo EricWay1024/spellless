@@ -3,9 +3,10 @@
 How a build gets from the repository into the input method, how to check that
 it actually did, and the ways it silently does not.
 
-Development happens in WSL; the input method runs on Windows. Nothing here can
-be tested end to end from inside WSL — the matcher can (`make test`), but the
-input method cannot.
+Development happens in WSL; the input method runs on Windows, and on macOS
+through [spellless-squirrel](https://github.com/EricWay1024/spellless-squirrel).
+Nothing here can be tested end to end from the development machine — the
+matcher can (`make test`), but the input method cannot.
 
 ---
 
@@ -17,22 +18,48 @@ make test            # must pass before you deploy anything
 python3 scripts/install.py     # copy into every frontend it finds
 ```
 
-Then **redeploy the frontend** — right-click its tray icon and choose the
-redeploy entry (Chinese builds: 「重新部署」), or run its deployer directly —
-and then, in any text box, **type `zzver`**:
+Then **redeploy the frontend** — the table below says how on each platform,
+and `install.py` prints it too — and then, in any text box, **type `zzver`**:
 
 ```
-zzver  →  spellless 0848769 installed 2026-09-06 12:10
+zzver  →  spellless 0.1.3 installed 2026-09-07 01:12
           83169 words, 630 forms, 3 shortcuts
           cue 70/9.0, slip 10.0, learn on
+          reclaim on, absorb on, word-backspace on
+          app com.apple.Notes, document readable, edits allowed
 ```
+
+Five lines, and each answers a different question. The build, the dictionary,
+the matching constants, whether the three document features are switched on at
+all, and whether *this* application is allowed to have them. The last two are
+easy to confuse and the distinction has cost an evening: `edit_document` on the
+<kbd>F4</kbd> menu moves the fifth line and not the fourth.
 
 If the revision is not the one you just built, you are testing something else.
 Stop and find out why before you conclude anything about the change.
 
 ---
 
-## There may be two frontends, and that is the trap
+## Where each platform keeps its user directory
+
+`install.py` knows all of these and prints which it chose:
+
+| | user directory | redeploy |
+| --- | --- | --- |
+| Windows | the registry's `RimeUserDir`, else `%APPDATA%\Rime` or `%APPDATA%\Spellless` | tray icon → Deploy, or `WeaselDeployer.exe /deploy` |
+| macOS | `~/Library/Rime` | menu-bar icon → Deploy |
+| Linux | `~/.config/ibus/rime` or `~/.local/share/fcitx5/rime` | `ibus restart`, or `fcitx5-remote -r` |
+
+The three document-editing features need a frontend that understands the
+U+0008 convention — the Spellless builds of Weasel and Squirrel — but they are
+no longer configured. The schema waits until a frontend has set
+`surrounding_text` once and then switches itself on, so a stock build gets
+stock behaviour and there is nothing to remember. `zzver` reports which it
+found.
+
+---
+
+## On Windows there may be two frontends, and that is the trap
 
 Spellless can run on stock Weasel, and it can run on
 [spellless-weasel](https://github.com/EricWay1024/spellless-weasel), a fork
@@ -126,10 +153,16 @@ touching the timestamps Rime compares.
 
 ---
 
-## Building the fork
+## Building the frontends
 
-See the [spellless-weasel](https://github.com/EricWay1024/spellless-weasel)
-repository. In outline: it needs Visual Studio Build Tools with **ATL** (the
+**macOS** needs no Mac: push to the `spellless` branch of
+[spellless-squirrel](https://github.com/EricWay1024/spellless-squirrel) and
+GitHub Actions builds the `.pkg` on a `macos-26` runner. `docs/RELEASING.md`
+has the details, including the one thing CI cannot check — whether a given
+application survives having text taken back out of it.
+
+**Windows** is the [spellless-weasel](https://github.com/EricWay1024/spellless-weasel)
+repository, and does need Windows. In outline: it needs Visual Studio Build Tools with **ATL** (the
 `Microsoft.VisualStudio.Component.VC.ATL` component), and Boost, both of which
 its own scripts fetch. The build products land in `output/`, and
 `WeaselSetup.exe` from there registers the fork as a separate text service.

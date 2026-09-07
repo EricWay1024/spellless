@@ -15,11 +15,14 @@ all do -- `rime/librime`'s release workflow builds
 `hchunhui/librime-lua lotem/librime-octagram rime/librime-predict` into the
 macOS and Windows artefacts that Weasel and Squirrel ship.
 
-**`spellless-weasel-<version>-installer.exe`** is Windows only and is built in
-the fork's own tree; `--weasel` stages this repository into it and stops there,
-because the installer needs MSVC and NSIS on Windows.  There is no macOS
-equivalent and this script will not pretend otherwise: the fork is a fork of
-Weasel, which is a Windows text service.  See docs/RELEASING.md.
+**`spellless-<version>-installer.exe`** is the schema inside a Rime frontend,
+as one download.  It is built in the Weasel fork's own tree; `--weasel` stages
+this repository into it and stops there, because the installer needs MSVC and
+NSIS on Windows.
+
+macOS has a frontend build too -- spellless-squirrel, from GitHub Actions --
+but it carries no schema and so is not this script's business; it is paired
+with the zip above.  See docs/RELEASING.md.
 
 The version goes into the archive's `version.lua`, so `zzver` in a text box
 reports the release rather than a git hash nobody can look up.

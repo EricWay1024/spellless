@@ -1,28 +1,48 @@
 # Releasing Spellless
 
-Two products, because they answer different questions, and one combination
-that does not exist.
+Three products, in two repositories and a half.
 
 | | what it is | platforms |
 | --- | --- | --- |
 | **`spellless-<version>.zip`** | the schema, the matcher, the dictionary and the installer | Windows, macOS, Linux |
-| **`spellless-weasel-<version>-installer.exe`** | the same, inside a Rime frontend, as one installer | Windows only |
+| **`spellless-<version>-installer.exe`** | the same, inside a Rime frontend, as one installer | Windows |
+| **`Spellless-Squirrel-<version>.pkg`** | the frontend half for macOS | macOS |
+
+The first is this repository. The other two are frontends, and each is built
+in its own fork's tree:
+
+* [spellless-weasel](https://github.com/EricWay1024/spellless-weasel) — Weasel
+  with the document convention added, and the schema bundled inside the
+  installer, so one download is the whole thing;
+* [spellless-squirrel](https://github.com/EricWay1024/spellless-squirrel) —
+  Squirrel with the same convention, built by GitHub Actions on a macOS
+  runner. It does **not** bundle the schema: pair it with the zip.
 
 ---
 
-## Why there is no bundled macOS build
+## The one convention both frontends implement
 
-The bundle is [spellless-weasel](https://github.com/EricWay1024/spellless-weasel),
-a fork of **Weasel**, which is Rime's Windows frontend: MSVC, and a Windows
-Text Services Framework text service. macOS uses a different frontend
-(**Squirrel**, Swift and InputMethodKit) with different APIs, and the three
-features the fork exists for are written against TSF —
-`ITfComposition::ShiftStart` and `SetText` to take back characters the
-application has already been given. There is no port and porting it is a
-project, not a build step.
+A schema cannot take back text an application has already been given, and
+three features need to — punctuation reclaiming its automatic space, a
+half-typed word being picked up, Backspace deleting a whole word. So the
+frontend does it, and the contract is small enough to state here:
 
-That is the *only* thing missing on macOS. The schema archive works there in
-full, because everything in it is data and Lua.
+1. it sets the Rime property `surrounding_text` to the characters immediately
+   before the composition, on every keystroke;
+2. it reads a leading run of U+0008 in a commit as "extend backwards over this
+   many characters and replace them".
+
+On Windows that costs `ITfComposition::ShiftStart`, a synchronous edit session
+and an IPC hop between two processes. On macOS
+`insertText(_:replacementRange:)` is the same thing in one call — except when
+there is nothing to insert, where an empty insert is widely ignored and empty
+*marked* text over the range is what works.
+
+**The schema finds out which frontend it has rather than being told.** Nothing
+is asked of one until it has set `surrounding_text` at least once, and no
+stock build ever does, so the three features ship on and are simply inert on
+stock Weasel or stock Squirrel. There is no configuration that can make them
+corrupt a document.
 
 ## What the schema archive needs
 
@@ -150,12 +170,64 @@ one second for the same reason. A user who later runs `scripts/install.py`
 gets their own copy in front, which is what you want: the bundle is the floor,
 not the ceiling.
 
+---
+
+## Cutting the macOS frontend
+
+No Mac required, which is the point: GitHub's macOS runners are real ones, and
+the fork's `.github/workflows/spellless-build.yml` uses the same shape as
+upstream Squirrel's own release CI.
+
+```bash
+git -C <squirrel-fork> push origin spellless     # any push to that branch
+gh run watch <id> --exit-status
+gh run download <id> -n Squirrel-Spellless -D dist/mac
+```
+
+The workflow runs the reclaim rules through plain `swiftc` first — they live in
+`SpelllessRules.swift` with no InputMethodKit import precisely so that they
+can — and only then builds the `.app` and wraps it in a `.pkg`. A rule that is
+wrong is wrong in every application, and there is no point building the rest to
+find that out.
+
+Two things the artifact needs before it is a release:
+
+* **rename it.** The workflow ships upstream's `Squirrel-<version>.pkg`; call
+  it `Spellless-Squirrel-<version>.pkg` so nobody installs it thinking it is
+  stock Squirrel.
+* **it carries no schema.** Unlike the Windows installer, this is the frontend
+  only. Say in the notes to pair it with the zip.
+
+### It is not signed, and does not need to be
+
+Upstream Squirrel's release CI publishes `package/Squirrel-*.pkg` straight from
+Actions with **no codesign or notarise step anywhere**. So an unsigned build
+asks nothing of a macOS user that the thing it is based on does not already:
+right-click → **Open**, or `xattr -d com.apple.quarantine <file>`. No Apple
+Developer account, no $99.
+
+### What CI cannot tell you
+
+Whether an application honours a backwards replacement range. That is a
+property of its `NSTextInputClient`, and it is where both real bugs have been:
+VS Code's terminal replaying its buffer on Windows, and `absorb_fragment`
+silently doing nothing on macOS because an empty `insertText` is ignored.
+Neither was visible in the source. Both took a person typing.
+
+So a macOS release is not finished until somebody has typed into TextEdit,
+Notes, Safari, Chrome, Mail, Terminal.app, iTerm2 and VS Code, watching for a
+**duplicated line**. Whatever misbehaves goes into `commit_only_apps` by bundle
+identifier — `osascript -e 'id of app "Whatever"'` gives you that.
+
+---
+
 ### Licensing
 
-Spellless is MIT; Weasel and the fork are GPL-3.0. Distributing them as one
-installer is fine — MIT is GPL-compatible — but **the combined installer is
-GPL-3.0**, and it has to carry the fork's source offer. The schema archive on
-its own stays MIT. Do not let the two get muddled in the release notes.
+Spellless is MIT; Weasel, Squirrel and both forks are GPL-3.0. Distributing
+the schema and a frontend as one installer is fine — MIT is GPL-compatible —
+but **the combined Windows installer is GPL-3.0** and has to carry the fork's
+source offer, and so is the macOS `.pkg`. The schema archive on its own stays
+MIT. Do not let the two get muddled in the release notes.
 
 ---
 

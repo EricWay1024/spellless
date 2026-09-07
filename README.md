@@ -138,18 +138,27 @@ to compile, no plugin to install and no administrator rights needed.
 Either take a release archive from
 [Releases](https://github.com/EricWay1024/spellless/releases) and run the
 installer inside it, or clone this repository and run `make && make test`
-first. On Windows there is also a single installer that carries Spellless and
-a Rime frontend together; [docs/RELEASING.md](docs/RELEASING.md) says what is
-in each, and why there is no bundled build for macOS.
+first. On Windows there is also a single installer carrying Spellless and a
+Rime frontend together, and on macOS a frontend build to pair with the archive;
+[docs/RELEASING.md](docs/RELEASING.md) says what is in each.
 
-**On Windows, consider installing
-[spellless-weasel](https://github.com/EricWay1024/spellless-weasel) first.** It
-is Weasel with one convention added, it is what this project is developed on,
-and it buys the three features [below](#the-other-half-spellless-weasel) that no
-schema can reach: punctuation takes its space back, a word you re-type is picked
-up, and Backspace deletes a whole word. It installs *beside* the Weasel you
-already have, so stock Weasel carries on and both sit in the Windows
-input-method list. The schema install here is the same either way.
+**Consider installing the matching frontend first** —
+[spellless-weasel](https://github.com/EricWay1024/spellless-weasel) on Windows,
+[spellless-squirrel](https://github.com/EricWay1024/spellless-squirrel) on
+macOS. Each is its
+frontend with one convention added, and it buys the three features
+[below](#the-other-half-a-frontend-that-can-edit-the-document) that no schema
+can reach: punctuation takes its space back, a word you re-type is picked up,
+and Backspace deletes a whole word.
+
+The Windows one installs *beside* the Weasel you already have — its own GUIDs,
+registry key and user directory — so a Chinese input method on the same machine
+carries on untouched, and both appear in the input-method list. It also carries
+the schema, so it is the only download you need. The macOS one is the frontend
+alone: install it, then the schema below.
+
+The schema install is the same either way, and the three features switch
+themselves on when they find a frontend that can carry them.
 
 ```powershell
 python scripts\install.py
@@ -491,7 +500,7 @@ The last two are limits of where a schema sits, and the fork below lifts both.
 
 ---
 
-## The other half: [spellless-weasel](https://github.com/EricWay1024/spellless-weasel)
+## The other half: a frontend that can edit the document
 
 Everything above works on a stock Weasel. Three features need the input method
 to take text back out of the document, which is further than any schema
@@ -505,14 +514,19 @@ reaches:
 
 All three exist because a commit is a string: once it has left the input method
 the text belongs to the application. The frontend is on the other side of that
-line — it holds a TSF range, so it can read the few characters in front of the
-caret and hand them over, and it can take a character back.
+line — it holds a handle on the document, so it can read the few characters in
+front of the caret and hand them over, and it can take a character back. On
+Windows that handle is a TSF range; on macOS it is an `IMKTextInput`, where
+`insertText(_:replacementRange:)` does in one call what TSF needs an edit
+session for.
 
 They work where the document is a document; a terminal has already forwarded
 what it was given, so the attempt replays its buffer instead of correcting it.
 They are refused in the applications listed under `commit_only_apps`,
 `code.exe` among them, because VS Code's editor and its terminal are the same
-executable. Press <kbd>F4</kbd> and turn on **edits document** while writing
+executable. That list holds executable names and macOS bundle identifiers
+together — nothing is called both `code.exe` and `com.microsoft.VSCode`, so
+they cannot collide and the schema needs no platform branch. Press <kbd>F4</kbd> and turn on **edits document** while writing
 prose in one of those; it resets when you next deploy.
 
 Two frontends carry that convention, and the schema finds out which it is
@@ -528,9 +542,16 @@ Weasel with that convention added, rebuilt to install *beside* the one you
 already have: its own GUIDs, pipe, registry key and user directory, so a
 Chinese input method already on the machine carries on untouched.
 **[spellless-squirrel](https://github.com/EricWay1024/spellless-squirrel)** is
-the same for macOS, where `insertText(_:replacementRange:)` does in one call
-what TSF needs an edit session for. Both are GPL-3.0, like the projects they
-fork; this repository is MIT.
+the same for macOS, built by GitHub Actions on a macOS runner — no Mac needed
+to produce one, though one is needed to find out which applications cooperate.
+
+Both are GPL-3.0, like the projects they fork; this repository is MIT. Both
+ship unsigned, as upstream Squirrel's own releases do: right-click → **Open**
+the first time.
+
+The Windows installer carries the schema inside it, so it is the whole thing in
+one download. The macOS `.pkg` is the frontend only — pair it with the zip
+above.
 
 ---
 
