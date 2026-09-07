@@ -1,0 +1,267 @@
+#!rank 40000
+# Literature, film, art and music: the names that come up in conversation.
+#
+# This is the pack where collisions bite hardest, because artists are called
+# King, Cash, Grant, Cruise, Lee, Wood, Price, Glass, Frost, Hardy, Lynch,
+# Reich, Cage, Bowie, Eco and Hopper, and films are called Alien, Matrix,
+# Avatar, Psycho, Vertigo, Titanic, Parasite, Inception and Barbie.  Two
+# answers, both used below:
+#
+#   * a person keeps their first name -- `Stephen King`, `Johnny Cash`,
+#     `Philip Glass` -- which is one selection and cannot collide;
+#   * a film whose title is simply a common noun is left out.  `Matrix` is a
+#     mathematical object, `Price` is the 97th word in the language, and no
+#     amount of cleverness makes those worth taking.
+#
+# Not included, because the dictionary already spells them: blockbuster,
+# cinematography, screenplay, protagonist, antagonist, narrative, allegory,
+# metaphor, motif, trope, soliloquy, sonnet, stanza, couplet, iambic,
+# pentameter, novella, memoir, bildungsroman -- and Netflix and Venice, which
+# other files carry.
+
+# --- English-language literature
+Shakespeare
+Chaucer
+Milton
+Donne
+Keats
+Shelley
+Byron
+Wordsworth
+Coleridge
+Tennyson
+Browning
+Dickens
+Austen
+Bronte
+Thomas Hardy
+Eliot
+Woolf
+Joyce
+Orwell
+Huxley
+Beckett
+Yeats
+Auden
+Larkin
+Heaney
+Ishiguro
+Rushdie
+Atwood
+Munro
+McEwan
+Whitman
+Dickinson
+Robert Frost
+Plath
+Hemingway
+Faulkner
+Fitzgerald
+Steinbeck
+Salinger
+Vonnegut
+Pynchon
+DeLillo
+Morrison
+Baldwin
+Updike
+Roth
+Franzen
+
+# --- in translation
+Tolstoy
+Dostoevsky
+Chekhov
+Turgenev
+Gogol
+Nabokov
+Pushkin
+Bulgakov
+Solzhenitsyn
+Kafka
+Mann
+Hesse
+Rilke
+Goethe
+Brecht
+Sebald
+Proust
+Flaubert
+Balzac
+Zola
+Hugo
+Baudelaire
+Rimbaud
+Duras
+Cervantes
+Borges
+Marquez
+Neruda
+Bolano
+Calvino
+Umberto Eco
+Ferrante
+Pirandello
+Murakami
+Kawabata
+Mishima
+Soseki
+Tanizaki
+
+# --- film
+Kubrick
+Hitchcock
+Scorsese
+Tarantino
+Spielberg
+Nolan
+Fincher
+Villeneuve
+Aronofsky
+David Lynch
+Coen
+Wes Anderson
+Kurosawa
+Ozu
+Miyazaki
+Bergman
+Fellini
+Antonioni
+Visconti
+Godard
+Truffaut
+Almodovar
+Kieslowski
+Tarkovsky
+Haneke
+Bong Joon
+Cuaron
+Guillermo del Toro
+Wong Kar wai
+Zhang Yimou
+
+# --- actors
+Hanks
+Streep
+Portman
+Johansson
+Gosling
+DiCaprio
+Pacino
+Brando
+Hepburn
+Nicholson
+Pitt
+Damon
+Stephen King
+Johnny Cash
+Cary Grant
+Tom Cruise
+Nicolas Cage
+Bruce Lee
+Spike Lee
+
+# --- art
+Picasso
+Monet
+Manet
+Renoir
+Cezanne
+Matisse
+Kandinsky
+Klimt
+Klee
+Rothko
+Pollock
+Warhol
+Basquiat
+Edward Hopper
+Magritte
+Dali
+Frida Kahlo
+Rodin
+Rembrandt
+Vermeer
+Goya
+Caravaggio
+Botticelli
+Michelangelo
+Donatello
+Bernini
+
+# --- music
+Beethoven
+Mozart
+Bach
+Brahms
+Schumann
+Mendelssohn
+Wagner
+Verdi
+Puccini
+Vivaldi
+Handel
+Haydn
+Tchaikovsky
+Rachmaninoff
+Stravinsky
+Debussy
+Ravel
+Sibelius
+Mahler
+Bruckner
+Shostakovich
+Prokofiev
+Bartok
+Ligeti
+Philip Glass
+Steve Reich
+Einaudi
+Beatles
+Rolling Stones
+Radiohead
+Metallica
+Coldplay
+Bjork
+Madonna
+Rihanna
+Beyonce
+Adele
+Eminem
+Kanye
+Taylor Swift
+David Bowie
+Springsteen
+
+# --- prizes, festivals, and where films live
+Oscars
+Emmys
+Grammys
+Baftas
+Pulitzer
+Booker
+Nobel
+Palme
+Sundance
+Cannes
+Berlinale
+Tribeca
+Criterion
+Letterboxd
+IMDb
+Rotten Tomatoes
+arthouse
+
+# --- titles that do not collide
+The Godfather
+Citizen Kane
+Blade Runner
+Casablanca
+Nosferatu
+Rashomon
+Solaris
+Amelie
+Oldboy
+Memento
+Interstellar
+Oppenheimer
