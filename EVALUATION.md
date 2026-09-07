@@ -14,7 +14,7 @@ lua bench/probe.lua                    # the two harsher probes below
 ```
 
 Numbers below are from a single-threaded Lua 5.4.7 build on WSL2
-(x86-64 laptop), dictionary of 83,364 words.
+(x86-64 laptop), dictionary of 83,414 words.
 
 ---
 
@@ -76,9 +76,9 @@ file                          cases   top-1   top-5 in-rank
 ambiguity.tsv                    16   50.0%   93.8%  100.0%
 common_typos.tsv                 68   97.1%  100.0%  100.0%
 forms.tsv                        42   76.2%  100.0%  100.0%
-generated_cues.tsv              300   86.0%   98.3%   98.3%
-generated_skeletons.tsv         400   91.5%   99.5%   99.5%
-generated_typos.tsv             500   90.2%   99.2%   99.2%
+generated_cues.tsv              300   90.3%   99.3%   99.3%
+generated_skeletons.tsv         400   90.0%  100.0%  100.0%
+generated_typos.tsv             500   93.4%   98.6%   98.6%
 literal.tsv                      24  100.0%  100.0%  100.0%
 prefix.tsv                       28   96.4%  100.0%  100.0%
 rare_words.tsv                   39   89.7%  100.0%  100.0%
@@ -87,29 +87,39 @@ skeletons.tsv                    31  100.0%  100.0%  100.0%
 spec_examples.tsv                16   75.0%   87.5%  100.0%
 syllables.tsv                    57   98.2%  100.0%  100.0%
 ------------------------------------------------------------
-TOTAL                          1535   89.6%   98.9%   99.3%   <- shipped seed
+TOTAL                          1535   91.1%   99.0%   99.4%   <- includes the
+                                                                 335 the weights
+                                                                 were written for
 
-held out, five fresh generator seeds:
-                                      88.9%   98.9%
-                                      91.1%   99.5%
-                                      90.6%   99.6%
-                                      90.4%   99.2%
-                                      89.2%   99.1%
+held out: ten fresh generator seeds, generated cases only
+                        shipped   10 draws     gap   draws >= shipped
+  generated_typos         93.4%   90.8% ± 1.2   +2.6        0 / 10
+  generated_skeletons     90.0%   89.2% ± 1.8   +0.8        4 / 10
+  generated_cues          90.3%   88.9% ± 1.4   +1.4        2 / 10
 ------------------------------------------------------------
-TOTAL                          1535   90.0%   99.3%          <- held out, mean
+TOTAL                    1200     91.5%   89.8% ± 0.6   +1.7   0 / 10
+                                  99.2%   99.3% ± 0.2   top-5
 ```
 
-**Top-1 90.0%, top-5 99.3%** — held out, and every one of the 335 hand-written
-cases passes. The three generated rows swing two or three points against each
-other from one seed to the next while the total does not, so read the total.
+**Top-1 89.8% ± 0.6, top-5 99.3% ± 0.2, held out.** That is the number to
+quote. Every one of the 335 hand-written cases passes.
 
-The generated sets come from a seeded generator, so a fresh seed is a free
-held-out set; the second block is the mean of ten. On the seed the weights were
-originally fitted to, the same table reads **89.6% / 99.0%** — *below* the
-held-out mean, by less than a third of the seed-to-seed standard deviation.
-There is no in-sample optimism left to correct for, which was not true when
-this file was first written; docs/ALGORITHM.md §5.1 has what changed and why.
-docs/ALGORITHM.md §5 is the short version of everything below.
+**The 91.1% is a training figure, and so is the 91.5%.** The generated sets
+come from a seeded generator, so a fresh seed is a free held-out set — and
+measured that way, about **1.7 points of the shipped top-1 is in-sample
+optimism**, most of it in the typo file, where no draw in ten reaches the
+shipped seed. That is close to three standard deviations of the seed-to-seed
+spread, so it is not a lucky draw.
+
+Two things it is not. Not the dictionary having moved under the case files:
+regenerating the shipped seed against today's dictionary reproduces all three
+files byte for byte. And not the context features, which the case files cannot
+see — they carry no preceding text.
+
+This file previously said there was no optimism left. That reading came from
+comparing a 1,535-case shipped total against 1,200-case draws, which is not a
+comparison. docs/ALGORITHM.md §5.1 has the history, including a real overfit
+that was found and removed, and §5 is the short version of everything below.
 
 Three files deserve a footnote, because their low top-1 is the *intended*
 result. `spec_examples.tsv` asks for `mathematics`, `mathematical` **and**
@@ -264,10 +274,10 @@ skipped entirely whenever the query is itself a word — which is most of what
 anyone types.
 
 For scale: running just the typo source naively — weighted edit distance
-against all 83,364 words, no buckets, no prefilter — measures **105–115 ms per
+against all 83,414 words, no buckets, no prefilter — measures **105–115 ms per
 query** in the same Lua build (`bench/naive.lua`). The bucketing and prefilters
 described in DESIGN.md §4.5 do that work *and* the skeleton and cue searches in
-about 2.5 ms, roughly a 40× reduction with no measured loss of recall.
+about 2.9 ms, roughly a 40× reduction with no measured loss of recall.
 
 ---
 

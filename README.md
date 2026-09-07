@@ -118,11 +118,12 @@ youre            →  you're         id        →  id · I'd
 noether's        →  Noether's      psdfnctr  →  pseudofunctor
 ```
 
-It is a [Rime](https://rime.im) schema for Windows, and **the word you meant is
-first 90.0% of the time, in the top five 99.3%** — measured on cases the tuning
-never saw. About 2.5 ms per keystroke. 2,222 assertions say it still behaves.
-[EVALUATION.md](EVALUATION.md) has the numbers, including the cases it gets
-wrong and why.
+It is a [Rime](https://rime.im) schema for Windows, macOS and Linux, and **the
+word you meant is first 89.8% of the time, in the top five 99.3%** — measured
+on ten fresh draws the tuning never saw, ± 0.6. About 2.9 ms per keystroke.
+2,327 assertions say it still behaves.
+[docs/ALGORITHM.md](docs/ALGORITHM.md) §5 has the numbers, including the cases
+it gets wrong, why, and how much of the training figure is optimism.
 
 ---
 
@@ -671,7 +672,7 @@ Windows installer. `make release VERSION=0.1.0` builds the first.
 
 ```bash
 make            # dictionary + indexes + test set
-make test       # 2,222 assertions
+make test       # 2,327 assertions
 make bench      # accuracy and latency over tests/cases/
 make install
 ```
@@ -684,7 +685,7 @@ spellless/
 ├── scripts/       dictionary build, index build, test-set build, icon, installer
 ├── data/          vendored corpus, supplemental vocabulary, surface forms
 ├── generated/     build output (1.3 MB) — what gets deployed
-├── tests/         2,222 assertions + the evaluation cases
+├── tests/         2,327 assertions + the evaluation cases
 ├── bench/         evaluate.lua, tune.lua, probe.lua, naive.lua
 └── docs/          the algorithm in full, deployment, editor snippets, the bench
 ```

@@ -142,15 +142,23 @@ def load_forms() -> dict[str, str]:
     form -- "thursday" commits as "Thursday".  The expected column has to be
     the form, or every proper noun that gets added reads as a regression when
     it is nothing of the sort.
+
+    A third field "+" means the capital is offered *beside* the lowercase
+    reading rather than instead of it, and then the lowercase reading is what
+    leads -- `messenger` before `Messenger`.  So those are deliberately not
+    collected: the expected text is the key itself, which is what `.get(word,
+    word)` falls back to.  Reading the third field as part of the display is
+    what happened before this was written, and it wrote `Messenger\t+` into the
+    expected column, which the case parser rejects outright.
     """
     path = REPO / "generated" / "spellless.forms"
     if not path.exists():
         return {}
     forms = {}
     for line in path.read_text(encoding="utf-8").split("\n"):
-        key, tab, display = line.partition("\t")
-        if tab and key and display:
-            forms[key] = display
+        fields = line.split("\t")
+        if len(fields) >= 2 and fields[0] and fields[1] and "+" not in fields[2:]:
+            forms[fields[0]] = fields[1]
     return forms
 
 

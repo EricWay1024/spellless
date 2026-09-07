@@ -81,7 +81,7 @@ than an application of a known technique.
 
 | | |
 | --- | --- |
-| **Latency** | Runs on every keystroke inside the IME process. ~2.5 ms mean, under 10 ms at p95. Single-threaded interpreted Lua 5.4, no JIT. |
+| **Latency** | Runs on every keystroke inside the IME process. ~2.9 ms mean, under 10 ms at p95. Single-threaded interpreted Lua 5.4, no JIT. |
 | **Scale of the budget** | A naive weighted edit distance against all 83,414 words, *with* the budget and early abort, costs **165 ms per query**. The budget is therefore under 1/70th of a full scan. |
 | **Memory** | ~17 MB resident, ~100 ms to load, once per process. |
 | **Dependencies** | None. Pure Lua, no compiled extension, no network, no GPU. The shipped data is 1.3 MB. |
@@ -657,21 +657,38 @@ shipped number is:
 
 ```
                         shipped seed   10 fresh draws    gap    draws ≥ shipped
-  generated_typos           91.4%      91.0% ± 0.9      +0.4        5 / 10
-  generated_skeletons       88.5%      89.8% ± 1.9      −1.3        7 / 10
-  generated_cues            88.0%      88.1% ± 2.7      −0.1        6 / 10
-  TOTAL top-1               89.6%      89.9% ± 0.9      −0.3        7 / 10
-  TOTAL top-5               99.0%      99.3% ± 0.3      −0.3
+  generated_typos           93.4%      90.8% ± 1.2      +2.6        0 / 10
+  generated_skeletons       90.0%      89.2% ± 1.8      +0.8        4 / 10
+  generated_cues            90.3%      88.9% ± 1.4      +1.4        2 / 10
+  TOTAL top-1               91.5%      89.8% ± 0.6      +1.7        0 / 10
+  TOTAL top-5               99.2%      99.3% ± 0.2      −0.1
 ```
 
-**There is no measurable optimism left, on any file.** Every gap is inside one
-standard deviation of the seed-to-seed spread, the shipped seed sits *below*
-the held-out mean overall, and about half the fresh draws beat it on each file
-— which is what a set of weights that has not been fitted to a particular draw
-looks like.
+**Both totals are the 1,200 generated cases**, and that matters: the shipped
+figure quoted everywhere else, 91.1%, is over all 1,535 including the 335
+hand-written ones, which a fresh seed does not have. An earlier version of this
+table compared the 1,535-case shipped number against 1,200-case draws and
+concluded there was no optimism left. That comparison was not sound, and the
+number it produced was flattering by construction.
 
-It did not read that way when this section was first written, and how it
-changed is the useful part. The measurement then was:
+**Measured like for like, about 1.7 points of the shipped top-1 is optimism**,
+and the typo file carries most of it: no fresh draw in ten reaches the shipped
+seed's 93.4%, and none reaches its total. That is close to three standard
+deviations of the seed-to-seed spread, so it is not a lucky draw.
+
+Two things it is *not*. It is not the dictionary having moved underneath the
+case files: regenerating the shipped seed against today's dictionary produces
+the three files **byte for byte**, so the cases are the same cases. And it is
+not the recent context work, which the case files cannot see at all — they
+carry no preceding text (§8.1).
+
+What it most likely is: the weights were fitted on this seed, §5.1 says so, and
+every improvement since has been checked against it. The honest reading is that
+the shipped number should be quoted as **89.8% ± 0.6 held out**, and that the
+1,535-case 91.1% is a training figure.
+
+**It has read three different ways, and the history is the useful part.** When
+this section was first written the measurement was:
 
 ```
                         shipped seed    25 fresh draws    gap
@@ -716,14 +733,14 @@ held-out mean beside the generated files. §5.1 has the reason the two columns
 now agree.
 
 ```
-file                          cases   top-1   top-5      held out (5 seeds)
+file                          cases   top-1   top-5      held out (10 seeds)
 ------------------------------------------------------------
 ambiguity.tsv                    16   50.0%   93.8%      hand-written, no held-out set
 common_typos.tsv                 68   97.1%  100.0%      hand-written, no held-out set
 forms.tsv                        42   76.2%  100.0%      hand-written, no held-out set
-generated_cues.tsv              300   86.0%   98.3%
-generated_skeletons.tsv         400   91.5%   99.5%
-generated_typos.tsv             500   90.2%   99.2%
+generated_cues.tsv              300   90.3%   99.3%      88.9% ± 1.4
+generated_skeletons.tsv         400   90.0%  100.0%      89.2% ± 1.8
+generated_typos.tsv             500   93.4%   98.6%      90.8% ± 1.2
 literal.tsv                      24  100.0%  100.0%      hand-written, no held-out set
 prefix.tsv                       28   96.4%  100.0%      hand-written, no held-out set
 rare_words.tsv                   39   89.7%  100.0%      hand-written, no held-out set
@@ -732,17 +749,19 @@ skeletons.tsv                    31  100.0%  100.0%      hand-written, no held-o
 spec_examples.tsv                16   75.0%   87.5%      hand-written, no held-out set
 syllables.tsv                    57   98.2%  100.0%      hand-written, no held-out set
 ------------------------------------------------------------
-TOTAL                          1535   89.6%   98.9%      shipped seed
-                                      90.0%   99.3%      mean of 5 fresh seeds
+TOTAL (all 1,535)                     91.1%   99.0%      a training figure
+TOTAL (the 1,200 generated)           91.5%   99.2%      89.8% ± 0.6 held out
 ```
 
 The three generated rows swing two or three points against each other from
 seed to seed and the total does not; read the total, and read it beside the
-held-out line rather than on its own.
+held-out column rather than on its own.
 
-**Top-1 ≈ 90.0% held out, top-5 ≈ 99.3%**, and the shipped seed reads 89.6% —
-*below* the held-out mean, by less than a third of the seed-to-seed standard
-deviation. There is no gap left to correct for.
+**The number to quote is 89.8% ± 0.6 held out, top-5 99.3% ± 0.2.** The 91.1%
+is over the whole set including 335 cases the weights were written against, and
+even the 1,200-case 91.5% is a training figure: no fresh draw in ten reaches
+it. §5.2 below has the size of that gap and what is and is not responsible for
+it.
 
 Three files have a deliberately low top-1. `spec_examples.tsv` asks for
 `mathematics`, `mathematical` **and** `mathematician` from the same input, so
