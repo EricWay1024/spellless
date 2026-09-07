@@ -170,6 +170,7 @@ python3 scripts/import_pack.py topology china
 | pack | what it holds |
 | --- | --- |
 | `topology.txt` | names, objects and adjectives from topology and geometry |
+| `philosophy.txt` | philosophers, positions, and the terms of art |
 | `software.txt` | computer science and software engineering, past what everyone needs |
 | `europe.txt` | airports by name, airlines, railways, cities and regions |
 | `britain.txt` | British institutions, mostly acronyms |

@@ -1,0 +1,256 @@
+#!rank 40000
+# Philosophy: the names, the isms, and the terms of art.
+#
+# A pack rather than shipped vocabulary, like topology.txt: excellent if you
+# read philosophy and clutter if you do not.
+#
+# Not included, because the dictionary already spells them: epistemology,
+# ontology, metaphysics, phenomenology, hermeneutics, teleology, deontology,
+# utilitarianism, existentialism, nihilism, solipsism, empiricism, rationalism,
+# idealism, materialism, physicalism, functionalism, dualism, monism,
+# determinism, externalism, relativism, realism, nominalism, essentialism,
+# naturalism, qualia, intentionality, counterfactual, defeasible, syllogism,
+# intension, extension, transcendental, dialectic, aporia, logos, ethos,
+# pathos, praxis, nous, arete, positivism, pragmatism, structuralism,
+# deconstruction, intuitionism, formalism, platonism, and Berkeley.
+#
+# Ten philosophers appear under their full names because their surnames are
+# ordinary words: a bare `Mill`, `Singer`, `Block`, `Foot`, `Field`, `Bacon`,
+# `Hare`, `Wright`, `Hacking` or `Sober` would lead over the mill, the singer
+# and the foot.  The full name is also one selection rather than two.
+
+# --- ancient
+Socrates
+Plato
+Aristotle
+Parmenides
+Heraclitus
+Democritus
+Pyrrho
+Sextus
+Empiricus
+Plotinus
+Epictetus
+Seneca
+Lucretius
+Boethius
+
+# --- medieval and early modern
+Augustine
+Aquinas
+Anselm
+Ockham
+Duns
+Scotus
+Avicenna
+Averroes
+Maimonides
+Machiavelli
+Hobbes
+Descartes
+Spinoza
+Leibniz
+Locke
+Hume
+Rousseau
+Voltaire
+Francis Bacon
+
+# --- the nineteenth century and after
+Kant
+Hegel
+Schopenhauer
+Kierkegaard
+Nietzsche
+John Stuart Mill
+Bentham
+Peirce
+Dewey
+Husserl
+Bergson
+Heidegger
+Wittgenstein
+Sartre
+Camus
+Arendt
+Levinas
+Adorno
+Horkheimer
+Marcuse
+Habermas
+Gadamer
+Ricoeur
+Foucault
+Derrida
+Deleuze
+
+# --- analytic
+Frege
+Russell
+Moore
+Ryle
+Austin
+Strawson
+Anscombe
+Quine
+Davidson
+Dummett
+Kripke
+Putnam
+Lewis
+Armstrong
+Sellars
+Grice
+Kaplan
+Stalnaker
+Evans
+McDowell
+Brandom
+Burge
+Harman
+Jackson
+Dretske
+Millikan
+Papineau
+Stich
+Ned Block
+Chalmers
+Dennett
+Searle
+Nagel
+Fodor
+Elliott Sober
+
+# --- ethics and politics
+Rawls
+Nozick
+Scanlon
+Parfit
+Korsgaard
+Nussbaum
+MacIntyre
+Hursthouse
+Philippa Foot
+Peter Singer
+Williams
+Thomson
+Mackie
+Blackburn
+Gibbard
+Railton
+Broome
+Pettit
+Elster
+Wiggins
+Amartya Sen
+
+# --- science, logic, mathematics
+Popper
+Kuhn
+Feyerabend
+Lakatos
+Carnap
+Tarski
+Godel
+Hilbert
+Brouwer
+Heyting
+Boolos
+Feferman
+Kreisel
+Benacerraf
+Maddy
+Hartry Field
+Crispin Wright
+Shapiro
+Balaguer
+Hellman
+Resnik
+Parsons
+Ian Hacking
+Cartwright
+Ramsey
+Chomsky
+Turing
+Marr
+
+# --- eastern
+Confucius
+Mencius
+Laozi
+Zhuangzi
+Nagarjuna
+
+# --- positions and isms the corpus is missing
+consequentialism
+consequentialist
+compatibilism
+incompatibilism
+foundationalism
+coherentism
+reliabilism
+internalism
+antirealism
+fictionalism
+logicism
+intuitionist
+nominalist
+presentism
+eternalism
+endurantism
+perdurantism
+actualism
+possibilism
+poststructuralism
+physicalist
+deontological
+Stoicism
+Epicureanism
+Scholasticism
+Thomism
+Kantian
+Hegelian
+Nietzschean
+Heideggerian
+Wittgensteinian
+Marxist
+
+# --- terms of art
+supervenience
+supervenient
+mereology
+mereological
+hylomorphism
+haecceity
+truthmaker
+abstracta
+concreta
+counterfactuals
+enthymeme
+sorites
+Gettier
+doxastic
+alethic
+deontic
+normativity
+metaethics
+metaethical
+noumenon
+elenchus
+eudaimonia
+phronesis
+akrasia
+telos
+episteme
+doxa
+hexis
+ousia
+
+# --- German, which philosophy borrows untranslated
+Dasein
+Geist
+Aufhebung
+Verstehen
+Lebenswelt
+Ubermensch
+ressentiment
