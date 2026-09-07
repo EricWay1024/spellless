@@ -30,6 +30,83 @@ than fixing a letter in it.
 **Every change is one you picked.** The list appears, you choose, and
 <kbd>Enter</kbd> always commits exactly what you typed.
 
+---
+
+## Everything it does
+
+Each line links to where it is explained.
+
+**Finding the word**
+
+| | |
+| --- | --- |
+| Drop the vowels | `mthmtcs` → mathematics, `dffmrphsm` → diffeomorphism |
+| Mistype it | `recieve` → receive, `teh` → the — transposed, wrong, missing or extra letters |
+| Finish it for you | `neighbo` → neighbourhood |
+| Syllabic shorthand | `satfcatn` → stratification, `alghrith` → algorithm even with a slip in it |
+| Words run together | `exactlyright` → exactly right, any number of them |
+| Words built out of parts | `resampling`, `matrixwise` — coined, not looked up |
+| Possessives | `mther's` → mother's, `mthers'` → mothers', and the ending follows the word |
+| Dropped apostrophes | `dont` → don't, `im` → I'm, `ive` → I've |
+| Abbreviations without dots | `eg` → e.g., committed whole so it does not end a sentence |
+| Your own shorthand | `sth` → something, and a file for your own habits |
+
+**Capitals, which nobody should have to think about**
+
+| | |
+| --- | --- |
+| Sentences start with one | but `MATHE` and `kubectl` are left alone |
+| Both spellings of a word that has two | `ram`/`RAM`, `react`/`React`, `latex`/`LaTeX` — one keystroke apart |
+| Spellings that resist it | `iPhone` starts a sentence as `iPhone`, never `IPhone` |
+| Spellings you teach it | `LaTeX`, `arXiv`, `PyTorch`, `McDonald's` — kept, and reachable from any shorthand |
+| A capital you chose twice | becomes the default, and picking the lowercase twice undoes it |
+
+**Reading the sentence you are in**
+
+| | |
+| --- | --- |
+| After a modal, the bare verb | `would rlt` prefers relate over related — but `rlted` still gives related |
+| Through adverbs and adjuncts | `would not`, `may in fact`, `can thus to some extent` |
+| After an infinitive `to` | `want to`, `in order to` — but not `isomorphic to` |
+| A letter against a digit is notation | `4D`, `3D`, `4th`, `5km` commit as themselves |
+| Punctuation knows what it follows | `$x$` closes, `don't` does not open a quote, `e.g.` is not a full stop |
+
+**Learning**
+
+| | |
+| --- | --- |
+| A word you commit once | is a candidate from then on, capitals and all |
+| A correction you make twice | leads the list, and only deliberate choices count |
+| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> | forgets anything learned by accident |
+| No size limit | your list is searched by exactly the machinery that searches the dictionary |
+
+**Typing, not just matching**
+
+| | |
+| --- | --- |
+| The space rides on the word | never in front of it, and punctuation takes it back |
+| <kbd>Enter</kbd> commits what you typed | <kbd>Shift</kbd>+<kbd>Enter</kbd> commits and adds the newline |
+| Space bar asks before a misspelling | double-tap to insist |
+| <kbd>Backspace</kbd> twice | deletes the whole word, not one letter |
+| `qq` mid-word is a command | `qqc` capitals, `qqf` first letter, `qql` lower case, `qqd` forget |
+| Editor snippets | `xthm` expands in VS Code, through your own snippet file |
+
+**Vocabulary**
+
+| | |
+| --- | --- |
+| 83,414 words | plus technology, the 2020s internet, contractions, interjections, names |
+| Eight importable packs | algebra, topology, software, philosophy, culture, europe, china, britain |
+| Your own list | plain text, hand-editable, never overwritten by an upgrade |
+
+**Where it runs**
+
+| | |
+| --- | --- |
+| Windows, macOS, Linux | one schema; Weasel, Squirrel, `ibus-rime`/`fcitx5-rime` |
+| Editing text already committed | space reclamation, word-backspace, picking up a word in front of the caret |
+| Terminals excepted | where taking text back is unsafe, it does not try |
+
 ## Why this should exist
 
 Chinese input methods solved a version of this decades ago. You type an
@@ -396,11 +473,27 @@ work on topology and clutter if you do not:
 
 ```bash
 python3 scripts/import_pack.py --list
-python3 scripts/import_pack.py topology
+python3 scripts/import_pack.py topology algebra
 ```
 
-They merge into your own word list, never overwrite what you have taught, and
-a text file of your own words works just as well as a named pack.
+| pack | entries | |
+| --- | --- | --- |
+| `algebra` | 151 | Algebra, arithmetic geometry, and writing mathematics |
+| `britain` | 28 | British institutions, mostly acronyms |
+| `china` | 42 | Chinese provinces, and words English borrowed |
+| `culture` | 231 | Literature, film, art and music: the names people mention |
+| `europe` | 136 | Travelling in Europe: airports by name, airlines, railways, cities, regions |
+| `philosophy` | 216 | Philosophers, positions, and the terms of art |
+| `software` | 176 | Computer science and software engineering, past what everyone needs |
+| `topology` | 197 | Topology and geometric topology |
+
+They merge into your own word list, never overwrite a count you have earned,
+and a text file of your own words works just as well as a named pack. Each was
+checked against the dictionary before being written: a candidate the dictionary
+already spells correctly is left out, because a pack that repeats the
+dictionary is noise. Where a name is also an ordinary word — `Bloom`, `Lie`,
+`Mill`, `Stephen King` — it appears with enough of the name to be unambiguous,
+so importing one never costs you the everyday word.
 
 **A letter hard against a digit is notation, not a word.** `4D`, `3D`, `4th`,
 `5km`, `L2` — type the digit and it goes straight in, and the letters after it
