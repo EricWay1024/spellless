@@ -87,6 +87,42 @@ exactly and case-sensitively against the *whole* composition: `xdm` fires,
 HyperSnips' own word-boundary rule, arrived at from the other side. Redeploy
 after editing; the list is read once, like the shortcuts file.
 
+## Why the last letter is not committed with the rest
+
+A trigger is committed as `xth` plus a *rejected* `m`, and that asymmetry is
+the whole reason any of this works.
+
+HyperSnips expands an automatic snippet from a document-change event, and drops
+anything that does not look like typing:
+
+```js
+// Let's try to detect only events that come from keystrokes.
+if (mainChange.text.length != 1) return;
+```
+
+An input method's commit is one four-character change, so `xthm` landed in the
+document and expanded nothing — while the same letters in ASCII mode, arriving
+as four separate keystrokes, expanded fine.
+
+**Committing the letters one at a time does not fix it**, and that is worth
+knowing because it is the obvious first idea. librime concatenates every commit
+of a single keystroke into one string — `commit_text_ += commit_text` in
+`service.cc` — which the frontend reads once. Four calls and one call reach the
+document identically.
+
+What the guard actually inspects is only the change that just arrived; how the
+text in front of it got there is not its business. So the prefix is committed
+and the final key returns `kRejected`, which librime defines as *"do the OS
+default processing"* — the key reaches the application as itself, one character
+long, with the whole trigger behind it. That is the same thing ASCII mode was
+doing, arranged deliberately.
+
+The cost is one keystroke's worth of asymmetry in `handover.func`, and the
+alternative was dropping the `A` flag and confirming every trigger from the
+suggest widget.
+
+---
+
 ## Only where each one makes sense
 
 | | default | asks |
