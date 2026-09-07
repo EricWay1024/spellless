@@ -29,11 +29,12 @@ Corpus.load            73 ms, 14.1 MB
 naive full scan        138 ms for one query against all 83,414 words
 ```
 
-> **Heads-up before you read further.** `docs/ALGORITHM.md`, `EVALUATION.md`,
-> `DESIGN.md` and `data/README.md` all still quote **83,364 words** and **89.6%
-> top-1**. Those were true two dictionaries ago. Where this document and those
-> disagree, the numbers above are what the code in the tree does today. §G.6
-> lists every drift I found, including one that changes shipped behaviour.
+> **On the numbers.** This document was written against the tree, not against
+> the other documents, and where it disagreed with them it was right: eleven of
+> the twelve discrepancies in §G.6 have since been fixed, including one that
+> changed shipped behaviour. The figures here are what the code does today.
+> Quote **89.8% ± 0.6 top-1 held out**; the 91.1% printed by
+> `lua bench/evaluate.lua` includes 335 cases the weights were written for.
 
 ---
 
@@ -553,7 +554,9 @@ Engine:suggest(raw, limit, opts) → candidates, stats     // engine.lua:455
         generate_personal(self, search, items)                     §C.3.1
         if stem:
             drop every item whose WORD or whose SURFACE FORM contains "'"
-        // else: generate_possessive — unreachable in practice, see §G.6
+        // no else: a second possessive generator lived here and could never
+        // run — the guard above forces the query to match ^[a-z][a-z']*$, so a
+        // query ending in "'s" always leaves a matching stem.  Removed; see §G.6.
 
  4  ctx ← { text, freq, user, tiebreak, previous_class,
             prefer_bare  ← opts.prefer_bare and search does not end in "d",
@@ -2647,8 +2650,8 @@ calibration set the weight is the principled version.
   later. Nobody has tried.
 
 Where it fails, from the full sweep recorded in `docs/ALGORITHM.md` §6 — taken
-when the total read 89.6% rather than today's 91.1%, so treat the shape rather
-than the counts: 159 of 1,535 cases (10.4%) did not lead; of those, 61% were at
+when the total read 89.6% rather than today's 91.1% training / 89.8% held out,
+so treat the shape rather than the counts: 159 of 1,535 cases (10.4%) did not lead; of those, 61% were at
 rank 2, 28% at rank 3–5, 10% at rank 6–20, and **one was not offered at all**
 (`coa`, wanted for `coca`). 62% of the residual is ordering between two readings
 that are both defensible. The classes are morphological siblings
@@ -2658,13 +2661,17 @@ offers from/form/firm/farm/forum), and deliberate ties (`its`/`it's`).
 
 ### G.6 Things I found while reading that look wrong
 
-Reported as findings, not fixed — this document is the only file I touched.
+**Eleven of these twelve have been fixed since.** They are kept in full rather
+than deleted, because the *class* of each is the useful part for a critic: what
+kind of mistake this codebase makes, and which of its guards did not catch it.
+Where a fix exists it is named. Only finding 12 is still open, and it is an
+observation rather than a defect.
 
 **1. The shipped schema turns off the three features that config, README and
 DESIGN all say now ship on.** Commit `7214c78` flipped `reclaim_space`,
 `absorb_fragment` and `word_backspace` to `true` in `config.lua` and rewrote the
 prose accordingly, but did not touch `rime/spellless.schema.yaml`, which still
-has:
+has: **Fixed in `64fb607`.**
 
 ```yaml
 spellless:
@@ -2687,7 +2694,7 @@ checks that each key *exists* in `config.lua`, not that the values agree.
 `commit_only_apps` line stops at `putty.exe`. Because the schema value overrides
 the default, a Squirrel fork typing into Terminal.app would not be refused
 document edits. Today that is masked by finding 1 — but fixing finding 1 without
-also fixing this one would expose it.
+also fixing this one would expose it. **Fixed in `64fb607`.**
 
 **3. `generate_possessive` is unreachable.** It is called only from the `else`
 branch of `if stem then` in `Engine:suggest`, i.e. only when the query does *not*
@@ -2697,16 +2704,16 @@ end in `'s`. An exhaustive search over every string of length ≤ 7 over
 apostrophe (`'a's`), which the speller's `initials` cannot produce and for which
 no dictionary lookup can succeed anyway. The productive possessive is delivered
 entirely by the stem/suffix split at the top of `suggest`. (`possessive_stem`
-itself is still live, via `has_exact`.)
+itself is still live, via `has_exact`.) **Removed in `ab8b561`.**
 
 **4. `read_behind` computes `out.fragment` and nothing reads it.** `M.absorb`
 computes its own fragment from the document. The field costs one pattern match
-per keystroke whenever `absorb_fragment` is on and the document is readable.
+per keystroke whenever `absorb_fragment` is on and the document is readable. **Removed in `ab8b561`.**
 
 **5. `write_note` (`spellless.lua:82`) is dead**, because both writers inline
 `SENTENCE_YES .. ":0"` — they need to stamp with 0 rather than the current size.
 `UserDB:forget_surface` is referenced nowhere at all; `UserDB:words()` and
-`util.popcount26` are used only by tests.
+`util.popcount26` are used only by tests. **`write_note` and `forget_surface` removed in `ab8b561`; `UserDB:words()` is live (the personal index calls it) and `popcount26` is kept as the reference the masks are tested against.**
 
 **6. `config.lua`'s `cost_weight` comment is arithmetically stale.** It says "a
 repair also has to cross `base_exact - base_typo = 25`, and 41 points is 17.4
@@ -2714,14 +2721,14 @@ nats… a full-price repair *never* beats an exact dictionary match at any
 frequency — it is a veto, not a price". With `base_exact = 84` and
 `base_typo = 75` that gap is **9**, so the total is 25 points ≈ 10.6 nats and a
 full-price repair *can* in principle win. `docs/ALGORITHM.md` §4.8 has the
-corrected version; the code comment does not.
+corrected version; the code comment does not. **Fixed in `ab8b561`.**
 
 **7. Every long-form document is a dictionary behind.** `docs/ALGORITHM.md`,
 `EVALUATION.md`, `DESIGN.md` and `data/README.md` all say **83,364 entries**;
 `generated/spellless.build.json` says **83,414**. ALGORITHM.md and EVALUATION.md
 report **89.6% / 98.9%** top-1/top-5 on the shipped seed; `lua bench/evaluate.lua`
 prints **91.1% / 99.0%** today. README.md's `zzver` example shows `83137 words,
-622 forms`; it is 83,414 words and 809 forms.
+622 forms`; it is 83,414 words and 809 forms. **Fixed in `ab8b561` and `849376f`.**
 
 **8. Three sections of the long-form docs describe code that no longer exists.**
 ALGORITHM.md §4.7 and its §4 diagram, and DESIGN.md §7 "How it is used", all
@@ -2732,7 +2739,7 @@ keep. DESIGN.md §7 also names `repair_personal`, which was removed by `7baac34`
 along with the whole idea of repairing the store on load. DESIGN.md §5.6 and
 §“`$` hands the keyboard over” name the gear `lua_processor@*spellless*delimiter`;
 it is `*spellless*handover`. DESIGN.md §10 lists "remember the input, not just
-the word" as the top next step; it shipped.
+the word" as the top next step; it shipped. **Fixed in `ab8b561`.**
 
 **9. `scripts/build_dictionary.py:parse_vocab_file`'s docstring describes the
 `+` marker system that was replaced.** It says at length that "a capitalised
@@ -2740,16 +2747,16 @@ entry followed by `+` … keeps *both* spellings" and that "without the marker t
 capitals replace". The function no longer parses a `+` at all; `additive` is
 derived in `main()` from base-corpus membership and `#!capitals replace`. The
 docstring even carries the reasoning for why the build "cannot decide this for
-you and should not try", which is now exactly what it does.
+you and should not try", which is now exactly what it does. **Fixed in `ab8b561`.**
 
 **10. ALGORITHM.md contradicts itself about slip tolerance.** §8.4 says it
 "ships off for latency (§8.9)"; §8.9 says "The second is now **on**". The code
-ships it on (`cue_slip_cost = 10.0`).
+ships it on (`cue_slip_cost = 10.0`). **Fixed in `ab8b561`; §8.4 now says on.**
 
 **11. The bare-verb measurement is quoted twice with two different numbers.**
 `config.lua` (`bare_verb_window`) says the predicate "fires on 3,979" of 374,090
 slots; `docs/ALGORITHM.md` §8.1 says "it fires on **3,994**". Both then report 11
-improvements against 0 regressions, so one of the two counts is stale.
+improvements against 0 regressions, so one of the two counts is stale. **Fixed in `ab8b561`; 3,994 is right, 3,979 predated the phrase list.**
 
 **12. Two smaller inconsistencies that each have a defence, but are worth a
 second opinion.** `M.filter` judges the space after punctuation against
@@ -2759,7 +2766,7 @@ document the filter is working from the weaker source (this path only runs with
 `spellless.lua:882` likewise reads `commit_tail` rather than `text_behind`; here
 the justification given elsewhere in the file — "any word above has already been
 committed, so the history is current" — does not obviously apply, because no word
-was committed on that path.
+was committed on that path. **Still open.**
 
 ---
 

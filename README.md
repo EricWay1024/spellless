@@ -681,6 +681,7 @@ make install
 spellless/
 ├── DESIGN.md      architecture, and why each decision went that way
 ├── EVALUATION.md  accuracy and latency, and how to reproduce them
+├── docs/PIPELINE.md  every step from keystroke to candidate, in pseudocode
 ├── rime/          the schema, its icon, the Rime adapter, and the matcher
 ├── scripts/       dictionary build, index build, test-set build, icon, installer
 ├── data/          vendored corpus, supplemental vocabulary, surface forms

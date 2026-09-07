@@ -1405,6 +1405,8 @@ code the IME runs.
 frontend can do that a schema cannot. `EVALUATION.md` is the long-form version
 of §5. `data/README.md` documents the corpus and its preprocessing.
 `prompt/expert-review.md` is the review this document was revised against.
+`docs/PIPELINE.md` is the mechanical companion to this one: every step from
+keystroke to candidate list, in pseudocode, with the edge cases named.
 
 Most of what is worth knowing about a constant is written next to it in
 `rime/lua/spellless/config.lua`, including the sweeps that were run and not
