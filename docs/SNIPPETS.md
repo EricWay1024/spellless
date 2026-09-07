@@ -47,10 +47,23 @@ worse than asking.
 
 | | where | what it holds |
 | --- | --- | --- |
-| the expansion | `%APPDATA%\Code\User\hsnips\typst.hsnips` | what `xdm` turns into |
-| the letters | `%APPDATA%\Spellless\spellless_snippets.txt` | which letters to commit, and whether maths follows |
+| the expansion | the editor's `hsnips/typst.hsnips` | what `xdm` turns into |
+| the letters | the Rime user directory's `spellless_snippets.txt` | which letters to commit, and whether maths follows |
 
-Adding a trigger means adding it in both. The Spellless list is plain text:
+**Find the first one with the editor, not from memory.** HyperSnips has a
+command — <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>, "HyperSnips: Open
+snippet file" — and it opens the copy that is actually being read, which is the
+only one that matters. VS Code has more than one user directory and which it
+uses depends on how it was started: `%APPDATA%\Code\User` on Windows,
+`~/.config/Code/User` on Linux, and a remote window reads the remote side's.
+Editing the wrong one is silent — the snippets simply never fire — and it cost
+a whole round of "why is nothing expanding" here. If you keep two, make one a
+symlink to the other rather than two files.
+
+Adding a *prose* trigger means adding it in both. A maths-mode snippet — `m`
+in its HyperSnips flags, firing only inside `$…$` — belongs in the editor's
+file alone: Spellless is not composing there, so there is nothing for it to
+hand over. The Spellless list is plain text:
 
 ```
 # trigger   ascii?   note
@@ -89,10 +102,16 @@ that Spellless did not open is an ordinary dollar sign, so `$PATH` still works.
 
 ## Where the maths-mode snippets went
 
-Nowhere. `sr`, `tp`, `pp`, `lim`, `veps` and the regex ones in `typst.hsnips`
-are marked `m` — HyperSnips only fires them inside maths, which is where ASCII
-mode already is. Spellless never sees those keystrokes and needs to know
-nothing about them.
+Nowhere. `sr`, `tp`, `pp`, `lim`, `veps`, `xx`, `inn`, `iso` and the regex ones
+in `typst.hsnips` are marked `m` — HyperSnips only fires them inside maths,
+which is where ASCII mode already is. Spellless never sees those keystrokes and
+needs to know nothing about them.
+
+That flag is also the test for whether a snippet has to be renamed. `dm` had to
+become `xdm` because it fires in prose, where Spellless is composing and `dm`
+is two letters of a word; `xx` did not, because it only ever fires between
+dollar signs. When a trigger stops working under Spellless, look at its flags
+first.
 
 ## Typst, not LaTeX
 
