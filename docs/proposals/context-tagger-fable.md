@@ -148,3 +148,102 @@ which case say so in the PR description rather than silently diverging.
 Work in that order, committing after each step with tests passing. Do not
 refactor unrelated code. If any instruction conflicts with the invariants in
 ALGORITHM.md §8.0, the invariants win and you should flag the conflict.
+
+---
+
+## Assessment
+
+Written after measuring each claim against this repository. Section numbers
+below are the proposal's.
+
+### What it caught, and it was right
+
+**The trust invariant (§5, "never to the decision of whether the literal
+leads").** Ours did, by accident of where it ran: `defer_inflections` reorders
+after the sort, and `Engine:suggest` handed `ranked[1]` to `trustworthy`, so
+the reorder chose which candidate the confidence floor was applied to. Found on
+real input — `allsg` reads as `alleged`, comfortably trusted; demoting it after
+a modal put a below-floor candidate in front and the literal took the lead.
+One skeleton in 8,646. Fixed in cf82c5d, and pinned by a test.
+
+**Multi-word adjuncts (§4).** Our adverb chain could not walk back through
+"can thus to some extent ___". Adopted — but see below for how.
+
+### Adopted, in a different form
+
+**The adjunct scan, as a phrase list rather than a parse.** The proposal
+recognises a prepositional phrase by shape, right to left: noun or pronoun,
+optional adjectives, optional determiner, then a word tagged IN. Measured
+against a closed list of 24 fixed adverbials on 427,000 words:
+
+```
+  adverb chain only        3,272 slots   0.52% -ed
+  + shape-based PP scan    3,455 slots   0.90% -ed   <- 5.6% more slots, 2x the errors
+  + 24 fixed phrases       3,305 slots   0.51% -ed   <- 1% more slots, no errors
+```
+
+Right to left, a shape scan cannot tell "to some extent" from "for the reasons
+expressed"; it consumes the second and lands on a modal that governs nothing.
+The slots it newly reaches are headed by `the`, `that`, `result`, `expressed`,
+`frame` — nouns. The phrase list reaches only real verbs: `correspond`,
+`cover`, `imply`, `follow`, `argue`, `rewrite`.
+
+**The `a`/`an` first-letter check (§3).** Not built yet, and the best thing on
+the list — 2,631 slots, completely reliable, and the only proposal here that
+constrains the *first* letter, which is where the search is widest. It needs no
+tagger and no treebank, which is the argument for doing it on its own.
+
+**A context column in the case files (§6).** Right, and cheap. The benchmark is
+currently blind to every context feature by construction, which is why none of
+the numbers in §8.1 come from it.
+
+### Diverged from, with the measurement that decided it
+
+**§5, a bounded score term.** The proposal's central mechanism is
+`λ·conf·clip(log ratio, ±B)` at ±8 points, argued safe because one deleted
+consonant costs ~14. It is not safe, and the argument is in the wrong space: 8
+points moved `related` from **first to fourteenth**, because the field around a
+three-letter skeleton is dense enough that 8 points spans a dozen words. A
+bound in score space is not a bound in rank space, and rank space is what the
+writer sees. What ships bounds displacement directly — a stable partition of
+the first five, worst case four places.
+
+**§3 and §4, the tag-trigram backoff "for contexts where no setter is found",
+at confidence 0.5.** That is an always-on statistical term over the previous
+two tags, and it is the same object §8.1 already measured and rejected: a
+class model, zero-centred, gated on a margin, scored over all 1,535 cases —
+`the` −18, `of` −26, `very` −97, and the only weight that does not lose is
+zero. The proposal also reproduces the failure's *cause*, which §8.1 diagnoses:
+its suffix guesser assigns tags by **ending** (`-ed` → VBD/VBN/JJ) while the
+expectation table is written about **parts of speech**, and `P(that | "the")`
+is nothing like `P(VERB | "the")` — "the building", "the finished draft". The
+whole value of the shipped rule is that it fires *only* where English has no
+choice; a 0.5-confidence fallback everywhere else gives that away.
+
+**§2 and §7, Universal Dependencies EWT.** Two problems. It is CC BY-SA 4.0,
+and a table derived from it is a derivative work — share-alike, into a
+repository that is MIT throughout and documents a licence for every input in
+`data/README.md`. And it is web text: blogs, reviews, emails. The distribution
+that matters here is the user's own mathematical prose, of which 427,498 words
+are available and were used for every number above; EWT would tune the feature
+for a corpus nobody using this writes.
+
+**§8, the 300 kB budget.** Its own tables do not fit. 83,364 words × 3 (tag,
+weight) pairs is 488 kB at a byte each, 244 kB packed to 6-bit tag plus 2-bit
+weight, and the 40³ trigram is 62 kB — so 307 kB best case against a 300 kB
+cap, and 550 kB written naturally, on a payload that is currently 1.33 MB.
+
+**§Acceptance criteria.** The third is self-contradictory: "input `gnrlzd`:
+`generalized` should be favoured over `generalize`, **because** the modal `can`
+is still the open expectation". A modal's open expectation is the bare form, so
+that reason argues for `generalize`. The behaviour asked for is right and we
+produce it, but for the stated reason it would be wrong — here it is the input
+evidence (`gnrlzd` keeps its `d`) that decides, not the context.
+
+### The disagreement underneath
+
+Both designs look at the word before. The proposal asks what tag is *likely*
+and takes the answer everywhere at reduced confidence; what shipped asks where
+English admits no alternative and acts only there, and only when the input has
+not already settled it. §8.1 is a measurement of the first approach, and the
+lever turned out not to be a better classifier.
