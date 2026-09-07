@@ -82,6 +82,32 @@ H.eq(texts("an")[1], "an")
 H.eq(texts("th")[1], "the")
 H.eq(texts("mathe")[1], "mathematics", "and ordinary input is unaffected")
 
+H.suite("engine: a name you taught keeps its spelling through the possessive")
+-- You write "McDonald's" far more often than you write "McDonald", so that is
+-- the spelling the store ends up holding.  The possessive path matched the
+-- *stem*, asked the store how to spell "mcdonald", got nothing, and handed
+-- back "mcdonald's" -- with the right answer sitting in the file all along.
+do
+  local path = os.tmpname()
+  io.open(path, "wb"):close()
+  require("spellless.userdb").forget(path)
+  local e = assert(Engine.new{ data_dir = DATA, personal_path = path })
+  e:learn("McDonald's")
+  e:learn("LaTeX")
+  e:learn("arXiv")
+  e:flush()
+  local back = assert(Engine.new{ data_dir = DATA, personal_path = path })
+  local function first(q) return back:suggest(q, 1)[1].text:gsub("%s+$", "") end
+  H.eq(first("mcdonald's"), "McDonald's", "typed out in lower case")
+  H.eq(first("mcdnld's"), "McDonald's", "and from its skeleton")
+  -- Mixed case needs nothing special: it is only the two shapes automatic
+  -- capitalisation can produce that `worth_remembering` refuses.
+  H.eq(first("latex"), "LaTeX", "an internal capital")
+  H.eq(first("ltx"), "LaTeX", "from its skeleton")
+  H.eq(first("arxv"), "arXiv", "and a leading lower-case letter")
+  os.remove(path)
+end
+
 H.suite("engine: possessives are productive")
 H.eq(texts("student's")[1], "student's")
 H.eq(texts("cat's")[1], "cat's")
@@ -559,7 +585,9 @@ do
 end
 
 H.suite("engine: a capital you taught follows the word, not the keystrokes")
--- "Windows" is the case the dictionary cannot settle: the lowercase word is
+-- "Heather" rather than "Windows", which used to be the example here and now
+-- ships an additive capital of its own -- exactly the mechanism this suite
+-- is the hand-taught half of.  This is the case the dictionary cannot settle: the lowercase word is
 -- ordinary English, so worth_remembering rightly refuses to store the capital
 -- as a spelling -- it would be a sentence position nine times in ten.  A
 -- correction made twice, with the capital typed by hand, is the exception.
@@ -573,22 +601,56 @@ do
     return " " .. table.concat(t, " ") .. " "
   end
 
-  H.ok(not list("wndows"):find(" Windows "), "not offered before it is taught")
-  e:learn_choice("Windows", "Windows")
-  H.ok(not list("wndows"):find(" Windows "), "nor after one selection")
-  e:learn_choice("Windows", "Windows")
+  H.ok(not list("hthr"):find(" Heather "), "not offered before it is taught")
+  e:learn_choice("Heather", "Heather")
+  H.ok(not list("hthr"):find(" Heather "), "nor after one selection")
+  e:learn_choice("Heather", "Heather")
 
-  H.ok(list("wndows"):find(" Windows "),
-       "after two it is reachable from a misspelling: " .. list("wndows"))
-  H.ok(list("windws"):find(" Windows "), "and from another one")
-  H.ok(list("wndows"):find(" windows "),
-       "and the lowercase reading is still there, or you could never open one")
-  H.ok(list("window"):find(" window "), "the singular is untouched")
+  H.ok(list("hthr"):find(" Heather "),
+       "after two it is reachable from a misspelling: " .. list("hthr"))
+  H.ok(list("heathr"):find(" Heather "), "and from another one")
+  H.ok(list("hthr"):find(" heather "),
+       "and the lowercase reading is still there, beside it and not behind it")
 
   -- It is keyed on the word, so it does not leak to words that merely look
   -- like it.
-  H.ok(not list("widow"):find(" Windows "), "and it does not leak sideways")
+  H.ok(not list("widow"):find(" Heather "), "and it does not leak sideways")
   os.remove(path)
+end
+
+H.suite("engine: a capital the dictionary ships beside a word, not instead of it")
+-- The rule that used to keep this file honest was "only write capitals where
+-- the lowercase spelling would be wrong", and it cost real vocabulary: RAM,
+-- React, CD, Windows and Python could not be listed at all, because listing
+-- RAM would have taken the animal away.  A "+" in data/vocab/ says to keep
+-- both, and both is what the typist actually wants -- one keystroke apart,
+-- ordered by what was typed.
+do
+  local function list(q)
+    local t = {}
+    for i, c in ipairs(engine:suggest(q, 6)) do t[i] = c.text:gsub("%s+$", "") end
+    return " " .. table.concat(t, " ") .. " "
+  end
+  for _, pair in ipairs({ { "ram", "RAM" }, { "react", "React" },
+                          { "windows", "Windows" }, { "cd", "CD" },
+                          { "latex", "LaTeX" } }) do
+    local plain, capital = pair[1], pair[2]
+    local out = list(plain)
+    H.ok(out:find(" " .. plain .. " "), ("the word itself: %s"):format(plain))
+    H.ok(out:find(" " .. capital .. " "), ("and the capital: %s"):format(capital))
+    H.ok(out:find(" " .. plain .. " ") < out:find(" " .. capital .. " "),
+         ("lower case leads when you typed lower case: %s"):format(plain))
+  end
+  -- Typing the capital out is a statement of intent, and for a spelling that
+  -- is neither title nor upper case it is the only one available.
+  H.eq(engine:suggest("LaTeX", 1)[1].text:gsub("%s+$", ""), "LaTeX",
+       "typing it exactly puts it first")
+  -- A key with no lowercase reading still replaces, which is the whole point
+  -- of the distinction.
+  H.eq(engine:suggest("tqft", 1)[1].text:gsub("%s+$", ""), "TQFT",
+       "`tqft` is not a word, so TQFT simply is the spelling")
+  H.eq(engine:suggest("africa", 1)[1].text:gsub("%s+$", ""), "Africa",
+       "and a place name is not made ambiguous by a lowercase corpus")
 end
 
 H.suite("engine: words coined out of an affix and a word")

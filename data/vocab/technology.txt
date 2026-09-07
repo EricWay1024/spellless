@@ -171,3 +171,72 @@ ESLint
 pytest
 Django
 FastAPI
+
+# Words whose lowercase spelling is also a real word, so both are kept: the
+# entry commits what you typed and the other spelling sits behind it.  Before
+# the "+" marker existed these could not be listed at all -- adding RAM would
+# have taken the animal away -- and their absence was the single biggest hole
+# in this file.
+RAM +
+ARM +
+CPU +		# `cpu` is not a word, but ARM/CPU read as a pair
+REST +
+CRUD +
+POP +
+IMAP +
+CD +
+DVD +
+CAD +
+CAM +
+ML +
+AI +
+UI +
+OS +
+IT +
+Bash +
+React +
+Angular +
+Node +
+Rust +
+Swift +
+Ruby +
+Go +
+Java +
+Python +
+Notion +
+Fedora +
+Arch +
+Mint +
+Windows +
+Word +
+Excel +
+Access +
+Teams +
+Chrome +
+Safari +
+Edge +
+Slack +
+Zoom +
+Discord +
+Steam +
+Unity +
+Processing +
+LaTeX +
+BibTeX +
+Sage +
+Maple +
+Lean +
+Coq +
+Agda +
+Idris +
+Julia +
+Rocket +
+Spark +
+Hive +
+Kafka +
+Storm +
+Flow +
+Next +
+Nuxt +
+Astro +
+Remix +

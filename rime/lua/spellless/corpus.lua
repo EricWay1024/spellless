@@ -105,7 +105,8 @@ end
 --- between two words you chose yourself.
 function Corpus.of_words(words)
   local self = setmetatable({ words = words, n = #words,
-                              forms = {}, abbreviations = {} }, Corpus)
+                              forms = {}, abbreviations = {},
+                              capitals = {} }, Corpus)
   self.skel_cache, self.skel_cached = {}, 0
   local alpha, skel, skels = {}, {}, {}
   for i = 1, self.n do
@@ -193,14 +194,22 @@ function Corpus.load(dir)
   -- Surface forms.  Optional: an older generated/ directory simply has none.
   -- A form that ends in a full stop is an abbreviation, and committing one
   -- must not be read as the end of a sentence -- see spellless.preceding.
-  self.forms, self.abbreviations = {}, {}
+  self.forms, self.abbreviations, self.capitals = {}, {}, {}
   local forms_blob = util.slurp(util.join(dir, "spellless.forms"))
   if forms_blob then
-    for key, display in forms_blob:gmatch("([^\t\r\n]+)\t([^\r\n]+)") do
-      self.forms[key] = display
-      -- Stored lower case; spellless.preceding matches case-insensitively so
-      -- that a sentence-initial "E.g." is recognised too.
-      if display:sub(-1) == "." then self.abbreviations[display:lower()] = true end
+    for line in forms_blob:gmatch("[^\r\n]+") do
+      local key, display, flag = line:match("^([^\t]+)\t([^\t]+)\t?(.*)$")
+      if flag == "+" then
+        -- Both spellings: the lowercase word means something on its own, so
+        -- the capital is offered beside it rather than instead of it.  `ram`
+        -- stays an animal and RAM is one keystroke away.
+        self.capitals[key] = display
+      elseif key then
+        self.forms[key] = display
+        -- Stored lower case; spellless.preceding matches case-insensitively so
+        -- that a sentence-initial "E.g." is recognised too.
+        if display:sub(-1) == "." then self.abbreviations[display:lower()] = true end
+      end
     end
   end
 

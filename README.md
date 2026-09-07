@@ -370,6 +370,31 @@ back possessive: `mther's` → `mother's`, `mthers'` → `mothers'`. The stem is
 matched — that is the part you misspell — and the ending you typed is put back
 untouched, because only your apostrophe knows whether the noun was plural.
 
+**Both spellings of a word that has two.** `ram` gives you the animal with
+`RAM` behind it; `RAM` gives you the acronym. Same for `react`/`React`,
+`windows`/`Windows`, `python`/`Python`, `cd`/`CD`, `latex`/`LaTeX`. One
+keystroke apart, ordered by what you typed — and typing `LaTeX` exactly leads
+with `LaTeX`, which is the only way to ask for a spelling that is neither title
+nor upper case. Nothing is taken away to gain an acronym.
+
+**Words you type yourself are learned, capitals and all** — `LaTeX`, `arXiv`,
+`PyTorch`, `McDonald's`, `Reidemeister` — and are then reachable from any
+shorthand of them, not just from typing them out again. Your personal list has
+no size limit and is searched by exactly the machinery that searches the
+dictionary.
+
+**Vocabulary you can import.** Specialist word lists live in `data/packs/` and
+are deliberately not shipped, because topology terminology is excellent if you
+work on topology and clutter if you do not:
+
+```bash
+python3 scripts/import_pack.py --list
+python3 scripts/import_pack.py topology
+```
+
+They merge into your own word list, never overwrite what you have taught, and
+a text file of your own words works just as well as a named pack.
+
 **Short and capitalised input leads with itself.** `x`, `cm`, `ms`, `PDE`,
 `TQFT` commit as themselves, because one or two characters are variables and
 units far more often than the start of a longer word, and an acronym typed in

@@ -85,10 +85,39 @@ larger of the two frequencies, so listing a common word here can only promote
 it.
 
 An entry written **with capitals** is indexed under its lowercase form and
-remembers the capitals as a surface form, so `grthndck` gives back
-`Grothendieck` and `tqft` gives `TQFT`. Only write capitals where the lowercase
-spelling would be wrong — `Noether` yes, `manifold` no, and `latex` and
-`noetherian` deliberately not, because their lowercase readings are real.
+remembers the capitals, so `grthndck` gives back `Grothendieck` and `tqft`
+gives `TQFT`.
+
+A trailing **`+`** says to keep *both* spellings instead of replacing the
+lowercase one:
+
+```
+TQFT                    # replaces: `tqft` is not a word
+RAM     +               # both: `ram` is an animal
+React   +               # both: `react` is a verb
+LaTeX   +               # both: `latex` is a material
+```
+
+Use `+` whenever the lowercase word means something on its own. Both spellings
+then appear, one keystroke apart, ordered by what you typed: `ram` leads with
+the animal and `RAM` behind it, `RAM` leads with the acronym, and typing
+`LaTeX` exactly leads with `LaTeX` — which is the only way to ask for a
+spelling that is neither title nor upper case. It is the same mechanism as a
+capital you teach by hand, which is why it behaves the same way.
+
+**The build cannot decide this for you and does not try.** Corpus rank looks
+like it would work — `ram` is the 3,032nd word and `tqft` is absent entirely —
+but this corpus keeps proper nouns as ordinary lowercase tokens, so `africa` is
+the 1,500th word and would be classified alongside `ram`. It was tried; it
+marked 371 entries additive, `Africa/africa` and `Alice/alice` among them.
+
+Before `+` existed the rule was "only write capitals where the lowercase
+spelling would be wrong", and it cost real vocabulary: `RAM`, `REST`, `CD`,
+`ARM`, `CAD`, `Bash`, `React`, `Notion`, `Fedora`, `Windows`, `Python` and
+`LaTeX` could not be listed at all. They are all there now. The one shape still
+awkward is a key that is not a word *and* has a lowercase meaning — `ml` is
+millilitres — which `+` cannot express, because there is no lowercase entry for
+it to sit beside.
 
 The shipped files, and what each is for:
 
@@ -97,8 +126,6 @@ The shipped files, and what each is for:
 | `proper_nouns.txt` | words only ever written with a capital |
 | `given_names.txt` | first names, so a colleague is typeable |
 | `technology.txt` | acronyms, platforms and libraries the corpus is too old for |
-| `britain.txt` | British institutions, mostly acronyms |
-| `china.txt` | provinces, and words English borrowed |
 | `contractions.txt` | the ones the base list lost or misspelled |
 | `interjections.txt` | `oh`, `ah`, `ok` — absent from the base list entirely |
 | `abbreviations.txt` | `eg`, `ie`, typed without their dots |
@@ -117,8 +144,37 @@ because `ml` is millilitres even though it is not a word.
 Nothing in `rime/lua/` refers to any of these files, and deleting one changes
 nothing but the dictionary contents.
 
-For vocabulary you want to add without rebuilding, use the personal file
-instead — `<rime user dir>/spellless_user.txt`, same format, read at startup.
+---
+
+## `packs/*.txt` — vocabulary that is **not** shipped
+
+Same format, and deliberately left out of the build. A pack is a fact about the
+person typing rather than about English: topology terminology is excellent if
+you work on topology and clutter if you do not, and provinces of China and
+British institutions are the same kind of thing. Shipping them would make every
+user carry someone else's vocabulary.
+
+```bash
+python3 scripts/import_pack.py --list
+python3 scripts/import_pack.py topology china
+```
+
+| pack | what it holds |
+| --- | --- |
+| `topology.txt` | names, objects and adjectives from topology and geometry |
+| `britain.txt` | British institutions, mostly acronyms |
+| `china.txt` | provinces, and words English borrowed |
+
+The importer writes into `<rime user dir>/spellless_user.txt` — the same file
+the matcher already writes what you teach it into, read at startup,
+hand-editable, and never touched by an upgrade. It is idempotent, and a word
+already there keeps whatever count it has earned: a pack must never undo your
+own history. Words arrive with a starting familiarity of 4; the script's
+docstring carries the measurement behind that number, including what it costs
+ordinary English, which is nothing.
+
+Writing your own pack needs no tooling — it is a text file in this format, and
+`import_pack.py` takes a path as readily as a name.
 
 ---
 
@@ -145,4 +201,4 @@ is not in the dictionary.
 * Spellless code: MIT.
 * `sources/frequency_dictionary_en_82_765.txt`: MIT, © Wolf Garbe / SymSpell
   contributors.
-* `vocab/math_sample.txt`: written for this project, MIT.
+* `vocab/math_sample.txt` and `packs/*.txt`: written for this project, MIT.

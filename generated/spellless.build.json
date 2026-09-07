@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-07T12:02:40+00:00",
+  "generated_at": "2026-09-07T18:26:20+00:00",
   "generator": "scripts/build_dictionary.py",
-  "entries": 83364,
+  "entries": 83302,
   "parameters": {
     "limit": 0,
     "vocab_rank": 20000,
@@ -19,18 +19,6 @@
     {
       "path": "data/vocab/abbreviations.txt",
       "sha256": "34c14d958b7aff6181da001491b6bebc65e7f4f1bbb0bf94005109ac5c10eac3",
-      "origin": "this repository",
-      "licence": "MIT"
-    },
-    {
-      "path": "data/vocab/britain.txt",
-      "sha256": "669126a947eabbf3d486cb463088f23a2b4a7233c11962e4bfed4dd481b7cabd",
-      "origin": "this repository",
-      "licence": "MIT"
-    },
-    {
-      "path": "data/vocab/china.txt",
-      "sha256": "2966c7c9a0168f032e511ca9da016705f889b12b1107979042b2b333bccdc255",
       "origin": "this repository",
       "licence": "MIT"
     },
@@ -78,7 +66,7 @@
     },
     {
       "path": "data/vocab/technology.txt",
-      "sha256": "393e857ee61c3782aa16f8864e07d8c011789aa6233687def4e36ac2edd7c992",
+      "sha256": "cf198023515bf713276b9c1fef013425d1092c30d090538e9fbbf52ff3893a11",
       "origin": "this repository",
       "licence": "MIT"
     },
@@ -91,13 +79,13 @@
   ],
   "indexes": {
     "alpha": {
-      "entries": 83364,
+      "entries": 83302,
       "encoding": "u24le"
     },
     "skel": {
-      "entries": 83364,
+      "entries": 83302,
       "encoding": "u24le",
-      "distinct_skeletons": 62475
+      "distinct_skeletons": 62436
     }
   }
 }

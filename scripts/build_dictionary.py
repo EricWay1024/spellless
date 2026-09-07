@@ -68,7 +68,7 @@ def accept(word: str) -> bool:
 
 def parse_vocab_file(
     path: Path, default_freq: int, ranked: list[tuple[str, int]] | None = None
-) -> tuple[dict[str, int], dict[str, str]]:
+) -> tuple[dict[str, int], dict[str, str], set[str]]:
     """Read a supplemental plain-text vocabulary file.
 
     An entry written with capitals -- "Grothendieck", "TQFT" -- is indexed
@@ -81,9 +81,22 @@ def parse_vocab_file(
     commits a candidate whole, so a phrase costs exactly one selection -- and
     it goes through the same fuzzy matching as any other word, which is the
     point: "hongkong" is a thing you can misspell.
+
+    A capitalised entry followed by "+" -- `RAM +`, `React +` -- keeps *both*
+    spellings instead of replacing the lowercase one.  Use it whenever the
+    lowercase word means something on its own: `ram` is an animal, `react` is a
+    verb, and taking either away to gain an acronym is a bad trade.  Without
+    the marker the capitals replace, which is what a name wants: nobody means
+    `grothendieck` or `tqft`.
+
+    The build cannot decide this for you and should not try.  Corpus rank
+    looks like it would work -- `ram` is the 3,032nd word and `tqft` is absent
+    -- but this corpus keeps proper nouns as ordinary lowercase tokens, so
+    `africa` is the 1,500th word and would be classified alongside `ram`.
     """
     freqs: dict[str, int] = {}
     forms: dict[str, str] = {}
+    additive: set[str] = set()
     file_freq = default_freq
     with path.open(encoding="utf-8") as fh:
         for line in fh:
@@ -102,6 +115,9 @@ def parse_vocab_file(
                 continue
             parts = line.split("\t")
             written = parts[0].strip()
+            both = written.endswith("+")
+            if both:
+                written = written[:-1].strip()
             # The key is what you type: letters and apostrophes only, so spaces
             # and dots in the written form simply close up.
             word = re.sub(r"[^a-z']", "", written.lower())
@@ -112,7 +128,11 @@ def parse_vocab_file(
             freqs[word] = max(freqs.get(word, 0), freq)
             if written != word:
                 forms[word] = written
-    return freqs, forms
+                if both:
+                    additive.add(word)
+            elif both:
+                print(f"    {path.name}: {written!r} is marked + but has no capitals")
+    return freqs, forms, additive
 
 
 def _build_time() -> datetime:
@@ -175,9 +195,11 @@ def main() -> int:
     vocab_files = sorted(VOCAB_DIR.glob("*.txt"))
     added, promoted = 0, 0
     vocab_forms: dict[str, str] = {}
+    additive: set[str] = set()
     for path in vocab_files:
-        extra, extra_forms = parse_vocab_file(path, default_freq, ranked)
+        extra, extra_forms, extra_both = parse_vocab_file(path, default_freq, ranked)
         vocab_forms.update(extra_forms)
+        additive |= extra_both
         for word, freq in extra.items():
             if word in freqs:
                 if freq > freqs[word]:
@@ -187,7 +209,13 @@ def main() -> int:
                 freqs[word] = freq
                 added += 1
         print(f"  {path.name}: {len(extra)} entries")
-    print(f"  {added} new words, {promoted} promoted, {len(vocab_forms)} carrying capitals")
+    print(f"  {added} new words, {promoted} promoted, "
+          f"{len(vocab_forms)} carrying capitals "
+          f"({len(additive)} of them alongside a real word)")
+    if additive:
+        shown = ", ".join(f"{vocab_forms[k]}/{k}" for k in sorted(additive)[:8])
+        print(f"    both spellings kept: {shown}"
+              + (" ..." if len(additive) > 8 else ""))
 
     # The corpus gives every contraction the same floor count, an artefact of
     # how it was tokenised rather than a fact about English: "don't" cannot
@@ -243,6 +271,9 @@ def main() -> int:
     # data/forms.txt is explicit and wins over capitals inferred from a vocab
     # entry, so it goes in last.
     surface = dict(vocab_forms)
+    explicit = set()
+    for key, display in parse_forms(FORMS):
+        explicit.add(key)
     for key, display in parse_forms(FORMS):
         if key not in known:
             print(f"    warning: forms.txt lists {key!r}, which is not in the dictionary")
@@ -253,7 +284,13 @@ def main() -> int:
     for bare, word in bare_of.items():
         surface[bare] = surface.get(word, word)
 
-    forms = [f"{k}\t{surface[k]}" for k in sorted(surface) if k in known]
+    # "key <TAB> spelling" replaces the lowercase reading; a third field "+"
+    # says to offer both.  Only vocabulary capitals can be additive: forms.txt
+    # is by definition the list of words with no valid lowercase spelling, and
+    # a bare contraction resolves to whatever its apostrophe form shows.
+    forms = [f"{k}\t{surface[k]}" + ("\t+" if k in additive and k not in explicit
+                                     and k not in bare_of else "")
+             for k in sorted(surface) if k in known]
     write_text(OUT / "spellless.forms", "\n".join(forms) + "\n")
 
     manifest = {

@@ -1,0 +1,213 @@
+#!rank 40000
+# Topology and geometric topology.
+#
+# A pack rather than shipped vocabulary: it is excellent if you work on this
+# and clutter if you do not, and the same is true of every specialism.  Import
+# it with `python3 scripts/import_pack.py topology`.
+#
+# Names are written with their capitals, so `rdmstr` gives Reidemeister.  The
+# lowercase adjectives derived from them are separate entries, because
+# `noetherian` and `abelian` really are written in lower case.
+
+# --- names attached to theorems, moves and invariants
+Reidemeister
+Alexander
+Jones
+Kauffman
+Seifert
+Heegaard
+Dehn
+Whitehead
+Milnor
+Poincare
+Poincaré
+Lefschetz
+Morse
+Cerf
+Casson
+Rokhlin
+Freedman
+Donaldson
+Kirby
+Thurston
+Gromov
+Gauss
+Bott
+Chern
+Pontryagin
+Stiefel
+Whitney
+Euler
+Betti
+Hurewicz
+Serre
+Postnikov
+Eilenberg
+MacLane
+Steenrod
+Adams
+Atiyah
+Hirzebruch
+Novikov
+Wall
+Browder
+Sullivan
+Quillen
+Khovanov
+Ozsvath
+Szabo
+Floer
+Vassiliev
+Turaev
+Witten
+Chern-Simons
+
+# --- objects and constructions
+manifold
+submanifold
+cobordism
+bordism
+homeomorphism
+diffeomorphism
+homotopy
+homotopic
+homology
+cohomology
+homological
+cohomological
+isotopy
+isotopic
+ambient
+embedding
+immersion
+submersion
+fibration
+cofibration
+fibre
+fiber
+fibred
+bundle
+subbundle
+pullback
+pushforward
+sheaf
+presheaf
+stalk
+germ
+groupoid
+simplicial
+simplex
+simplices
+polyhedron
+polytope
+triangulation
+triangulated
+CW
+handlebody
+handle
+surgery
+knot
+knotted
+unknot
+unknotting
+link
+linking
+braid
+tangle
+crossing
+writhe
+framing
+framed
+Seifert surface
+genus
+orientable
+nonorientable
+boundary
+interior
+closure
+compact
+compactness
+compactification
+paracompact
+connected
+disconnected
+simply connected
+contractible
+nullhomotopic
+covering
+deck
+monodromy
+fundamental group
+loop space
+suspension
+smash
+wedge
+mapping cone
+mapping cylinder
+mapping torus
+CW complex
+skeleton
+cell
+cellular
+attaching map
+degree
+index
+Euler characteristic
+characteristic class
+Chern class
+Stiefel-Whitney
+Pontryagin class
+obstruction
+spectral sequence
+exact sequence
+cofibre
+cone
+join
+quotient
+identification
+
+# --- adjectives and properties, lower case on purpose
+abelian
+noetherian
+artinian
+hausdorff
+metrizable
+normal
+regular
+locally compact
+second countable
+separable
+dense
+nowhere dense
+meagre
+comeagre
+perfect
+totally disconnected
+zero dimensional
+piecewise linear
+smooth
+tame
+wild
+transverse
+transversality
+generic
+stratified
+foliated
+foliation
+symplectic
+contact
+Lagrangian
+Legendrian
+spin
+spinc
+almost complex
+Kahler
+Kähler
+hyperbolic
+elliptic
+parabolic
+geodesic
+curvature
+Ricci
+scalar curvature
+sectional

@@ -136,11 +136,13 @@ function Engine:surface(word, style)
   -- corpus's lowercase spelling.
   local form = self.user:surface(word) or self.corpus.forms[word]
   if not form then
-    -- A possessive inherits its stem's spelling, so "Milnor" makes "Milnor's".
-    local stem = word:match("^(.+)'s$")
+    -- A possessive inherits its stem's spelling, so "Milnor" makes "Milnor's"
+    -- and "Milnors" makes "Milnors'".
+    local stem, mark = word:match("^(.+)('s)$")
+    if not stem then stem, mark = word:match("^(.+)(')$") end
     if stem then
       local base = self.user:surface(stem) or self.corpus.forms[stem]
-      if base then form = base .. "'s" end
+      if base then form = base .. mark end
     end
   end
   return apply_case(form or word, style)
@@ -568,26 +570,46 @@ function Engine:suggest(raw, limit, opts)
     if #out >= limit then break end
     local item = ranked[i]
     local entry = {
-      text = self:surface(item.word, style) .. (suffix or ""),
+      -- The whole possessive, not the stem with an ending stuck on it.  You
+      -- write "McDonald's" far more often than you write "McDonald", so that
+      -- is the spelling the store has; asking for the stem alone found
+      -- nothing and gave back "mcdonald's".  `surface` falls back to the
+      -- stem's own spelling when the possessive has none of its own.
+      text = self:surface(item.word .. (suffix or ""), style),
       source = item.source,
       score = item.score,
       cost = item.cost,
     }
-    if not already[entry.text] then
-      already[entry.text] = true
-      out[#out + 1] = entry
-    end
-    -- Both capitalisations, and in that order.  "Windows" must be reachable
-    -- from "wndows" and not only from typing it out; and "windows" must stay
-    -- reachable, or you could never open one again.  Immediately behind, so it
-    -- costs one keystroke and never displaces the reading you asked for.
+    -- Both capitalisations, and the input decides which leads.  "Windows" must
+    -- be reachable from "wndows" and not only from typing it out; and
+    -- "windows" must stay reachable, or you could never open one again.  One
+    -- keystroke apart either way, so neither can displace the other.
+    --
+    -- The capital is either one you chose yourself, twice, or one the
+    -- dictionary ships beside a word that also means something in lower case
+    -- -- `ram`, `react`, `latex`.  Same treatment for both.
     local capital = self:learned_capital(item.word)
-    if capital and #out < limit then
-      local text = apply_case(capital, style) .. (suffix or "")
-      if not already[text] then
-        already[text] = true
-        out[#out + 1] = { text = text, source = "capital",
-                          score = item.score - 0.5, cost = item.cost }
+        or self.corpus.capitals[item.word]
+    local capital_text = capital
+        and (apply_case(capital, style) .. (suffix or ""))
+    -- Typing the capital out is the clearest statement of intent there is, and
+    -- `apply_case` cannot act on it: "LaTeX" is neither title case nor upper
+    -- case, so the plain reading comes back "latex".  Decided here rather than
+    -- by reordering afterwards, because `limit` may cut the list between the
+    -- two and the one that survives should be the one that was asked for.
+    local first, second = entry, nil
+    if capital_text then
+      second = { text = capital_text, source = "capital",
+                 score = item.score - 0.5, cost = item.cost }
+      if capital == raw then
+        first, second = second, entry
+        first.score, second.score = item.score, item.score - 0.5
+      end
+    end
+    for _, candidate in ipairs(second and { first, second } or { first }) do
+      if not already[candidate.text] and #out < limit then
+        already[candidate.text] = true
+        out[#out + 1] = candidate
       end
     end
   end
