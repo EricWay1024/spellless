@@ -1027,7 +1027,20 @@ function M.handover.func(key, env)
       local typed = context.input .. string.char(code)
       local snippet = engine.snippets:get(typed)
       if snippet then
-        env.engine:commit_text(typed)
+        -- One character per commit, and that is the whole point of this loop.
+        --
+        -- HyperSnips expands an automatic snippet from a document-change event
+        -- and drops any change that is not exactly one character long -- its
+        -- own comment says "let's try to detect only events that come from
+        -- keystrokes", which is a reasonable guard against expanding on paste
+        -- and which an input method's commit fails.  Committing `xthm` whole
+        -- put the letters in the document and expanded nothing; the same
+        -- letters typed in ASCII mode, where they arrive one keystroke at a
+        -- time, expanded fine.  So they are sent the way the editor is
+        -- watching for.
+        for i = 1, #typed do
+          env.engine:commit_text(typed:sub(i, i))
+        end
         context:set_property(SENTENCE, "")
         context:clear()
         -- `xdm` opens maths and `xthm` opens a theorem, whose body is English

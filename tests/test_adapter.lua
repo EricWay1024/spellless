@@ -595,15 +595,31 @@ H.ok(not ctx:get_option("ascii_mode"), "ASCII mode is off again")
 H.eq(ctx:get_property("spellless_delimiter"), "", "and nothing is left open")
 
 H.suite("adapter: an editor snippet trigger is handed straight to the editor")
--- "dm" means a display maths block to HyperSnips and nothing to English.  It
--- has to arrive in the document as those two letters -- no space, no capital,
+-- "xdm" means a display maths block to HyperSnips and nothing to English.  It
+-- has to arrive in the document as those three letters -- no space, no capital,
 -- no candidate list -- or the expansion never fires.
+--
+-- And it has to arrive one character at a time.  HyperSnips expands an
+-- automatic snippet from a document-change event and drops any change that is
+-- not exactly one character long -- a guard against expanding on paste, which
+-- a whole-word commit fails.  So the count of commits is asserted here, not
+-- only their contents: committing "xdm" in one piece put the letters in the
+-- document and expanded nothing.
+local function commits_since(n)
+  local out = {}
+  for i = n + 1, #mock.committed do out[#out + 1] = mock.committed[i] end
+  return out
+end
+
 env.spellless.snippets = require("spellless.snippets").parse(
     "xdm ascii display maths\nxthm theorem\n")
 ctx:set_option("ascii_mode", false)
 ctx.input = "xd"
+local before_trigger = #mock.committed
 H.eq(spellless.handover.func(mock.key(string.byte("m")), env), 1, "taken before the speller")
-H.eq(mock.committed[#mock.committed], "xdm", "committed verbatim, with no space")
+local pieces = commits_since(before_trigger)
+H.eq(table.concat(pieces), "xdm", "committed verbatim, with no space")
+H.eq(#pieces, 3, "one commit per character, which is what the editor watches for")
 H.eq(ctx.input, "", "the composition is finished")
 H.ok(ctx:get_option("ascii_mode"), "and the maths that follows is typed, not guessed at")
 
@@ -611,8 +627,11 @@ H.ok(ctx:get_option("ascii_mode"), "and the maths that follows is typed, not gue
 -- is English, which is the matcher's whole subject.
 ctx:set_option("ascii_mode", false)
 ctx.input = "xth"
+before_trigger = #mock.committed
 H.eq(spellless.handover.func(mock.key(string.byte("m")), env), 1, "the trigger is taken")
-H.eq(mock.committed[#mock.committed], "xthm", "and committed")
+pieces = commits_since(before_trigger)
+H.eq(table.concat(pieces), "xthm", "and committed")
+H.eq(#pieces, 4, "again one at a time")
 H.ok(not ctx:get_option("ascii_mode"), "but the matcher stays on for the prose inside")
 
 -- The whole composition, or nothing: a trigger inside a word is a word.
