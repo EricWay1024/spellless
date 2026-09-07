@@ -226,8 +226,11 @@ To check what is actually running, type `zzver` in any text box.  It should say
 
 `reclaim_space`, `absorb_fragment` and `word_backspace` -- the features that
 edit text already in the document -- need frontend support that stock Rime does
-not have, and they ship **off**.  On Windows they are available in the bundled
-build; see the project README.
+not have.  They are switched on in the schema and turn themselves off: the
+schema asks the frontend for the text around the caret once, and if nothing
+comes back it never asks it to edit anything.  So on stock Rime they are
+simply inert, and on the bundled Windows build they work.  `zzver` says which
+of the two you are running.
 
 ## Licence
 

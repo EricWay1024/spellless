@@ -893,11 +893,31 @@ do
       if line:match("^%S") then
         inside = false
       else
-        local key = line:match("^  ([%w_]+):")
+        local key, raw = line:match("^  ([%w_]+):%s*(.-)%s*$")
         if key then
           checked = checked + 1
           H.ok(defaults[key] ~= nil or extra[key],
                ("schema sets spellless/%s, which config.lua does not define"):format(key))
+          -- And the *value* must agree, which is the half that was missing.
+          -- `reclaim_space`, `absorb_fragment` and `word_backspace` were turned
+          -- on in config.lua and left off here, and since get_bool returns
+          -- false rather than nil the schema won: three features that
+          -- config.lua, README and DESIGN all described as shipping were off
+          -- on every real install for as long as they had existed.  The macOS
+          -- half of commit_only_apps went the same way.
+          --
+          -- Every disagreement found when this was written was a drift and
+          -- none was deliberate, so agreement is simply required.  The schema
+          -- exists to show a user what the settings are and let them change
+          -- their own copy; it is not a second place to decide them.
+          local default = defaults[key]
+          if default ~= nil and raw ~= "" then
+            local want = tostring(default)
+            if type(default) == "number" then want = ("%g"):format(default) end
+            local got = raw:gsub("^\"(.*)\"$", "%1")
+            H.eq(got, want,
+                 ("schema and config.lua disagree about %s"):format(key))
+          end
         end
       end
     end

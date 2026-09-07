@@ -130,7 +130,7 @@ spellless:
   # editor takes the edit perfectly well and its terminal cannot, and they are
   # the same executable.  Flip the `edit_document` switch (F4) while writing
   # prose there, or take code.exe off this list if you never use its terminal.
-  commit_only_apps: "code.exe,conhost.exe,cmd.exe,powershell.exe,pwsh.exe,windowsterminal.exe,wt.exe,openconsole.exe,mintty.exe,alacritty.exe,wezterm-gui.exe,putty.exe"
+  commit_only_apps: "code.exe,conhost.exe,cmd.exe,powershell.exe,pwsh.exe,windowsterminal.exe,wt.exe,openconsole.exe,mintty.exe,alacritty.exe,wezterm-gui.exe,putty.exe,com.apple.terminal,com.googlecode.iterm2,com.microsoft.vscode,com.microsoft.vscodeinsiders,dev.warp.warp-stable,co.zeit.hyper,net.kovidgoyal.kitty,io.alacritty,com.github.wez.wezterm"
   # Take the space back when punctuation follows a word you already committed,
   # so picking "you" with the space bar and then typing "." gives "you. "
   # rather than "you . ".
@@ -139,12 +139,12 @@ spellless:
   # backspace character, which that frontend turns into one reclaimed space
   # (and only ever a space -- it checks what it is taking) while stock Weasel
   # would type it in literally.  Leave it false on a stock install.
-  reclaim_space: false
+  reclaim_space: true
   # Start re-typing a word and pick up what is already there: delete the space
   # after "so", type "oner", and the candidates are for "sooner".
-  absorb_fragment: false
+  absorb_fragment: true
   # Backspace twice with nothing composing to delete the whole word.
-  word_backspace: false
+  word_backspace: true
   # Offer a capital on the first word of a sentence -- after . ! ? and on a new
   # line.  Only when you typed the word in lower case; an explicit capital of
   # your own is never overridden.
