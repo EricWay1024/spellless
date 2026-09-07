@@ -27,6 +27,25 @@ local function texts(input, n)
   return out
 end
 
+H.suite("engine: a spelling that opens lower case resists the sentence capital")
+-- `iPhone` at the start of a sentence is `iPhone`, not `IPhone`, and the same
+-- for eBay, macOS, iOS, arXiv, openSUSE.  No marker says so: the shape of the
+-- spelling is the statement, because nobody types a capital in the middle of a
+-- word by accident and nothing here puts one there.
+for _, word in ipairs({ "iPhone", "eBay", "macOS", "iOS", "arXiv", "openSUSE",
+                        "iCloud", "iPadOS" }) do
+  H.eq(Engine.apply_case(word, "title"), word,
+       ("a sentence position does not touch %s"):format(word))
+end
+-- A spelling with no capital of its own takes one as it should.
+H.eq(Engine.apply_case("don't", "title"), "Don't", "an ordinary contraction")
+H.eq(Engine.apply_case("e.g.", "title"), "E.g.", "and an abbreviation")
+H.eq(Engine.apply_case("LaTeX", "title"), "LaTeX", "a leading capital is already there")
+do
+  local first = engine:suggest("iphone", 1, { sentence_start = true })[1]
+  H.eq(first.text:gsub("%s+$", ""), "iPhone", "and it survives the whole path")
+end
+
 H.suite("engine: capitalisation flows through to candidates")
 H.eq(texts("Mathe")[1] ~= nil and texts("Mathe")[1]:sub(1, 1), "M",
      "a capitalised query yields capitalised candidates")

@@ -100,6 +100,14 @@ all. So `TQFT`, `CLI`, `Coq` and `Grothendieck` simply are their spellings, and
 `ml` gets its millilitres back by appearing as its own lowercase entry one line
 above `ML`.
 
+**A spelling that opens in lower case resists the sentence capital.** `iPhone`
+at the start of a sentence is `iPhone`, not `IPhone`, and the same for `eBay`,
+`macOS`, `iOS`, `arXiv`, `openSUSE`, `iCloud`. Nothing marks these either — the
+shape of the spelling is the statement, since nobody types a capital in the
+middle of a word by accident and nothing in the program puts one there. A
+spelling with no capital of its own, like `don't` or `e.g.`, takes one as it
+should.
+
 The one thing the lookup gets wrong is **names**, because this corpus keeps
 proper nouns as ordinary lowercase tokens: `africa` is its 1,500th word and
 looks exactly like `ram` to that test. A file says so once:

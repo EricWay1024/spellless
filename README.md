@@ -319,7 +319,9 @@ you.   thats      →  You. That's
 **Sentences start with a capital** — after `.`, `!`, `?`, on a new line, at the
 start of an empty text box — but only if you typed the word in lower case, so
 `MATHE` and `kubectl` are left alone. Your own capitals are kept: `Mathe` gives
-`Mathematics`, `RECIEVE` gives `RECEIVE`.
+`Mathematics`, `RECIEVE` gives `RECEIVE`. And a spelling that opens in lower
+case refuses it outright — `iPhone` starts a sentence as `iPhone`, never
+`IPhone`, and so do `eBay`, `macOS`, `iOS` and `arXiv`.
 
 **Where English requires a bare verb, the list prefers one.** `would rlt` puts
 `relate` ahead of `related`, because there is no "would related". The trigger

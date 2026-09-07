@@ -108,9 +108,26 @@ local function case_style(raw)
 end
 Engine.case_style = case_style
 
+--- A spelling that opens in lower case and carries a capital later is
+--- deliberate, and a sentence position does not get to overrule it: `iPhone`,
+--- `eBay`, `macOS`, `arXiv`, `iOS`, `openSUSE`, `iCloud`.  Written out, the
+--- rule is that the *shape* of the spelling is the statement -- nobody types a
+--- capital in the middle of a word by accident, and nothing in this program
+--- puts one there.
+---
+--- No marker needed, because the spelling already says it.  `don't` and `e.g.`
+--- carry no capital and take one at the start of a sentence as they should,
+--- and `LaTeX` is unaffected either way.
+local function starts_lower_then_capital(word)
+  return word:find("%u") ~= nil and word:sub(1, 1):match("%l") ~= nil
+end
+
 local function apply_case(word, style)
   if style == "upper" then return word:upper() end
-  if style == "title" then return word:sub(1, 1):upper() .. word:sub(2) end
+  if style == "title" then
+    if starts_lower_then_capital(word) then return word end
+    return word:sub(1, 1):upper() .. word:sub(2)
+  end
   return word
 end
 Engine.apply_case = apply_case
