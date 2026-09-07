@@ -1,0 +1,188 @@
+#!rank 40000
+# Algebra, and the general vocabulary of writing mathematics.
+#
+# Sits beside topology.txt without overlapping it: `Hilbert`, `Serre`,
+# `Quillen`, `Noetherian`, `pullback` and `Hausdorff` are there and not here.
+#
+# 122 candidates were dropped for being in the dictionary already and spelled
+# correctly -- theorem, lemma, corollary, proposition, conjecture, hypothesis,
+# converse, contrapositive, induction, recursion, bijection, injection,
+# surjection, cardinality, countable, subgroup, coset, orbit, quotient,
+# determinant, eigenvalue, eigenvector, tensor, exterior, quaternion,
+# projective, flat, graded, filtration, measurable, monotone, asymptotic.  A
+# pack that repeats the dictionary is noise.
+#
+# Five names are ordinary words and appear in phrases instead: `Lie` is the
+# 4,746th word in the language, and `Bass`, `Swan` and `Moody` are a fish, a
+# bird and a mood.  Jacques Tits is left out altogether; add him if you need
+# him.  `Ext` and `Tor` are here as themselves -- `tor` is a rocky hill and
+# survives one keystroke behind.
+
+# --- names: algebra, number theory, arithmetic geometry
+Galois
+Abel
+Noether
+Artin
+Dedekind
+Kummer
+Krull
+Zariski
+Grothendieck
+Weil
+Deligne
+Chevalley
+Borel
+Steinberg
+Lusztig
+Kac
+Kac Moody
+Macdonald
+Schur
+Frobenius
+Burnside
+Sylow
+Jacobson
+Wedderburn
+Brauer
+Auslander
+Reiten
+Gabriel
+Waldhausen
+Bousfield
+Hyman Bass
+Richard Swan
+Lurie
+Voevodsky
+Scholze
+Kaplansky
+Eisenstein
+Minkowski
+Hensel
+Ostrowski
+Chebotarev
+Iwasawa
+Langlands
+Shimura
+Taniyama
+Mordell
+Faltings
+Wiles
+Ribet
+Tate
+Neron
+Neukirch
+Silverman
+Zorn
+Cayley
+Lagrange
+Levi
+Clifford
+Grassmann
+
+# --- Lie theory, which needs its phrases
+Lie algebra
+Lie algebras
+Lie group
+Lie groups
+Lie bracket
+Weyl
+Coxeter
+Dynkin
+Cartan
+Kostant
+Bruhat
+Schubert
+Grassmannian
+Verma
+Harish
+parabolics
+unipotent
+nilpotency
+solvability
+
+# --- structures and constructions the corpus is missing
+supergroup
+cosets
+subring
+subrings
+subfields
+subalgebra
+subalgebras
+automorphic
+henselian
+birational
+unirational
+Nullstellensatz
+epimorphisms
+monomorphisms
+bimodule
+bimodules
+biproduct
+coproduct
+coproducts
+pushout
+pushouts
+coequaliser
+coequalizer
+nilradical
+idempotents
+semisimplicity
+torsionfree
+injective
+syzygies
+Koszul
+Ext
+Tor
+filtrations
+bigraded
+multigraded
+
+# --- multilinear algebra
+tensorial
+multilinear
+symmetrisation
+octonion
+octonions
+eigenspaces
+diagonalisable
+diagonalizable
+diagonalise
+noninvertible
+nonsingular
+hermitian
+skewsymmetric
+semidefinite
+
+# --- writing mathematics
+#
+# `iff`, `WLOG` and `QED` are short, and short entries start behind the
+# ordinary words they resemble -- `iff` sits behind `if` until you have chosen
+# it twice.  That is the personal store working as intended; if you want one of
+# them first from the outset, `spellless_shortcuts.txt` is the mechanism for
+# exactly that, since an exact match there leads everything inferred.
+QED
+iff
+WLOG
+bijections
+bijective
+surjections
+surjective
+supremum
+infimum
+limsup
+liminf
+neighborhood
+
+# --- analysis and measure, the names the corpus lacks
+Cauchy
+Banach
+Lebesgue
+Riemann
+Stieltjes
+Fubini
+Tonelli
+Radon
+Nikodym
+measurability
+equicontinuous
+pointwise

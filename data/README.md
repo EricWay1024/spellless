@@ -169,6 +169,7 @@ python3 scripts/import_pack.py topology china
 
 | pack | what it holds |
 | --- | --- |
+| `algebra.txt` | algebra, arithmetic geometry, and writing mathematics |
 | `topology.txt` | names, objects and adjectives from topology and geometry |
 | `philosophy.txt` | philosophers, positions, and the terms of art |
 | `software.txt` | computer science and software engineering, past what everyone needs |
