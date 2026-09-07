@@ -60,6 +60,15 @@ Editing the wrong one is silent — the snippets simply never fire — and it co
 a whole round of "why is nothing expanding" here. If you keep two, make one a
 symlink to the other rather than two files.
 
+**Keep the files LF.** HyperSnips compiles each one into a single JavaScript
+function, emitting every body line as `_result.push("…")`. A carriage return
+that survives the line split lands inside that string literal, where it is a
+line terminator, so the string never closes and the parse dies at the next
+thing it sees — `missing ) after argument list`, naming no file and no line.
+Current HyperSnips splits on `/\r?\n/` and is immune; a file that has been
+through a Windows editor and an older extension build is not. A
+`.gitattributes` with `*.hsnips text eol=lf` settles it.
+
 Adding a *prose* trigger means adding it in both. A maths-mode snippet — `m`
 in its HyperSnips flags, firing only inside `$…$` — belongs in the editor's
 file alone: Spellless is not composing there, so there is nothing for it to
