@@ -399,6 +399,12 @@ python3 scripts/import_pack.py topology
 They merge into your own word list, never overwrite what you have taught, and
 a text file of your own words works just as well as a named pack.
 
+**A letter hard against a digit is notation, not a word.** `4D`, `3D`, `4th`,
+`5km`, `L2` — type the digit and it goes straight in, and the letters after it
+commit as themselves rather than being read as the start of a word. Without
+this `4D` gives you `4Do`, because `D` reaches `Do` by adding a single letter.
+A space turns it back off: `in 4 days` is ordinary text.
+
 **Short and capitalised input leads with itself.** `x`, `cm`, `ms`, `PDE`,
 `TQFT` commit as themselves, because one or two characters are variables and
 units far more often than the start of a longer word, and an acronym typed in

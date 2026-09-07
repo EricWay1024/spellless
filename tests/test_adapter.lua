@@ -298,6 +298,31 @@ do
        "and the cached answer is not served across the change")
 end
 
+H.suite("adapter: a letter hard against a digit is notation")
+-- Typing "4D": the 4 goes straight into the document, so the matcher only ever
+-- sees "D" -- which reaches "Do" by adding one letter and is trusted for it,
+-- putting "Do" in front of the D that was actually typed.  The digit behind
+-- the caret is the only thing that says otherwise.
+do
+  local function lead_for(input)
+    ctx:set_property("spellless_sentence", "")
+    local out = mock.translate(spellless, input,
+                               mock.segment({ "abc" }, 0, #input), env)
+    return (out[1].text:gsub(" $", ""))
+  end
+
+  mock.history:clear(); mock.history:push("exact", "hello")
+  H.eq(lead_for("D"), "Do", "an ordinary D still reads as a word")
+
+  mock.history:clear(); mock.history:push("raw", "4")
+  H.eq(lead_for("D"), "D", "but 4D commits the D")
+  H.eq(lead_for("th"), "th", "and 4th the th")
+
+  -- A space is the whole test: "in 4 days" is not notation.
+  mock.history:clear(); mock.history:push("raw", "4 ")
+  H.eq(lead_for("D"), "Do", "a space puts it back to ordinary text")
+end
+
 H.suite("adapter: telling a new line from a correction")
 -- Rime clears its commit history for Return and for Backspace alike, so the
 -- processor has to record which one happened.

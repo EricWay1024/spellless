@@ -686,7 +686,8 @@ function Engine:suggest(raw, limit, opts)
   local trusted = expansions ~= nil and expansions ~= false
   trusted = trusted or promoted ~= nil
   trusted = trusted or (not (opts and opts.literal_first)
-      and self:trustworthy(ranked.leader or ranked[1], query, has_exact, typed_style))
+      and self:trustworthy(ranked.leader or ranked[1], query, has_exact,
+                           typed_style, opts and opts.after_digit))
   -- The split goes last among the real answers, and the literal is placed
   -- after that as usual.
   --
@@ -761,7 +762,7 @@ end
 ---
 --- An exact dictionary hit overrides both: "i", "eg", "is", "an" mean
 --- themselves.
-function Engine:trustworthy(best, query, has_exact, typed_style)
+function Engine:trustworthy(best, query, has_exact, typed_style, after_digit)
   if not best then return false end
   if best.cost > self.cfg.confidence_cost then return false end
   if best.score < self.cfg.confidence_floor then return false end
@@ -770,6 +771,15 @@ function Engine:trustworthy(best, query, has_exact, typed_style)
   -- and checking it after the short-input rule below let "QF" become "QFT".
   if typed_style == "upper" then return false end
   if #query < self.cfg.trust_min_len then
+    -- A letter or two hard against a digit is notation, not a word: 4D, 3D,
+    -- 4th, 5km, L2, H1.  The digit went straight into the document, so all
+    -- the matcher sees is "D" -- which adds one letter to reach "Do" and is
+    -- therefore trusted, putting "Do" in front of the D that was typed.
+    --
+    -- Nothing else in the language makes a letter follow a digit with no
+    -- space, so the test is the space and not a list of suffixes; `4days` is
+    -- taken literally too, and a missing space is what that was.
+    if after_digit then return false end
     -- One or two characters is not much to go on, but a candidate that needed
     -- no repair and adds a single letter is still evidence: "th" -> "the" is
     -- worth trusting where "cm" -> "come" and "x" -> "xxx" are not.

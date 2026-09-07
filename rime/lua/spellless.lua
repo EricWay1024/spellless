@@ -440,6 +440,11 @@ local function read_behind(engine, context, input)
   local out = {
     literal_first = preceding.expects_literal(tail),
     sentence_start = false,
+    -- A digit hard against the caret: what follows is notation, not a word.
+    -- "4" goes straight into the document rather than into a composition, so
+    -- by the time "D" is typed the matcher has no idea a 4 is in front of it
+    -- unless this says so.
+    after_digit = tail ~= nil and tail:match("%d$") ~= nil,
     -- "would relate", never "would related".  Read from the same tail as
     -- everything else here, so it works from the commit history alone and does
     -- not wait on a frontend that can read the document.
@@ -517,7 +522,7 @@ local function suggest(engine, input, behind)
   -- letters was still sitting here.
   local key = tostring(behind.sentence_start) .. tostring(behind.literal_first)
       .. tostring(behind.client_app) .. tostring(behind.force_style)
-      .. tostring(behind.prefer_bare)
+      .. tostring(behind.prefer_bare) .. tostring(behind.after_digit)
   if cache.engine == engine and cache.input == input and cache.key == key
      and cache.stamp == engine.user.dirty_stamp then
     return cache.result
