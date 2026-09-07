@@ -691,6 +691,19 @@ do
   H.eq(rank_of("prcd", "proceed", true), rank_of("prcd", "proceed", false),
        "nor `proceed` of `procee`")
 
+  -- Whether the matcher trusts its own answer is a question about the input
+  -- alone.  `allsg` reads as `alleged`; demoting that after a modal once put a
+  -- below-floor candidate in front, and the literal `allsg` took the lead --
+  -- a context feature deciding a trust question, which 8.0 forbids.
+  local function literal_leads(query, bare)
+    local first = engine:suggest(query, 3, { prefer_bare = bare })[1]
+    return first ~= nil and first.text:gsub("%s+$", "") == query
+  end
+  for _, query in ipairs({ "allsg", "rlt", "ddc", "invlv", "cnsdr" }) do
+    H.eq(literal_leads(query, true), literal_leads(query, false),
+         ("context does not decide whether the literal leads: %s"):format(query))
+  end
+
   -- Nothing below the page moves, in either direction.
   local plain = engine:suggest("rlt", 30)
   local bare = engine:suggest("rlt", 30, { prefer_bare = true })

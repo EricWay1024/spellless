@@ -647,7 +647,7 @@ function Engine:suggest(raw, limit, opts)
   local trusted = expansions ~= nil and expansions ~= false
   trusted = trusted or promoted ~= nil
   trusted = trusted or (not (opts and opts.literal_first)
-      and self:trustworthy(ranked[1], query, has_exact, typed_style))
+      and self:trustworthy(ranked.leader or ranked[1], query, has_exact, typed_style))
   -- The split goes last among the real answers, and the literal is placed
   -- after that as usual.
   --

@@ -250,6 +250,16 @@ function M.rank(items, query, cfg, ctx)
     if a.score ~= b.score then return a.score > b.score end
     return ctx.tiebreak(a) < ctx.tiebreak(b)
   end)
+  -- Whether the matcher believes its own answer is a question about the input,
+  -- and it must not acquire an opinion about the word before it.  Engine's
+  -- trust test reads the leader, so it is handed the one the *ranking* chose
+  -- and not the one the reorder left in front (ALGORITHM.md 8.0, invariant 1).
+  --
+  -- Not hypothetical: `allsg` reads as `alleged`, comfortably trusted, and
+  -- demoting it after a modal put a below-floor candidate in first place and
+  -- made the literal `allsg` lead.  One skeleton in 8,646 -- which is what a
+  -- rare violation of an invariant looks like from the outside.
+  out.leader = out[1]
   M.defer_inflections(out, cfg, ctx)
   return out
 end

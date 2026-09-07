@@ -132,7 +132,9 @@ end
 for _, tail in ipairs({ "would not ", "could also ", "might never ",
                         "may in fact ", "would not simply ", "would, however, ",
                         "should probably ", "would equivalently ",
-                        "could algorithmically " }) do
+                        "could algorithmically ", "can thus to some extent ",
+                        "would at least ", "could for example ",
+                        "would of course ", "should in general " }) do
   H.ok(P.expects_bare_verb(tail), ("an adverb does not break %q"):format(tail))
 end
 -- `to` is the infinitive marker about a seventh of the time; the word in front
@@ -165,7 +167,11 @@ for _, tail in ipairs({ "would apply ", "could imply ", "must rely ",
 end
 -- Punctuation decides as much as the words do.
 for _, tail in ipairs({ "we could. However, ", "would-", "would (",
-                        "would 3 ", "could. " }) do
+                        "would 3 ", "could. ",
+                        -- A phrase list, not a parser: `in` and `to` are only
+                        -- skippable inside a phrase it knows.
+                        "interested in ", "for the reasons expressed ",
+                        "would in ", "can to " }) do
   H.ok(not P.expects_bare_verb(tail), ("the gap rules out %q"):format(tail))
 end
 H.ok(not P.expects_bare_verb(nil), "and not with nothing behind at all")

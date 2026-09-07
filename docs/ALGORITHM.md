@@ -1090,9 +1090,18 @@ Three parts, each of which the class table lacked:
   `want to`, `in order to`, `able to`, but not `isomorphic to` or `due to`,
   which is what `to` mostly is in mathematics. That one test takes the slot
   from 1.4% to 0.1%, cleaner than the modals themselves. Adverbs are skipped
-  (`would not relate`, `may in fact hold`), and the chain stops of its own
-  accord in exactly the right place: `be` and `have` are not adverbs, so
-  "would be related" and "would have related" are never reached.
+  (`would not relate`, `can thus to some extent generalize`), and the chain
+  stops of its own accord in exactly the right place: `be` and `have` are not
+  adverbs, so "would be related" and "would have related" are never reached.
+
+  The multi-word adjuncts are a closed list of 24 phrases rather than a parse.
+  A scan that recognises prepositional phrases *by shape*, right to left, was
+  measured against it: it reaches 5.6% more slots and **doubles** the error
+  rate, 0.5% → 0.9%, because right to left it cannot tell "to some extent" from
+  "for the reasons expressed" and lands on a modal governing nothing — the new
+  slots it finds are headed by `the`, `that`, `result`, `expressed`. The phrase
+  list reaches 1% more slots and adds no errors, and everything it newly finds
+  is a real verb: `correspond`, `cover`, `imply`, `follow`, `argue`.
 * **The input overrules it.** A consonant skeleton keeps every consonant, so
   an `-ed` inflection *always* has a `d` in its shorthand: somebody who means
   "would have called" types `clld`, not `cll`. When the query ends in `d` the
@@ -1109,7 +1118,7 @@ Three parts, each of which the class table lacked:
   and bounds the loss at four places.
 
 Run over 374,090 real slots with their real left context, through the shipped
-predicate: it fires on **3,979** of them, and on the 473 distinct
+predicate: it fires on **3,994** of them, and on the 473 distinct
 (shorthand, word) pairs that produces, **11 improve and 0 regress** — 40 tokens
 of the sample, `gnrlz → generalize`, `ddc → deduce`, `imps → impose`,
 `endw → endow`, `rlt → relate`. Small, and real, which is more than the class
