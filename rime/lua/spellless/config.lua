@@ -552,10 +552,6 @@ M.defaults = {
   choice_confirm_count = 2,
   -- A word selected this many times reaches the top of the personal scale.
   user_saturation   = 12,
-  -- How many personal words are compared against the query directly.  Every
-  -- one costs two edit-distance evaluations, so a very long history is capped
-  -- at the most recently used entries.
-  personal_scan_limit = 400,
   -- Flush the personal file after this many commits, or this many ms.
   flush_every       = 4,
   flush_interval_ms = 5000,

@@ -216,53 +216,57 @@ Engine.effective_style = effective_style
 -- the user's own vocabulary
 -- ---------------------------------------------------------------------------
 
---- Match the query against the user's own vocabulary directly.
+--- The words you have taught it, searched exactly like the ones that shipped.
 ---
---- This is a plain linear pass rather than an index lookup.  The list is small
---- by construction, and going through it every time is what guarantees that a
---- word you have actually chosen before is always in the running -- it cannot
---- be squeezed out of a corpus-frequency shortlist by commoner neighbours.
+--- This used to be a second matcher: a linear pass over the most-used 400
+--- entries, three alignments each, with its own hand-rolled copies of the
+--- exact, prefix, typo, skeleton and cue tests.  It was slower per word than
+--- the real one by two orders of magnitude -- 400 personal words cost 4 ms
+--- against 3 ms for 83,364 dictionary words -- and the cap was load-bearing
+--- because of it.  A cap on a personal store is a promise the software cannot
+--- keep: `reidemeister`, learned and spelled correctly and sitting in the
+--- file with a count of 3, was unreachable from every shorthand of it, because
+--- 400 other words were used more often.
+---
+--- So there is one matcher.  `Corpus.of_words` gives the personal list the
+--- same masks, buckets and range searches the dictionary has, and the same
+--- `generate.generate` runs over it -- no cap, and the whole store searched
+--- for less than the old 400 cost.
+---
+--- Ids from that index address the personal list, so each is mapped back to a
+--- dictionary id (or nil, for a word the dictionary has never heard of, which
+--- is most of why the store exists).
 local function generate_personal(self, query, out)
-  local cfg = self.cfg
-  local words = self.user:words(cfg.personal_scan_limit)
-  if #words == 0 then return end
-  local corpus = self.corpus
-  local qskel = skeleton.of(query)
-  local qlen = #query
-  local n = #out
-  local function emit(word, source, cost, extra)
+  local index = self:personal_index()
+  if index.n == 0 then return end
+  local corpus, n = self.corpus, #out
+  local found = generate.generate(index, query, self.cfg, nil)
+  for i = 1, #found do
+    local item = found[i]
+    local word = index.words[item.id]
     n = n + 1
-    out[n] = { word = word, id = corpus:lookup(word), source = source,
-               cost = cost or 0, extra = extra or (#word - qlen) }
+    out[n] = { word = word, id = corpus:lookup(word), source = item.source,
+               cost = item.cost, extra = item.extra }
   end
-  local longest = qlen + generate.ELASTIC_PROFILE.max_drift
-  for i = 1, #words do
-    local w = words[i]
-    -- A hand-edited personal file can hold anything; a word far longer than
-    -- the query cannot match and would cost a full n*m alignment to find that
-    -- out.
-    if #w > longest then
-      -- skip
-    elseif w == query then
-      emit(w, "exact", 0)
-    elseif w:sub(1, qlen) == query then
-      emit(w, "prefix", 0)
-    else
-      local d = distance.distance(query, w, cfg.typo_budget, generate.TYPO_PROFILE)
-      if d then emit(w, "typo", d) end
-      if #qskel >= cfg.min_skeleton_len and #w >= qlen - 1 then
-        local ds = distance.prefix_distance(query, w, cfg.elastic_budget, generate.ELASTIC_PROFILE)
-        if ds then emit(w, "skeleton", ds) end
-      end
-      -- A name you have adopted deserves shorthand too: this is the same
-      -- syllabic reading the dictionary scan does, and the list is short
-      -- enough that every entry can simply be tried.
-      if qlen >= cfg.min_cue_len then
-        local dc = cue.align(query, w, cfg.cue_budget, cfg)
-        if dc then emit(w, "cue", dc, 0) end
-      end
-    end
+end
+
+--- The personal index, rebuilt when the set of words in the store changes.
+---
+--- Counts change constantly and do not affect it; the word set changes a few
+--- times a session.  Rebuilding is a sort and one pass, ~2 ms for a store of a
+--- couple of thousand.
+function Engine:personal_index()
+  local order = self.user.order
+  if self.personal and self.personal_words == #order then return self.personal end
+  local words, n = {}, 0
+  for i = 1, #order do
+    -- A hand-edited file can hold anything, and the bucket key assumes a
+    -- lowercase first letter.
+    if order[i]:find("^%a[%a']*$") then n = n + 1; words[n] = order[i] end
   end
+  self.personal = Corpus.of_words(words)
+  self.personal_words = #order
+  return self.personal
 end
 
 -- ---------------------------------------------------------------------------

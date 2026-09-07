@@ -107,6 +107,44 @@ local ident = engine:suggest("sqlite3", 8)
 H.eq(#ident, 1, "one candidate")
 H.eq(ident[1].text, "sqlite3")
 
+H.suite("engine: the personal store is searched like the shipped one")
+-- The bug this is here for: `reidemeister` sat in a real store, spelled
+-- correctly, with a count of 3, and was unreachable from every shorthand of
+-- it -- because the personal matcher was a linear scan capped at the 400
+-- most-used words and 400 others were used more.  A cap on a store the user
+-- fills themselves is a promise the software cannot keep.
+do
+  local path = os.tmpname()
+  local fh = assert(io.open(path, "wb"))
+  fh:write("reidemeister\tReidemeister\t3\n")
+  -- and enough traffic to have pushed it out of any window
+  for i = 1, 600 do fh:write(("filler%03d\t%d\n"):format(i, 50)) end
+  fh:close()
+  require("spellless.userdb").forget(path)
+  local e = assert(Engine.new{ data_dir = DATA, personal_path = path })
+
+  local function reaches(query)
+    for _, c in ipairs(e:suggest(query, 9)) do
+      if c.text:gsub("%s+$", "") == "Reidemeister" then return true end
+    end
+    return false
+  end
+  H.ok(reaches("reidemeister"), "the word itself")
+  H.ok(reaches("rdmstr"), "its consonant skeleton, past 600 commoner entries")
+  H.ok(reaches("Reidem"), "and a prefix of it")
+  -- The capital it was taught rides along, from every channel.
+  for _, q in ipairs({ "rdmstr", "Reidem" }) do
+    for _, c in ipairs(e:suggest(q, 9)) do
+      if c.text:gsub("%s+$", ""):lower() == "reidemeister" then
+        H.eq(c.text:gsub("%s+$", ""), "Reidemeister",
+             ("the taught spelling comes back from %q"):format(q))
+        break
+      end
+    end
+  end
+  os.remove(path)
+end
+
 H.suite("engine: personal vocabulary")
 local path = os.tmpname()
 local fh = assert(io.open(path, "w"))
@@ -638,12 +676,20 @@ do
   -- from a real store.
   local loose = assert(Engine.new{ data_dir = DATA, personal_path = path,
                                    config = { user_cost_margin = 99 } })
-  -- With no margin the reported symptom comes straight back, and it is worth
-  -- pinning the *symptom* rather than the cause: what the typist saw was not
-  -- "instead" winning, it was the literal leading.  "instead" won by 0.1 and
-  -- was then too loose to trust, so the literal was promoted over it.
-  H.eq(loose:suggest("immsn", 1)[1].text:gsub("%s+$", ""), "immsn",
-       "and with no margin the literal leads again, which is what was reported")
+  -- The reported symptom no longer returns even with the margin switched off,
+  -- and the reason is worth recording rather than papering over.  "instead"
+  -- was never a reading of "immsn" at all: the personal store had its own
+  -- matcher, which ran the *elastic* profile over the raw query and the raw
+  -- word instead of over their skeletons, and manufactured the candidate that
+  -- familiarity then lifted.  With one matcher for both stores it is not
+  -- generated, so there is nothing for the margin to hold back here.
+  H.eq(loose:suggest("immsn", 1)[1].text:gsub("%s+$", ""), "immersion",
+       "and the spurious personal reading is not generated at all now")
+  local seen = false
+  for _, c in ipairs(loose:suggest("immsn", 12)) do
+    if c.text:gsub("%s+$", "") == "instead" then seen = true end
+  end
+  H.ok(not seen, "`instead` is not a reading of `immsn` by any channel")
 
   -- Familiarity still decides between readings that explain the input equally
   -- well -- there it is the only evidence there is.

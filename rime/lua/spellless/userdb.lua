@@ -104,7 +104,6 @@ function UserDB:set(word, count, surface)
     self.surfaces[word] = surface
   end
   self.dirty_stamp = self.dirty_stamp + 1
-  self.selection = nil
 end
 
 --- Record that `chosen` is what `typed` meant, `n` times over.
@@ -173,7 +172,6 @@ function UserDB:forget_word(word)
   end
   self.dirty = self.dirty + 1
   self.dirty_stamp = self.dirty_stamp + 1
-  self.selection = nil
   return true
 end
 
@@ -215,33 +213,16 @@ function UserDB:record(word, surface)
   return self.dirty
 end
 
---- The words the matcher compares every query against, capped at `limit`.
+--- Every word in the store, in insertion order.
 ---
---- The matcher runs a small linear pass over these on every query.  That
---- covers two things at once: words the static corpus has never heard of
---- become candidates as soon as they are committed once, and words the corpus
---- does know cannot be crowded out of a frequency-ranked shortlist by more
---- common but unwanted neighbours.
----
---- When there are more than `limit`, the ones kept are those chosen most
---- often.  Taking the tail of insertion order instead would be actively
---- perverse: the file is written back sorted by descending count, so after a
---- restart the tail is the words you have used *least*.
-function UserDB:words(limit)
-  local n = #self.order
-  if not limit or n <= limit then return self.order end
-  if self.selection and self.selection.limit == limit then return self.selection.words end
-
-  local ranked = {}
-  for i = 1, n do ranked[i] = self.order[i] end
-  local counts = self.counts
-  table.sort(ranked, function(a, b)
-    if counts[a] ~= counts[b] then return counts[a] > counts[b] end
-    return a < b
-  end)
-  local out = table.move(ranked, 1, limit, 1, {})
-  self.selection = { limit = limit, words = out }
-  return out
+--- There is no cap and there must not be one.  This used to take a `limit` and
+--- return the most-used entries, because the matcher walked the list linearly
+--- and could not afford all of it -- which meant a word you had taught the
+--- system stopped being findable once you had taught it enough others.  The
+--- personal store is indexed like the dictionary now (see `Corpus.of_words`),
+--- so the whole of it is searched for less than the capped scan used to cost.
+function UserDB:words()
+  return self.order
 end
 
 function UserDB:flush()

@@ -41,6 +41,91 @@ local function bucket_key(len, first_byte)
 end
 Corpus.bucket_key = bucket_key
 
+--- Everything cheap enough to derive from the word list rather than ship it.
+---
+--- One pass, and it is the same pass for the shipped dictionary and for the
+--- personal one.  The two used to have separate matchers and the personal half
+--- was a linear scan with a cap on it, which is how a word you had taught the
+--- system became unreachable by shorthand once you had taught it enough
+--- others.  There is one matcher now, so there is one indexer.
+local function derive(self)
+  local words, n = self.words, self.n
+local masks, smasks, wbuckets, sbuckets = {}, {}, {}, {}
+for id = 1, n do
+  local w = words[id]
+  local len = #w
+  local mask, vowels = 0, 0
+  for k = 1, len do
+    local c = byte(w, k)
+    if c >= 97 and c <= 122 then
+      mask = mask | (1 << (c - 97))
+      if c == 97 or c == 101 or c == 105 or c == 111 or c == 117 then
+        vowels = vowels + 1
+      end
+    end
+  end
+  masks[id] = mask
+  local first = byte(w, 1)
+  -- Letters that survive into the skeleton: the consonants, plus the first
+  -- character when it happens to be a vowel.
+  local smask = mask & ~VOWEL_BITS
+  if first == 97 or first == 101 or first == 105 or first == 111 or first == 117 then
+    smask = smask | (1 << (first - 97))
+  end
+  smasks[id] = smask
+  local wk = bucket_key(len, first)
+  local b = wbuckets[wk]
+  if not b then b = {}; wbuckets[wk] = b end
+  b[#b + 1] = id
+  -- Skeleton length without building the string: every character survives
+  -- except the vowels after the first one (see spellless.skeleton).
+  local slen = len - vowels
+  if first == 97 or first == 101 or first == 105 or first == 111 or first == 117 then
+    slen = slen + 1
+  end
+  local sk = bucket_key(slen, first)
+  b = sbuckets[sk]
+  if not b then b = {}; sbuckets[sk] = b end
+  b[#b + 1] = id
+end
+  self.masks, self.smasks = masks, smasks
+  self.wbuckets, self.sbuckets = wbuckets, sbuckets
+  self.skel_cache, self.skel_cached = {}, 0
+end
+
+--- A corpus-shaped index over a word list already in memory.
+---
+--- The personal store uses this: same masks, same buckets, same range
+--- searches, same `generate.generate`, so a name you taught the system is
+--- found by exactly the machinery that finds a dictionary word.  Word ids here
+--- index `words`, not the shipped dictionary -- the caller maps them back.
+---
+--- No frequency data, because there is none to have: a flat weight leaves the
+--- ordering to `cost` and to the personal counts, which is what should decide
+--- between two words you chose yourself.
+function Corpus.of_words(words)
+  local self = setmetatable({ words = words, n = #words,
+                              forms = {}, abbreviations = {} }, Corpus)
+  self.skel_cache, self.skel_cached = {}, 0
+  local alpha, skel, skels = {}, {}, {}
+  for i = 1, self.n do
+    alpha[i], skel[i] = i, i
+    skels[i] = skeleton.of(words[i])
+  end
+  table.sort(alpha, function(a, b) return words[a] < words[b] end)
+  table.sort(skel, function(a, b)
+    if skels[a] ~= skels[b] then return skels[a] < skels[b] end
+    return a < b
+  end)
+  -- Instance fields shadow the metatable, so the shipped corpus keeps reading
+  -- its packed blobs and pays nothing for this.
+  self.alpha_at = function(_, i) return alpha[i] end
+  self.skel_at  = function(_, i) return skel[i] end
+  self.weight   = function() return 0.5 end
+  derive(self)
+  return self
+end
+
 --- A cheap stand-in for "are these the same files as last time": the sizes of
 --- everything the corpus is built from.
 ---
@@ -104,45 +189,7 @@ function Corpus.load(dir)
         :format(n, #self.weights, #self.alpha_blob // 3, #self.skel_blob // 3)
   end
 
-  -- One pass over the word list builds everything that is cheap to derive.
-  local masks, smasks, wbuckets, sbuckets = {}, {}, {}, {}
-  for id = 1, n do
-    local w = words[id]
-    local len = #w
-    local mask, vowels = 0, 0
-    for k = 1, len do
-      local c = byte(w, k)
-      if c >= 97 and c <= 122 then
-        mask = mask | (1 << (c - 97))
-        if c == 97 or c == 101 or c == 105 or c == 111 or c == 117 then
-          vowels = vowels + 1
-        end
-      end
-    end
-    masks[id] = mask
-    local first = byte(w, 1)
-    -- Letters that survive into the skeleton: the consonants, plus the first
-    -- character when it happens to be a vowel.
-    local smask = mask & ~VOWEL_BITS
-    if first == 97 or first == 101 or first == 105 or first == 111 or first == 117 then
-      smask = smask | (1 << (first - 97))
-    end
-    smasks[id] = smask
-    local wk = bucket_key(len, first)
-    local b = wbuckets[wk]
-    if not b then b = {}; wbuckets[wk] = b end
-    b[#b + 1] = id
-    -- Skeleton length without building the string: every character survives
-    -- except the vowels after the first one (see spellless.skeleton).
-    local slen = len - vowels
-    if first == 97 or first == 101 or first == 105 or first == 111 or first == 117 then
-      slen = slen + 1
-    end
-    local sk = bucket_key(slen, first)
-    b = sbuckets[sk]
-    if not b then b = {}; sbuckets[sk] = b end
-    b[#b + 1] = id
-  end
+  derive(self)
   -- Surface forms.  Optional: an older generated/ directory simply has none.
   -- A form that ends in a full stop is an abbreviation, and committing one
   -- must not be read as the end of a sentence -- see spellless.preceding.
@@ -156,10 +203,6 @@ function Corpus.load(dir)
       if display:sub(-1) == "." then self.abbreviations[display:lower()] = true end
     end
   end
-
-  self.masks, self.smasks = masks, smasks
-  self.wbuckets, self.sbuckets = wbuckets, sbuckets
-  self.skel_cache, self.skel_cached = {}, 0
 
   cache[key] = self
   return self

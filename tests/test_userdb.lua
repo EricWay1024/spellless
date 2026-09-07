@@ -59,23 +59,10 @@ UserDB.forget(path)
 H.eq(UserDB.load(path, cfg):surface("grothendieck"), "Grothendieck",
      "and it survives a restart")
 
-H.suite("userdb: the scan window keeps what you use most")
--- The file is written back sorted by descending count, so taking the tail of
--- insertion order after a reload would keep the words used *least*.
-UserDB.forget(path)
-local many = UserDB.load(path, cfg)
-many:set("topterm", 1000)
-for i = 1, 20 do many:set(("w%02d"):format(i), 1) end
-local window = many:words(5)
-H.eq(#window, 5, "capped")
-local kept = false
-for _, w in ipairs(window) do if w == "topterm" then kept = true end end
-H.ok(kept, "and the most-used word is in it")
-
 H.suite("userdb: enumerating the personal vocabulary")
 H.eq(#edited:words(), 2, "both words")
-H.eq(#edited:words(1), 1, "capped to the most recent")
-H.eq(edited:words(1)[1], "diffeomorphism")
+-- Every one of them, always: the matcher indexes this list rather than
+-- walking it, so there is nothing to cap and nothing that may go missing.
 
 os.remove(path)
 
