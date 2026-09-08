@@ -40,11 +40,18 @@ The first two are on. The last two change what a key you already know does, or
 move text you can see, so they are opinions rather than corrections and you
 switch them on yourself — all four are in the <kbd>F4</kbd> menu.
 
-**It displaces nothing.** On Windows ours installs *beside* the Weasel you
-already have, with its own settings folder, so an input method you use for
-another language carries on untouched and both appear in your keyboard menu. On
-Windows it also has Spellless already inside it, which makes the whole install
-a single file and nothing else to run.
+**What happens to the Rime you already have** depends on the system. On
+**Windows**, nothing: ours installs *beside* it, with its own settings folder
+and its own entry in your keyboard menu, so a Weasel you keep for another
+language is untouched — and the installer writes Spellless into both, so
+whichever you are typing in runs the same build. On **macOS**, ours goes in as
+ordinary Squirrel and takes its place; it reads the same settings, so every
+input method you already have keeps working, and macOS will ask you to log out
+and back in. On **Linux** you build it yourself, and section 3 has what that
+involves.
+
+Windows is also the one where ours has Spellless already inside it, which makes
+the whole install a single file and nothing else to run.
 
 Each is licensed as the project it is built from — GPL-3.0 for Weasel and
 Squirrel, GPL-2.0-or-later for `fcitx5-rime`; this repository is MIT. The
@@ -94,9 +101,10 @@ Two files: our Squirrel does not carry Spellless inside it.
    **`spellless-<version>.zip`** from
    [Releases](https://github.com/EricWay1024/spellless/releases).
 2. Install the `.pkg`. It is unsigned: right-click → **Open** the first time.
-   It goes in as ordinary Squirrel, so it *replaces* a Squirrel you already
-   have rather than sitting beside it, and it will ask you to log out and back
-   in.
+   It goes in as ordinary Squirrel, so it takes the place of a Squirrel you
+   already have rather than sitting beside it. Everything you already type on
+   Rime keeps working — it reads the same settings — and macOS will ask you to
+   log out and back in.
 3. Unzip the other file and run the installer inside it:
 
    ```bash
