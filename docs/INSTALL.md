@@ -1,14 +1,12 @@
 # Installing Spellless
 
 Spellless joins the list of input methods in your keyboard menu, the way a
-Chinese or Japanese one does. You pick it once and it is there in every program
-you type in.
+Chinese or Japanese one does.
 
-Two pieces make that happen. One is [Rime](https://rime.im) — a free,
-open-source input method, called **Weasel** on Windows, **Squirrel** on macOS,
-and `ibus-rime` or `fcitx5-rime` on Linux — which is what actually puts an
-entry in your keyboard menu. The other is Spellless itself: the word list and
-the matching that decides what to offer you. Installing means getting both.
+Two pieces make that happen: [Rime](https://rime.im) — a free, open-source
+input method, called **Weasel** on Windows, **Squirrel** on macOS, and
+`ibus-rime` or `fcitx5-rime` on Linux — and Spellless itself. Installing means
+getting both.
 
 **Six routes**, because there are three systems and two builds of Rime to run
 this on. Find yours in the table below and read that one section; each is
@@ -21,11 +19,8 @@ When something does not work afterwards,
 
 ## Install our build of Rime
 
-**Do this if you can.** We publish our own build of Rime for each system. It is
-the ordinary program with four small additions, because there are four things
-Spellless cannot do from inside an input method — once text has been sent to a
-program, it belongs to that program, and only Rime itself is still holding on
-to it:
+**Do this if you can.** Our build of Rime is the ordinary program with four
+small additions:
 
 | | the standard Rime | our build |
 | --- | :---: | :---: |
@@ -36,29 +31,21 @@ to it:
 | <kbd>Backspace</kbd> twice deletes the whole word | — | <kbd>F4</kbd> |
 | anything to set up | one line to add | nothing |
 
-The first two are on. The last two change what a key you already know does, or
-move text you can see, so they are opinions rather than corrections and you
-switch them on yourself — all four are in the <kbd>F4</kbd> menu.
+The first two are on; you switch the last two on yourself. All four are in the
+<kbd>F4</kbd> menu.
 
-**What happens to the Rime you already have** depends on the system. On
-**Windows**, nothing: ours installs *beside* it, with its own settings folder
-and its own entry in your keyboard menu, so a Weasel you keep for another
-language is untouched — and the installer writes Spellless into both, so
-whichever you are typing in runs the same build. On **macOS**, ours goes in as
-ordinary Squirrel and takes its place; it reads the same settings, so every
-input method you already have keeps working, and macOS will ask you to log out
-and back in. On **Linux** you build it yourself, and section 3 has what that
-involves.
-
-Windows is also the one where ours has Spellless already inside it, which makes
-the whole install a single file and nothing else to run.
+**What happens to the Rime you already have.** On **Windows**, nothing: ours
+installs *beside* it, with its own settings folder and its own entry in your
+keyboard menu — and the installer writes Spellless into both, so whichever you
+are typing in runs the same build. On **macOS**, ours goes in as ordinary
+Squirrel and takes its place; it reads the same settings, and macOS will ask
+you to log out and back in. On **Linux** you build it yourself (section 3).
 
 Each is licensed as the project it is built from — GPL-3.0 for Weasel and
-Squirrel, GPL-2.0-or-later for `fcitx5-rime`; this repository is MIT. The
-Windows and macOS builds are unsigned, as Squirrel's own releases are.
+Squirrel, GPL-2.0-or-later for `fcitx5-rime`; this repository is MIT.
 
-**Keeping the Rime you already have** costs you those four rows and nothing
-else. Sections 4 to 6 are for that, and they work.
+**Keeping the Rime you already have** costs you those four rows. Sections 4 to
+6 are for that.
 
 ## Which section is yours
 
@@ -68,28 +55,26 @@ else. Sections 4 to 6 are for that, and they work.
 | **macOS** | [2. macOS, with our Squirrel](#2-macos-with-our-squirrel) | [5. macOS, on the standard Squirrel](#5-macos-on-the-standard-squirrel) |
 | **Linux** | [3. Linux, with our fcitx5-rime](#3-linux-with-our-fcitx5-rime) | [6. Linux, on ibus-rime or fcitx5-rime](#6-linux-on-ibus-rime-or-fcitx5-rime) |
 
-Nothing here is ever compiled and no administrator rights are needed. Five of
-the six need **Python 3.8+**, and only to run the installer.
+Five of the six need **Python 3.8+**, and only to run the installer.
 
 ---
 
 ## 1. Windows, with our Weasel
 
-The shortest route there is: one file, which has Spellless inside it.
+One file, with Spellless inside it.
 
 1. Download **`spellless-<version>-installer.exe`** from
    [Releases](https://github.com/EricWay1024/spellless/releases).
 2. Run it. It is unsigned, so Windows will object — **More info** →
-   **Run anyway**. It installs alongside any Weasel already on the machine.
-3. Right-click the tray icon → **Deploy** (「重新部署」). That is Rime's word
-   for "pick up what was just installed".
-4. Press <kbd>F4</kbd>. That is Rime's list of what it can type; choose
-   **Spellless**. The tray icon and the language-bar button turn into an **S**,
-   and tapping Shift into plain typing brings back the **A**.
+   **Run anyway**.
+3. Right-click the tray icon → **Deploy** (「重新部署」).
+4. Press <kbd>F4</kbd> and choose **Spellless**. The tray icon and the
+   language-bar button turn into an **S**, and tapping Shift into plain typing
+   brings back the **A**.
 5. Type **`zzver`** in any text box. Five lines back means it is running.
 
-Nothing to set up. If you also keep a standard Weasel for another language,
-note that the two have separate settings folders —
+If you also keep a standard Weasel for another language, note that the two have
+separate settings folders —
 [TROUBLESHOOTING.md](TROUBLESHOOTING.md#changes-have-no-effect) says what that
 means when an update seems to do nothing.
 
@@ -102,12 +87,10 @@ Two files: our Squirrel does not carry Spellless inside it.
    [Releases](https://github.com/EricWay1024/spellless/releases).
 2. Install the `.pkg`. It is unsigned: right-click → **Open** the first time.
    It installs into `/Library/Input Methods`, so it asks for an administrator
-   password, and it goes in as ordinary Squirrel — it takes the place of a
-   Squirrel you already have rather than sitting beside it. Everything you
-   already type on Rime keeps working, because it reads the same settings.
+   password.
 
-   **Log out and back in when it asks.** The installer declares
-   `RequireLogout`; until you do, the input method is not loaded.
+   **Log out and back in when it asks.** Until you do, the input method is not
+   loaded.
 
 3. **Add Squirrel as an input source**, in
    **System Settings → Keyboard → Text Input → Input Sources → Edit… → `+`**.
@@ -115,15 +98,12 @@ Two files: our Squirrel does not carry Spellless inside it.
 
    The package's `postinstall` does run `--register-input-source`,
    `--enable-input-source` and `--select-input-source`, so it may already be
-   there and already selected — but upstream's own installer ends by saying
-   *"You need to add this input method from Text Input in macOS System
-   Settings"*, and on a fresh install that is usually what is needed. Check
-   before assuming it worked.
+   there and already selected; check rather than assume.
 
-   **Look under Chinese, Simplified — not English.** Squirrel is Rime's macOS
-   frontend and registers two Chinese input modes, `zh-Hans` and `zh-Hant`,
-   whatever schema it is actually running. Spellless types English out of one
-   of them. So the entry you are adding is:
+   **Look under Chinese, Simplified — not English.** Squirrel registers two
+   Chinese input modes, `zh-Hans` and `zh-Hant`, whatever schema it is actually
+   running, and Spellless types English out of one of them. So the entry you
+   are adding is:
 
    | in the list | if System Settings is in Chinese |
    | --- | --- |
@@ -141,14 +121,9 @@ Two files: our Squirrel does not carry Spellless inside it.
    python3 scripts/install.py
    ```
 
-6. Menu-bar icon → **Deploy** — Rime's word for "pick up what was just
-   installed".
-7. Press <kbd>F4</kbd>. That is Rime's list of what it can type; choose
-   **Spellless**.
+6. Menu-bar icon → **Deploy**.
+7. Press <kbd>F4</kbd> and choose **Spellless**.
 8. Type **`zzver`** in any text box. Five lines back means it is running.
-
-Nothing to configure — the input source in step 3 is macOS's requirement, not
-Spellless's.
 
 ## 3. Linux, with our fcitx5-rime
 
@@ -169,16 +144,14 @@ yourself.
    ```
 
 4. `fcitx5-remote -r`
-5. Press <kbd>F4</kbd>. That is Rime's list of what it can type; choose
-   **Spellless**.
+5. Press <kbd>F4</kbd> and choose **Spellless**.
 6. Type **`zzver`** in any text box. Five lines back means it is running.
 
-One caveat particular to Linux: those four extra features need the *program you
-are typing into* to answer a question about the text around your cursor. GTK
-and Qt programs do, much of Chromium does not, and no terminal does. Where a
-program will not answer you quietly get the standard behaviour — the right
-failure, but it does mean the four are not everywhere. Everything in
-[USING.md](USING.md) works regardless.
+The four extra features need the *program you are typing into* to answer a
+question about the text around your cursor. GTK and Qt programs do, much of
+Chromium does not, and no terminal does. Where a program will not answer you
+quietly get the standard behaviour. Everything in [USING.md](USING.md) works
+regardless.
 
 ## 4. Windows, on the standard Weasel
 
@@ -192,23 +165,20 @@ failure, but it does mean the four are not everywhere. Everything in
    ```
 
    From WSL, `python3 scripts/install.py` finds the Windows side by itself.
-4. Right-click the tray icon → **Deploy** (「重新部署」). That is Rime's word
-   for "pick up what was just installed".
-5. Press <kbd>F4</kbd>. That is Rime's list of what it can type; choose
-   **Spellless**.
+4. Right-click the tray icon → **Deploy** (「重新部署」).
+5. Press <kbd>F4</kbd> and choose **Spellless**.
 6. Type **`zzver`** in any text box. Five lines back means it is running.
-7. **Add one setting.** The standard Weasel cannot take a character back once
-   it has been typed, so punctuation after a word you have *already* finished
-   leaves its space stranded — `you .` Create or edit
-   `spellless.custom.yaml` in Rime's settings folder (`%APPDATA%\Rime`, unless
-   you have moved it), put this in it, and Deploy again:
+7. **Add one setting**, or punctuation after a word you have *already* finished
+   leaves its space stranded — `you .` Create or edit `spellless.custom.yaml`
+   in Rime's settings folder (`%APPDATA%\Rime`, unless you have moved it), put
+   this in it, and Deploy again:
 
    ```yaml
    patch:
      spellless/leading_space: true
    ```
 
-   [What it trades](#leading_space-and-what-it-trades) is one paragraph, below.
+   [What it trades](#leading_space-and-what-it-trades).
 
 ## 5. macOS, on the standard Squirrel
 
@@ -221,13 +191,10 @@ failure, but it does mean the four are not everywhere. Everything in
    python3 scripts/install.py
    ```
 
-4. Menu-bar icon → **Deploy** — Rime's word for "pick up what was just
-   installed".
-5. Press <kbd>F4</kbd>. That is Rime's list of what it can type; choose
-   **Spellless**.
+4. Menu-bar icon → **Deploy**.
+5. Press <kbd>F4</kbd> and choose **Spellless**.
 6. Type **`zzver`** in any text box. Five lines back means it is running.
-7. **Add one setting.** The standard Squirrel cannot take a character back once
-   it has been typed, so punctuation after a word you have *already* finished
+7. **Add one setting**, or punctuation after a word you have *already* finished
    leaves its space stranded — `you .` Create or edit `spellless.custom.yaml`
    in `~/Library/Rime`, put this in it, and Deploy again:
 
@@ -236,15 +203,13 @@ failure, but it does mean the four are not everywhere. Everything in
      spellless/leading_space: true
    ```
 
-   [What it trades](#leading_space-and-what-it-trades) is one paragraph, below.
+   [What it trades](#leading_space-and-what-it-trades).
 
 ## 6. Linux, on ibus-rime or fcitx5-rime
 
-1. Install `ibus-rime` or `fcitx5-rime` from your distribution — **and check
-   that its Lua plug-in came too.** Spellless is written in Lua, and without
-   the plug-in Rime cannot run a word of it. Both packages normally pull it in;
-   Linux is the only place it can be missing, because the Windows and macOS
-   builds always include it.
+1. Install `ibus-rime` or `fcitx5-rime` from your distribution, **and check
+   that its Lua plug-in came too** — without it Spellless cannot run. Both
+   packages normally pull it in.
 2. Download **`spellless-<version>.zip`** from
    [Releases](https://github.com/EricWay1024/spellless/releases) and unzip it.
 3. Run the installer inside it:
@@ -254,11 +219,9 @@ failure, but it does mean the four are not everywhere. Everything in
    ```
 
 4. `ibus restart`, or `fcitx5-remote -r`.
-5. Press <kbd>F4</kbd>. That is Rime's list of what it can type; choose
-   **Spellless**.
+5. Press <kbd>F4</kbd> and choose **Spellless**.
 6. Type **`zzver`** in any text box. Five lines back means it is running.
-7. **Add one setting.** The standard build cannot take a character back once it
-   has been typed, so punctuation after a word you have *already* finished
+7. **Add one setting**, or punctuation after a word you have *already* finished
    leaves its space stranded — `you .` Create or edit `spellless.custom.yaml`
    in Rime's settings folder (`~/.config/ibus/rime` or
    `~/.local/share/fcitx5/rime`), put this in it, and reload again:
@@ -268,7 +231,7 @@ failure, but it does mean the four are not everywhere. Everything in
      spellless/leading_space: true
    ```
 
-   [What it trades](#leading_space-and-what-it-trades) is one paragraph, below.
+   [What it trades](#leading_space-and-what-it-trades).
 
 ---
 
@@ -277,8 +240,7 @@ failure, but it does mean the four are not everywhere. Everything in
 ## What `zzver` tells you
 
 Typing `zzver` in a text box asks Spellless which version of itself is actually
-running, so "am I testing what I just installed, or what Rime loaded twenty
-minutes ago" stops being a guess:
+running:
 
 ```
 zzver  →  spellless 0.1.5 installed 2026-09-07 01:12
@@ -288,37 +250,31 @@ zzver  →  spellless 0.1.5 installed 2026-09-07 01:12
           app com.apple.Notes, document readable, edits allowed
 ```
 
-Five lines, each answering a different question: which build, how many words,
-the matching constants, whether the four extra features are switched on at all,
-and whether *this* program is allowed to have them.
+Five lines: which build, how many words, the matching constants, whether the
+four extra features are switched on at all, and whether *this* program is
+allowed to have them.
 
 ## `leading_space`, and what it trades
 
-Normally the automatic space rides on the word, which is right — stop typing
-anywhere and the text is finished. It costs exactly one thing, and only where
-Rime cannot take a character back: punctuation after a word you have already
+Normally the automatic space rides on the word. Where Rime cannot take a
+character back, that costs one thing: punctuation after a word you have already
 finished leaves the space stranded, so picking `you` by number and then ending
 the sentence gives `you .`
 
-With `leading_space` on, the space goes in front of the *next* word instead,
-where punctuation never has to argue with it:
+With `leading_space` on, the space goes in front of the *next* word instead:
 
 ```
                         standard Rime, default   with leading_space
 typing "hello. world."   Hello . World .          Hello. World.
 ```
 
-It is off by default because the trade goes the other way once Rime *can* take
-that character back: leave the cursor after a word and there is no space behind
-it until you type again, so a line you stop in the middle of ends flush. While
-you are typing it looks the same — the space is written on the first letter of
-the next word rather than carried by the candidate, so the list never shows a
-leading space either.
+It is off by default: leave the cursor after a word and there is no space
+behind it until you type again, so a line you stop in the middle of ends flush.
 
 ## What the installer touched
 
-For anyone who wants to know exactly. It finds where Rime keeps its settings —
-the registry on Windows, `~/Library/Rime` on macOS, `~/.config/ibus/rime` or
+It finds where Rime keeps its settings — the registry on Windows,
+`~/Library/Rime` on macOS, `~/.config/ibus/rime` or
 `~/.local/share/fcitx5/rime` on Linux — and writes only inside that folder. Run
 from WSL it finds the Windows-side folder by itself.
 
@@ -333,22 +289,16 @@ from WSL it finds the Windows-side folder by itself.
 
 It writes into **every** settings folder it finds — `%APPDATA%\Rime` for the
 standard Weasel, `%APPDATA%\Spellless` for ours — so both end up running the
-same build, and `--list-candidates` prints what it found and why. `--skip-dir
-DIR` leaves a `spellless.skip` file behind and every later install passes that
-folder by; `--uninstall --user-dir DIR` takes Spellless out of one it is
-already in.
+same build. `--skip-dir DIR` leaves a `spellless.skip` file behind and every
+later install passes that folder by; `--uninstall --user-dir DIR` takes
+Spellless out of one it is already in.
 
-It refuses to copy a half-built `generated/`, because Rime would otherwise
-catch that only once the files were live, and the symptom would be an input
-method offering no words at all.
-
-It leaves `rime.lua` alone — only one is ever loaded, so overwriting it would
-break other people's Lua. It switches Spellless on by appending a single entry
-to `default.custom.yaml`, Rime's own settings file, using the operator that
-**adds** to the list of things Rime can type rather than replacing it —
-important if you run a collection like rime-ice. That file is backed up first
-and only ever has lines inserted, so your comments survive; if it already
-edits the same list, the installer prints what to add rather than guessing.
+It refuses to copy a half-built `generated/`. It leaves `rime.lua` alone. It
+switches Spellless on by appending a single entry to `default.custom.yaml`,
+using the operator that **adds** to the list of things Rime can type rather
+than replacing it — important if you run a collection like rime-ice. That file
+is backed up first; if it already edits the same list, the installer prints
+what to add rather than guessing.
 
 **Installing from a clone** rather than a downloaded archive works the same
 way; run `make && make test` first.
