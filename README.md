@@ -137,17 +137,22 @@ candidates at all that is the first thing to check.
 
 ### Step 1 — choose your frontend
 
-Three features need the input method to reach into the document and take text
-back out, which is further than any schema goes. That is the entire difference
-between the two paths:
+Four features need the input method to see the document, and three of them to
+reach in and take text back out — which is further than any schema goes. That is
+the entire difference between the two paths:
 
 | | stock Weasel / Squirrel / `ibus-rime` / `fcitx5-rime` | **spellless-weasel** / **spellless-squirrel** / **spellless-fcitx5** |
 | --- | :---: | :---: |
 | everything under [Everything it does](#everything-it-does) | ✓ | ✓ |
 | punctuation takes its space back — `you` <kbd>Space</kbd> `.` gives `you. `, not `you . ` | — | ✓ |
-| a word you re-type is picked up — delete the space after `so`, type `oner`, get `sooner` | — | ✓ |
-| <kbd>Backspace</kbd> twice deletes the whole word | — | ✓ |
+| a caret inside a word means plain typing — `4D`, `p.m.`, `v1.2` get no candidate list | — | ✓ |
+| a word you re-type is picked up — delete the space after `so`, type `oner`, get `sooner` | — | <kbd>F4</kbd> |
+| <kbd>Backspace</kbd> twice deletes the whole word | — | <kbd>F4</kbd> |
 | what you have to configure | `leading_space`, [step 4](#step-4--stock-rime-only-turn-on-leading_space) | nothing |
+
+The first two are on; the last two change what a key you already know does, or
+move text you can see, so they are opinions rather than corrections and you turn
+them on yourself. All four are switches in the <kbd>F4</kbd> menu.
 
 **The fork is the better experience, and it does not displace anything.**
 
@@ -337,7 +342,8 @@ act on.
 | The space rides on the word | never in front of it, and punctuation takes it back |
 | <kbd>Enter</kbd> commits what you typed | <kbd>Shift</kbd>+<kbd>Enter</kbd> commits and adds the newline |
 | Space bar asks before a misspelling | double-tap to insist |
-| <kbd>Backspace</kbd> twice | deletes the whole word, not one letter |
+| A caret inside a word | means plain typing until the next space — `4D`, `p.m.` |
+| <kbd>Backspace</kbd> twice | deletes the whole word, not one letter (<kbd>F4</kbd>) |
 | `qq` mid-word is a command | `qqc` capitals, `qqf` first letter, `qql` lower case, `qqd` forget |
 | Editor snippets | `xthm` expands in VS Code, through your own snippet file |
 | Tapping Shift gets out of the way | and `$` does it by itself, for maths |
@@ -682,10 +688,17 @@ when you next deploy.
 Three frontends carry that convention now — one for each platform — and the
 schema finds out which it is talking to rather than being told:
 nothing is asked of a frontend until it has set `surrounding_text` at least
-once, and no stock build ever does. So the three ship **on** and are simply
-inert on a stock Weasel or Squirrel, whatever the configuration says.
-`spellless/reclaim_space`, `spellless/absorb_fragment` and
-`spellless/word_backspace` turn them off again if you would rather.
+once, and no stock build ever does. So none of the four can do anything at all
+on a stock Weasel or Squirrel, whatever the configuration says, which is what
+lets any of them ship on.
+
+Two do: `reclaim_space`, and `ascii_fragment` — a caret sitting flush against a
+word or a digit means plain typing until the next space, which is how `4D`,
+`p.m.` and `v1.2` get typed without a candidate list appearing for them.
+`absorb_fragment` and `word_backspace` ship off. Each is a `spellless/<name>`
+key in the schema **and** a switch of the same name in the <kbd>F4</kbd> menu:
+the key is the setting, the switch overrides it for the window you are typing
+in, so you can find out whether you want one without editing a file.
 
 ---
 
