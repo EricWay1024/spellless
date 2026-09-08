@@ -66,6 +66,28 @@ H.eq(#edited:words(), 2, "both words")
 
 os.remove(path)
 
+H.suite("userdb: words you have said you never write")
+do
+  local path = os.tmpname()
+  UserDB.forget(path)
+  local db = UserDB.load(path)
+  H.ok(not db:has_suppressions(), "nothing suppressed to begin with")
+  H.ok(db:suppress("Hae"), "suppressing is a change")
+  H.ok(not db:suppress("hae"), "and is recorded case-blind, so twice is once")
+  H.ok(db:is_suppressed("hae") and db:has_suppressions(), "the word is on the list")
+  db:flush()
+
+  local blob = assert(io.open(path)):read("a")
+  H.ok(blob:find("\n%- hae\n"), "written as a line a person can read and edit")
+  UserDB.forget(path)
+  H.ok(UserDB.load(path):is_suppressed("hae"), "and read back again")
+
+  H.ok(db:release("hae"), "releasing is a change")
+  H.ok(not db:release("hae"), "and only the first time")
+  H.ok(not db:is_suppressed("hae"), "the word is offered again")
+  os.remove(path)
+end
+
 H.suite("userdb: what you chose, for what you typed")
 do
   local path = os.tmpname()

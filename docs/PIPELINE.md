@@ -2344,6 +2344,47 @@ The version query is excluded because taking one of its lines by its number is
 how you *read* it, and without the guard the store fills up with
 `> zzver  app code.exe, document readable, edits allowed`.
 
+### E.1a Words you never write
+
+```
+Engine:forget(text):                                     // engine.lua
+    gone ← user:forget_word(lower(text))                 // your own entry, as before
+    for typed in user.choices: gone |= forget_choice(typed, text)
+    if not gone and corpus:lookup(word):                 // nothing of yours to forget
+        gone ← user:suppress(word)                       // "- word" in the store
+Engine:learn(text):  user:release(word)   // committing it says you do write it
+
+// in Engine:suggest, before ranking
+if user:has_suppressions():
+    items ← [ i for i in items if not user:is_suppressed(i.word) ]
+```
+
+The dictionary is measured English and is right about English. It is not right
+about *you*. `hae` is Scots for "have" and is in there because English corpora
+contain it, so typing `hae` puts it in front of `have` for ever — you typed it
+exactly, and §C.1 says that is the strongest evidence the matcher has.
+
+Nothing in the ranking can fix that, and it is worth being precise about why. A
+sweep of the dictionary finds 2,358 short low-frequency words with a far
+commoner rival directly behind them: `aback` behind `back`, `abut` behind `but`,
+`agog` behind `ago`, `ail` behind `all`. Every one of those must keep winning
+when it is typed. Which of the pair a given word is depends entirely on who is
+typing, so it is answered by the person typing, one keystroke at a time, and
+Control+Shift+D — which on a dictionary word used to do nothing at all and log
+that it had — is where the answer goes.
+
+Filtered before ranking rather than after, so that `leader`, which decides
+whether the list is trustworthy at all (§C.7), is the leader of what will
+actually be shown. The literal is placed later and is untouched: constraint (L)
+holds for a suppressed word exactly as it does for `kubectl`, so nothing here can
+make a string untypeable, and committing it again lifts the suppression.
+
+It is not the only answer to `hae`, and not always the best one: picking `have`
+by number twice records `> hae have 2` and promotes it (§E.2), which is the more
+precise instrument when what you want is a *reading* rather than the removal of a
+word. Suppressing takes `hae` out of every reading of every input; confirming
+fixes one input. Both are one keystroke and they compose.
+
 ### E.2 How the store is read back
 
 ```

@@ -596,6 +596,21 @@ function Engine:suggest(raw, limit, opts)
           or corpus:lookup(w:sub(1, -3)) ~= nil
     end,
   }
+  -- Words you have said you never write, taken out before anything is ranked
+  -- so that `leader` -- which decides whether the list is trustworthy at all
+  -- -- is the leader of what you will actually be shown.
+  --
+  -- The literal is placed later and is untouched: "commit what I typed" holds
+  -- for a suppressed word exactly as it does for `kubectl`, so nothing here
+  -- can make a string untypeable.  Committing it again lifts the suppression,
+  -- which is the same undo `learn` already has for a spelling.
+  if self.user:has_suppressions() then
+    local kept = {}
+    for i = 1, #items do
+      if not self.user:is_suppressed(items[i].word) then kept[#kept + 1] = items[i] end
+    end
+    items = kept
+  end
   local ranked = rank.rank(items, search, cfg, ctx)
 
   -- Two dictionary entries can commit the same text -- "tmrw" and "tomorrow"
@@ -949,12 +964,27 @@ function Engine:forget(text)
   if not text then return false end
   text = text:match("^%s*(.-)%s*$")
   if text == "" then return false end
-  local gone = self.user:forget_word(text:lower())
+  local word = text:lower()
+  local gone = self.user:forget_word(word)
   -- And every correction that produced it.  Forgetting the word but keeping
   -- "this is what you meant by cli" would leave it leading the list for ever,
   -- which is exactly what the key is for undoing.
   for typed in pairs(self.user.choices) do
     if self.user:forget_choice(typed, text) then gone = true end
+  end
+  -- Nothing personal to forget, and the word is the dictionary's own: then
+  -- the key means the other thing it could mean.  `hae` is Scots for `have`
+  -- and is in the dictionary because English corpora contain it; it is not in
+  -- yours, and typing "hae" will otherwise put it in front of `have` for ever,
+  -- because you typed it exactly and that is the strongest evidence there is.
+  --
+  -- Not something the ranking can fix.  `aback`, `abut`, `agog` and a couple
+  -- of thousand others sit in exactly the same place -- a rare word with a
+  -- much commoner near neighbour -- and every one of them must keep winning
+  -- when it is typed.  Which of the two a given word is depends on who is
+  -- typing, so it is answered by the person typing, one keystroke at a time.
+  if not gone and self.corpus:lookup(word) then
+    gone = self.user:suppress(word)
   end
   if gone then
     self.user:flush()
@@ -1021,6 +1051,10 @@ function Engine:learn(text)
     -- store got wrong, so "how you write it" stays honest.
     surface = false
   end
+
+  -- Committing it is the plainest possible statement that you do write it,
+  -- and the undo for a key pressed on the wrong candidate.
+  self.user:release(word)
 
   local cfg, now = self.cfg, self.now_ms()
   local dirty = self.user:record(word, surface)

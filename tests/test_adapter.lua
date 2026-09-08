@@ -553,6 +553,22 @@ do
   land_on("I think so ")
   H.ok(not ctxA:get_option("ascii_mode"), "a space behind means nothing to hand over")
 
+  -- A digit counts, and it is the case that shows why the *boundary* is the
+  -- right thing to look at.  "4" is never composed -- digits go straight into
+  -- the document -- so "4D" would otherwise start a fresh composition for "D"
+  -- and offer a page of English words for a token that was never English.
+  land_on("about 4")
+  H.ok(ctxA:get_option("ascii_mode"), "a digit hard against the caret hands over too")
+  land_on("about 4 ")
+  H.ok(not ctxA:get_option("ascii_mode"), "and a space after it does not")
+  -- Absorbing cannot answer this one: a digit is not part of a word the
+  -- speller could be composing, so it stays letters-only.
+  cfg.ascii_fragment = false
+  land_on("about 4")
+  H.eq(ctxA.input, "", "absorbing leaves a digit where it is")
+  H.ok(not ctxA:get_option("ascii_mode"), "and hands nothing over")
+  cfg.ascii_fragment = true
+
   -- Handing over deletes nothing, so it needs no permission to edit the
   -- document -- which is the one thing it can do that absorbing cannot.
   ctxA:set_option("commit_only", true)

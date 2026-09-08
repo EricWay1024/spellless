@@ -653,6 +653,56 @@ do
   os.remove(path)
 end
 
+H.suite("engine: a dictionary word you never write can be told so")
+-- The dictionary is measured English and is right about English.  It is not
+-- right about you: `hae` is Scots for "have" and is in there because English
+-- corpora contain it, so typing "hae" puts it in front of `have` for ever --
+-- you typed it exactly, which is the strongest evidence the matcher has.
+--
+-- No ranking fixes that.  `aback`, `abut` and `agog` are in exactly the same
+-- position -- a rare word with a much commoner near neighbour -- and every one
+-- of them must keep winning when it is typed.  Which of the two a given word
+-- is depends on who is typing.
+do
+  local path = os.tmpname()
+  require("spellless.userdb").forget(path)
+  local e = assert(Engine.new{ data_dir = DATA, personal_path = path })
+  local function list(q)
+    local out, texts = e:suggest(q, 8), {}
+    for i = 1, #out do texts[i] = out[i].text:gsub("%s+$", "") end
+    return table.concat(texts, " ")
+  end
+
+  H.ok(list("hae"):find("^hae "), "a word typed exactly leads: " .. list("hae"))
+  H.ok(e:forget("hae"), "and Control+Shift+D on it is not a no-op any more")
+  H.ok(not list("hae"):find("^hae "), "so it stops leading: " .. list("hae"))
+  H.ok(list("hae"):find("hae", 1, true),
+       "but the literal is untouched -- what you typed is always committable")
+
+  -- Gone from every reading of it, not just from its own spelling.
+  H.ok(not list("haev"):find("hae ", 1, true), "and gone as a correction too: " .. list("haev"))
+
+  -- It survives a restart, and committing it takes it back.
+  e:flush()
+  require("spellless.userdb").forget(path)
+  local back = assert(Engine.new{ data_dir = DATA, personal_path = path })
+  H.ok(not back:suggest("hae", 8)[1].text:find("^hae"), "the list survives a restart")
+  back:learn("hae")
+  H.ok(back:suggest("hae", 8)[1].text:find("^hae"),
+       "and committing the word is how you take it back")
+
+  -- A word that *is* in the personal store is forgotten as before: the key
+  -- means one thing, and which half of it applies is not a decision anyone has
+  -- to make.
+  back:learn("qwertyish")
+  H.ok(back.user:count("qwertyish") > 0, "a learned word is in the store")
+  H.ok(back:forget("qwertyish"), "and the same key removes it")
+  H.ok(back.user:count("qwertyish") == 0, "from the store rather than into the list")
+  H.ok(not back.user:is_suppressed("qwertyish"),
+       "which is not the same as swearing never to write it")
+  os.remove(path)
+end
+
 H.suite("engine: when both readings are confirmed, the one you typed leads")
 -- The failure this is about: "were" for `we're`, "its" for `it\'s`, "windows"
 -- for `window`.  Both readings get confirmed, the counts then run neck and

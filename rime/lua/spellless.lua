@@ -578,7 +578,10 @@ local function suggest(engine, input, behind)
   local key = tostring(behind.sentence_start) .. tostring(behind.literal_first)
       .. tostring(behind.client_app) .. tostring(behind.force_style)
       .. tostring(behind.prefer_bare) .. tostring(behind.after_digit)
-      .. tostring(behind.ascii_fragment)
+      -- Only set for the version query, whose answer describes the switches
+      -- and so goes stale when one is flipped.
+      .. (behind.features and tostring(behind.features.absorb_fragment)
+          .. tostring(behind.features.ascii_fragment) or "")
   if cache.engine == engine and cache.input == input and cache.key == key
      and cache.stamp == engine.user.dirty_stamp then
     return cache.result
@@ -764,8 +767,6 @@ function M.absorb.func(key, env)
   -- this situation.
   local document = document_tail(context)
   if not document then return kNoop end
-  local fragment = document:match("([%a][%a']*)$")
-  if not fragment then return kNoop end
 
   -- The other answer: do not take the word anywhere, just stop being an input
   -- method until it is finished.
@@ -788,12 +789,28 @@ function M.absorb.func(key, env)
   -- just set.  Rejecting means librime does the default processing and the
   -- letter reaches the application as itself, which is the same trick the
   -- snippet triggers use.
-  if handover_ascii then
+  --
+  -- A digit counts, and it is the case that shows why the boundary is the
+  -- right thing to look at rather than the word.  "4" is not composed at all
+  -- -- digits go straight into the document -- so typing "4D" starts a fresh
+  -- composition for "D" and offers a page of English words beginning with D,
+  -- for a token that was never going to be English.  `after_digit` already
+  -- knows this and puts the literal first; a list nobody wants is still a list
+  -- nobody wants.  Absorbing has nothing to say here, since a digit cannot go
+  -- into an alphabetic composition, which is why this is the branch that can
+  -- answer it at all.
+  if handover_ascii and document:match("[%w][%w']*$") then
     context:set_option("ascii_mode", true)
     context:set_property(ASCII_WORD, "1")
     context:set_property(SENTENCE, "")
     return kRejected
   end
+  if handover_ascii then return kNoop end
+
+  -- Only letters can be absorbed: a digit is not part of a word the speller
+  -- could be composing.
+  local fragment = document:match("([%a][%a']*)$")
+  if not fragment then return kNoop end
 
   -- Take it out of the document and put it in the composition.  kNoop, so the
   -- speller then appends the letter that started all this.

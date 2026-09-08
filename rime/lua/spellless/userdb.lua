@@ -10,6 +10,8 @@
 -- Format, one entry per line:
 --     word <TAB> count
 --     word <TAB> surface form <TAB> count
+--     > typed <TAB> what you chose <TAB> count
+--     - word                              (never offer me this one)
 --
 -- The middle column remembers how you actually wrote it, so committing
 -- "Grothendieck" once means "grthndck" gives it back capitalised rather than
@@ -51,6 +53,13 @@ function UserDB.load(path, cfg)
     -- by the committed text, so one input can have several readings and the
     -- count says which you meant.
     choices = {},
+    -- Dictionary words you have said you never write.  The dictionary is
+    -- measured English and is right about English; it is not right about you,
+    -- and `hae`, `ait`, `ald` and a few thousand others are only ever going to
+    -- be your typing of `have`, `it` and `and`.  There is no scoring answer to
+    -- that -- `aback` and `abut` sit in exactly the same place and must keep
+    -- winning -- so it is a list, and you write it one keystroke at a time.
+    suppressed = {},
     order = {},
     dirty = 0,
     -- Bumped on every change so callers can invalidate caches cheaply.
@@ -60,7 +69,12 @@ function UserDB.load(path, cfg)
   local blob = path and path ~= "" and util.slurp(path) or nil
   if blob then
     for line in blob:gmatch("[^\r\n]+") do
-      if line:sub(1, 1) == ">" then
+      if line:sub(1, 1) == "-" then
+        -- "- word".  No word begins with a hyphen, so this cannot collide with
+        -- a vocabulary line any more than ">" can.
+        local word = line:match("^%-%s*([%a][%a'%-]*)%s*$")
+        if word then self.suppressed[word:lower()] = true end
+      elseif line:sub(1, 1) == ">" then
         -- "> typed <TAB> chosen <TAB> count".  A leading ">" cannot begin a
         -- word, so the two kinds of line can share a file without a guess.
         local typed, chosen, count =
@@ -120,6 +134,37 @@ function UserDB:record_choice(typed, chosen)
   self:set_choice(typed, chosen, n)
   self.dirty = self.dirty + 1
   return n
+end
+
+--- Never offer this word again.  Returns true if that is a change.
+function UserDB:suppress(word)
+  word = word:lower()
+  if self.suppressed[word] then return false end
+  self.suppressed[word] = true
+  self.dirty = self.dirty + 1
+  self.dirty_stamp = self.dirty_stamp + 1
+  return true
+end
+
+--- Offer it again.  Returns true if that is a change.
+function UserDB:release(word)
+  word = word:lower()
+  if not self.suppressed[word] then return false end
+  self.suppressed[word] = nil
+  self.dirty = self.dirty + 1
+  self.dirty_stamp = self.dirty_stamp + 1
+  return true
+end
+
+function UserDB:is_suppressed(word)
+  return self.suppressed[word] == true
+end
+
+--- Is there anything to filter at all?  Asked once per query so that a store
+--- with an empty list -- which is every store until somebody presses the key
+--- -- costs one table lookup and no pass over the candidates.
+function UserDB:has_suppressions()
+  return next(self.suppressed) ~= nil
 end
 
 --- What you have chosen for this input before, commonest first.
@@ -233,9 +278,14 @@ function UserDB:flush()
   fh:write("#   word <TAB> times selected\n")
   fh:write("#   word <TAB> how you write it <TAB> times selected\n")
   fh:write("#   > typed <TAB> what you chose <TAB> times\n")
+  fh:write("#   - word                       (never offer me this one)\n")
   fh:write("# Edit freely; unknown words listed here become candidates.\n")
-  -- Corrections first: they are the interesting half of the file, and the
-  -- word list below can be thousands of lines.
+  -- Suppressions and corrections first: they are the interesting half of the
+  -- file, and the word list below can be thousands of lines.
+  local never = {}
+  for word in pairs(self.suppressed) do never[#never + 1] = word end
+  table.sort(never)
+  for _, word in ipairs(never) do fh:write("- ", word, "\n") end
   local typed_keys = {}
   for typed in pairs(self.choices) do typed_keys[#typed_keys + 1] = typed end
   table.sort(typed_keys)

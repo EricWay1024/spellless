@@ -186,8 +186,11 @@ spellless:
   # Learn from what you select, into <rime user dir>/spellless_user.txt.
   # Control+Shift+D (or Shift+Delete) forgets the highlighted candidate again
   # -- or, with nothing composing, the word just committed -- so a typo learned by accident does
-  # not lead the list for ever.  It only removes your own entry; a real English
-  # word stays in the dictionary.
+  # not lead the list for ever.  On a word that was never yours but the
+  # dictionary's, it means the other thing it could mean: never offer me this
+  # one.  `hae` is Scots for "have" and is in the dictionary because English
+  # corpora contain it; it is not in yours.  Written as a "- word" line in the
+  # same file, and committing the word again takes it back.
   learn: true
   # Set to true to see the source and score of every candidate.
   show_debug_comments: false
@@ -255,7 +258,8 @@ key_binder:
   # Two more shortcuts are not bound here but handled by
   # lua_processor@*spellless*processor, which needs to commit before it acts:
   #   Control+Shift+A  leave Spellless mid-word, committing what you typed
-  #   Control+Shift+D  forget the highlighted candidate (see `learn` below)
+  #   Control+Shift+D  forget the highlighted candidate, or -- for a word that
+  #                    is the dictionary's rather than yours -- never offer it
   #   Shift+Delete     the same thing, and Control+Delete too -- Rime's own
   #                    convention, for when an application eats the first one
 
