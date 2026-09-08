@@ -4,8 +4,8 @@ Symptoms, most common first. [INSTALL.md](INSTALL.md) is how to install it;
 [DEPLOYING.md](DEPLOYING.md) is the same ground from the build side, for
 anyone working on Spellless itself.
 
-**Start here.** Type `zzver` in any text box. If it prints five lines, the
-schema is running and you know which build:
+**Start here.** Type `zzver` in any text box. If five lines come back,
+Spellless is running and you know which version:
 
 ```
 zzver  →  spellless 0.1.5 installed 2026-09-07 01:12
@@ -15,76 +15,76 @@ zzver  →  spellless 0.1.5 installed 2026-09-07 01:12
           app com.apple.Notes, document readable, edits allowed
 ```
 
-If it prints nothing, Spellless is not the schema serving your keystrokes —
-which is the first three answers below. If it prints an older build than the
-one you just installed, you are testing something else; see *changes have no
-effect*.
+If nothing comes back, Spellless is not what is serving your keystrokes — which
+is the first two answers below. If the version is older than the one you just
+installed, you are testing something else; see *changes have no effect*.
 
 ---
 
-## Spellless is not in the <kbd>F4</kbd> menu
+## Spellless is not in the list when I press <kbd>F4</kbd>
 
-The schema was installed but not enabled, or the frontend has not read it yet.
+The files are installed, but Rime has not been told to offer them, or has not
+looked since.
 
-1. **Redeploy.** The Weasel tray icon → **Deploy** (「重新部署」), the Squirrel
-   menu-bar icon → **Deploy**, `ibus restart`, or `fcitx5-remote -r`. Copying
-   files updates the disk; only a redeploy makes the running process read them.
-2. **Check it is enabled.** `default.custom.yaml` in your Rime user directory
-   should contain a `"schema_list/+"` entry naming `spellless`. If the
-   installer found an existing `schema_list` patch it will have printed what to
-   add rather than guessing.
-3. **Check it installed where the frontend looks.** `python3
-   scripts/install.py --list-candidates` prints every directory it considered
-   and why.
+1. **Deploy.** Right-click the tray icon → **Deploy** (「重新部署」) on
+   Windows, the menu-bar icon → **Deploy** on macOS, `ibus restart` or
+   `fcitx5-remote -r` on Linux. Copying files updates the disk; only a Deploy
+   makes the running program read them.
+2. **Check it was switched on.** `default.custom.yaml`, in Rime's settings
+   folder, should have an entry naming `spellless`. If the installer found one
+   there already it will have printed what to add by hand rather than guessing.
+3. **Check it went where Rime is looking.** `python3 scripts/install.py
+   --list-candidates` prints every folder it considered, and why.
 
-## `zzver` prints nothing, and no candidates ever appear
+## `zzver` prints nothing, and no words are ever offered
 
-The schema is selected but produces nothing at all, which is what a Lua error
-at load looks like from the outside.
+Spellless is selected but produces nothing at all — which is what a crash while
+loading looks like from the outside.
 
-* **On Linux, check librime-lua.** The distribution builds librime itself and
-  packages the Lua plugin separately. `fcitx5-rime` and `ibus-rime` normally
-  pull it in; if yours did not, nothing in Spellless can run. This is the first
-  thing to check on Linux and never the problem on Windows or macOS, where the
-  official builds bundle it.
-* **Read the log.** `<rime user dir>/rime.log`, or the newest `rime.*.log`
-  beside it — on Windows usually `%APPDATA%\Rime\rime.log`. Grep for
-  `spellless`. A Lua error names the file and the line.
-* **A stale or half-copied `generated/`.** Reinstall; the installer refuses to
-  copy a build whose parts disagree, and the loader refuses to load half of one.
+* **On Linux, check the Lua plug-in.** Spellless is written in Lua, and on
+  Linux the plug-in that lets Rime run Lua is packaged separately from Rime
+  itself. `ibus-rime` and `fcitx5-rime` normally pull it in; if yours did not,
+  nothing in Spellless can run. This is never the problem on Windows or macOS,
+  where the official builds always include it.
+* **Read the log.** `rime.log`, or the newest `rime.*.log` beside it, in Rime's
+  settings folder — on Windows usually `%APPDATA%\Rime\rime.log`. Search it for
+  `spellless`. An error names the file and the line.
+* **A half-copied install.** Run the installer again; it refuses to copy a
+  half-built dictionary, and Rime refuses to load one.
 
 ## Changes have no effect
 
-You deployed, and the behaviour is the old behaviour. Compare the revision
-`zzver` reports against the one you installed. If they differ:
+You installed, you deployed, and the behaviour is the old behaviour. Compare
+the version `zzver` reports against the one you installed. If they differ:
 
-* **The redeploy did not run**, or ran for a different frontend.
-* **On Windows there may be two frontends.** Stock Weasel keeps its user
-  directory at `%APPDATA%\Rime`; the Spellless fork keeps its own at
-  `%APPDATA%\Spellless`, and each needs its own redeploy. `install.py` writes
-  into every directory it finds precisely so the two cannot drift apart, and
-  prints them. This has cost a working session before now.
+* **The Deploy did not run**, or ran for a different copy of Rime.
+* **On Windows there may be two.** The standard Weasel keeps its settings in
+  `%APPDATA%\Rime`; our build keeps its own in `%APPDATA%\Spellless`, and each
+  needs its own Deploy. The installer writes into every folder it finds
+  precisely so the two cannot drift apart, and prints them. This has cost a
+  working session before now.
 
-**Do not delete `build/`** to force a rebuild. While that directory is missing,
-Rime falls back to the schema list the frontend ships with and asks you to pick
-a schema on every deploy. `install.py` marks the build stale instead.
+**Do not delete the `build/` folder** to force a rebuild. While it is missing,
+Rime falls back to the list it shipped with and asks you to choose an input
+style on every Deploy. The installer marks that folder stale instead.
 
 ## A space in front of the punctuation — `you . `
 
-You committed the word first (with the space bar or a number key) and typed the
+You finished the word first (with the space bar or a number key) and typed the
 punctuation afterwards, so the word's trailing space was already in the
-document. On the Spellless frontends punctuation takes that space back. On a
-stock Weasel, Squirrel or Linux frontend it cannot, and the fix is
-`leading_space` — [INSTALL.md step 4](INSTALL.md#step-4--stock-rime-only-turn-on-leading_space).
+document. Our build of Rime takes that space back. The standard build cannot,
+and the fix is one setting —
+[`leading_space`](INSTALL.md#leading_space-and-what-it-trades).
 
-Typing the punctuation while the word is still being composed — the normal way
-— is right either way.
+Typing the punctuation while the word is still underlined — the normal way —
+is right either way.
 
 ## A stray space or capital somewhere else
 
-On a stock frontend, spacing and capitals are inferred from what the input
-method committed rather than from the document, so a mouse click that moved the
-caret is invisible. Backspace re-syncs it. Either can be turned off:
+On the standard Rime, Spellless can see what it typed but not the document it
+typed into, so it infers where it is — and a click that moves the cursor is
+invisible to it. Backspace re-syncs it. Either can be turned off, in
+`spellless.custom.yaml`:
 
 ```yaml
 patch:
@@ -92,54 +92,54 @@ patch:
   spellless/auto_capitalize: false
 ```
 
-## Punctuation, the caret, and word-backspace do nothing
+## The four extra features do nothing
 
-Those four features need a frontend that can see and edit the document, and the
-schema asks nothing of a frontend that has not shown it can answer. Line five of
-`zzver` says whether *this* application is allowed them; line four says whether
-they are switched on at all. Confusing the two has cost an evening.
+Punctuation tidying up its space, typing in the middle of a word, picking a
+re-typed word up, and word-backspace all need Rime to be able to read and edit
+the text around your cursor — and Spellless asks for none of it until Rime has
+shown it can answer. Line five of `zzver` says whether *this* program is
+allowed them; line four says whether they are switched on at all. Confusing the
+two has cost an evening.
 
-* **On a stock Weasel or Squirrel** they are inert by design, whatever the
-  configuration says. [INSTALL.md step 1](INSTALL.md#step-1--choose-your-frontend)
-  has the frontends that carry them.
-* **In VS Code and a few others** they are refused deliberately, because the
-  editor and its integrated terminal are the same executable and the terminal
-  cannot survive the edit. Press <kbd>F4</kbd> and turn on **edits document**
-  while writing prose in one; it resets when you next deploy.
-* **In a terminal** they will not work anywhere. A terminal has already
-  forwarded what it was given.
-* **On Linux** it is the *client* that has to offer surrounding text. GTK and
-  Qt do, much of Chromium does not. Where a client will not answer you get
-  stock behaviour, silently.
+* **On the standard Weasel or Squirrel** they do nothing by design, whatever
+  the settings say. [INSTALL.md](INSTALL.md#install-our-build-of-rime) has our
+  builds, and why they are the recommended way in.
+* **In VS Code and a few others** they are refused deliberately: the editor and
+  its built-in terminal are the same program, and the terminal cannot survive
+  the edit. Press <kbd>F4</kbd> and turn on **edits document** while writing
+  prose in one; it resets at the next Deploy.
+* **In a terminal** they will not work anywhere. A terminal has already passed
+  on what it was given.
+* **On Linux** it is the *program you are typing into* that has to answer. GTK
+  and Qt programs do, much of Chromium does not.
 
 ## A word I never type keeps winning
 
-Some short, rare words are in the dictionary because English corpora contain
-them, and typing one exactly is the strongest evidence the matcher has — `hae`
-will beat `have` for ever if you let it.
+Some short, rare words are in the dictionary because English books contain
+them, and typing one exactly is the strongest evidence there is — `hae` will
+beat `have` for ever if you let it.
 
 Highlight it and press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd>. On a word
-of your own that forgets it; on one of the dictionary's it means *never offer me
-this one*, stored as a `- word` line in `spellless_user.txt`. The literal is
-untouched, so nothing becomes untypeable, and committing the word again takes it
-back.
+of your own that forgets it; on one from the dictionary it means *never offer
+me this one*, stored as a `- word` line in `spellless_user.txt`. What you
+literally typed is untouched, so nothing becomes untypeable, and typing the
+word again takes it back.
 
 ## Edits to `spellless_user.txt` disappear
 
-The running server owns that file and flushes its in-memory copy back over your
-edit. Stop the frontend, edit, then start it again.
-`spellless_shortcuts.txt` and `spellless_snippets.txt` are only ever read, so
-those just need a redeploy.
+Rime owns that file while it is running, and writes its own copy back over your
+edit. Quit it, edit, start it again. `spellless_shortcuts.txt` and
+`spellless_snippets.txt` are only ever read, so those just need a Deploy.
 
 ## Still wrong
 
-Turn on the candidate comments, which say where each candidate came from and
-what it scored:
+Turn on the notes beside each word, which say where it came from and what it
+scored:
 
 ```yaml
 patch:
   spellless/show_debug_comments: true
 ```
 
-That plus the `zzver` output and the `rime.log` lines mentioning `spellless` is
-what an [issue](https://github.com/EricWay1024/spellless/issues) needs.
+That, the `zzver` output, and the lines mentioning `spellless` in `rime.log`
+are what an [issue](https://github.com/EricWay1024/spellless/issues) needs.

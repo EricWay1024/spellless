@@ -76,10 +76,11 @@ it works.
 | Eight importable packs | algebra, topology, software, philosophy, culture, europe, china, britain |
 | Your own list | plain text, hand-editable, never overwritten by an upgrade |
 
-Four of the rows above — punctuation taking its space back, the caret inside a
-word, picking a word up out of the line, and word-backspace — need a frontend
-that can edit the document. [INSTALL.md](INSTALL.md#step-1--choose-your-frontend)
-says which frontends those are.
+Four of the rows above — punctuation taking its space back, typing in the
+middle of a word, picking a word up out of the line, and word-backspace — need
+Rime to be able to edit the text around your cursor, which only our own build
+of it does. [INSTALL.md](INSTALL.md#install-our-build-of-rime) says why that is
+the recommended way in.
 
 ---
 
@@ -163,12 +164,12 @@ default, or first when nothing plausible was found — so pressing space on
 | <kbd>Space</kbd> | commit the highlighted candidate — twice, if it is a word the dictionary does not have |
 | <kbd>Enter</kbd> | **commit exactly what you typed**, at once, with the automatic space after it |
 | <kbd>↑</kbd> / <kbd>↓</kbd> | move the highlight — <kbd>Enter</kbd> then commits *that* candidate |
-| <kbd>Esc</kbd> | cancel the composition |
+| <kbd>Esc</kbd> | throw the half-typed word away |
 | <kbd>PgUp</kbd> / <kbd>PgDn</kbd> | page through candidates |
 | <kbd>Shift</kbd> (tapped on its own) | leave Spellless and type straight through; tap again to come back |
 | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> | the same, deliberately — also commits the word first |
 | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> or <kbd>Shift</kbd>+<kbd>Del</kbd> | forget the highlighted candidate |
-| <kbd>F4</kbd> | schema menu |
+| <kbd>F4</kbd> | Rime's own menu: switch input style, and the four switches below |
 
 Punctuation keys are punctuation: `,` `.` `-` `=` type themselves, where Rime's
 preset would page.
@@ -186,15 +187,15 @@ unarguable-with when it is not. This is the argument:
 | `qqd` | forget the highlighted candidate, as <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> does |
 
 `qq` because no English word contains it. Arming costs nothing — the letters
-stay in the composition until a key that *is* a command arrives, so `zzxxqq`
-is still `zzxxqq`, and anything unrecognised is just text.
+stay in the word you are typing until a key that *is* a command arrives, so
+`zzxxqq` is still `zzxxqq`, and anything unrecognised is just text.
 
 **Tap Shift to get out of the way.** It switches to plain typing, and tapping
 it again switches back — the tray icon shows which mode you are in. Tapped
 mid-word it first commits exactly what you had typed, so it doubles as the
 escape hatch when a word is clearly not going to be found: `\citep{Hat02}` is a
 Shift tap away, rather than something the matcher has to be taught. It is safe
-while typing capitals, because librime only toggles on a *bare*
+while typing capitals, because Rime only switches on a *bare*
 press-and-release within 500 ms — <kbd>Shift</kbd>+<kbd>M</kbd> can never flip
 the mode.
 
@@ -209,9 +210,10 @@ window where `$5` is a price.
 
 **Editor snippets are handed back to the editor.** VS Code expands `xdm` into
 a display-maths block the moment those letters land in the document, and under
-an input method they never land — `xdm` is a composition, and whatever commits
-it adds a space. So the triggers you list in `spellless_snippets.txt` commit
-verbatim the instant they are complete, with no space and no capital, and the
+an input method they never land — `xdm` is a word still being typed, and
+whatever finishes it adds a space. So the triggers you list in
+`spellless_snippets.txt` commit verbatim the instant they are complete, with no
+space and no capital, and the
 ones that open maths hand the keyboard to plain typing as well. Every trigger
 starts with `x` because no English word does. [SNIPPETS.md](SNIPPETS.md) has
 the scheme and the two files it lives in.
@@ -220,11 +222,12 @@ the scheme and the two files it lives in.
 
 ## Your own vocabulary
 
-**Learned as you go.** Every word you commit is counted in
-`<rime user dir>/spellless_user.txt`, and words you pick often rise. A word the
-dictionary has never heard of becomes a candidate as soon as you commit it
-once: press Enter on `Grothendieck` and afterwards `grthndck` gives it back,
-capitals and all; commit `pytest` once and `pytst` finds it thereafter. *How*
+**Learned as you go.** Every word you finish is counted in
+`spellless_user.txt`, in Rime's settings folder, and words you pick often rise.
+A word the dictionary has never heard of becomes a candidate as soon as you
+have typed it once: press Enter on `Grothendieck` and afterwards `grthndck`
+gives it back, capitals and all; type `pytest` once and `pytst` finds it
+thereafter. *How*
 you write a word is stored only when the dictionary cannot already explain it,
 so a capital that came from the start of a sentence is never mistaken for a
 preference — and committing the plain lowercase form takes a stored spelling
@@ -276,7 +279,7 @@ Hausdorff
 **Abbreviations you decide on yourself** go in `spellless_shortcuts.txt`, in
 the same directory. An exact match on the left puts the text on the right at
 the top, ahead of everything the matcher inferred; the expansion is free text,
-so several words are fine. Redeploy after editing.
+so several words are fine. Deploy again after editing.
 
 ```
 bc      because
