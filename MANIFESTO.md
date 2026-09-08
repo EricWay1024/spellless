@@ -50,20 +50,20 @@ the list can still find it, glance, and pick — and the shortening is improvise
 each time. The same person types `描述` as `msh` in one line and `mshu` in the
 next, depending on how sure they feel.
 
-| | English | 全拼, as people actually type it | 小鹤双拼 |
-| --- | --- | --- | --- |
-| `描述` | `describe` (8) | `msh` (3), `mshu` (4), `miaosh` (6) | `mnuu` (4) |
-| `成功` | `successful` (10) | `cg` (2), `chg` (3) | `iggs` (4) |
-| `理解` | `understanding` (13) | `lj` (2), `lij` (3) | `lijp` (4) |
+| | English | 全拼, in full | 全拼, as people actually type it | 小鹤双拼 |
+| --- | --- | --- | --- | --- |
+| `描述` | `describe` (8) | `miaoshu` (7) | `msh` (3), `mshu` (4), `miaosh` (6) | `mnuu` (4) |
+| `成功` | `successful` (10) | `chenggong` (9) | `cg` (2), `chg` (3) | `iggs` (4) |
+| `理解` | `understanding` (13) | `lijie` (5) | `lj` (2), `lij` (3) | `lijp` (4) |
 
 The last column is Xiaohe Shuangpin, which encodes every initial and every
 final as a single letter — `zhong` is `vs`, `guo` is `go` — so any character is
 exactly two keystrokes. It is a genuine gain bought with a genuine cost: a
 mapping unrelated to how anything is spelled, learned up front, before it saves
-you anything. Most people never learn one, and they do not need to. The middle
-column is already most of the benefit and costs nothing to start.
+you anything. Most people never learn one, and they do not need to. The
+abbreviated column is already most of the benefit and costs nothing to start.
 
-**Spellless is the middle column, not the last one.** There is no scheme to
+**Spellless is the abbreviated column, not the last one.** There is no scheme to
 memorise and no official abbreviation for any word. You shorten as much as you
 feel like, differently on different days — `satfcatn`, `stfcatn` and `strtfctn`
 all reach `stratification` — and the machine ranks the candidates, shows you
