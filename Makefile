@@ -13,13 +13,18 @@ LUA    ?= lua
 
 GENERATED := generated/spellless.words generated/spellless.weights \
              generated/spellless.alpha generated/spellless.skel \
-             generated/spellless.forms
+             generated/spellless.forms generated/spellless.variants
 
-.PHONY: all dict indexes testset test bench naive tune icon install uninstall dry-run release clean
+.PHONY: all variants dict indexes testset test bench naive tune icon install uninstall dry-run release clean
 
 all: dict indexes testset
 
-dict:
+# The variant groups come from VarCon and feed the dictionary build, which
+# levels each group's frequency and fills in members the corpus is missing.
+variants:
+	$(PYTHON) scripts/build_variants.py
+
+dict: variants
 	$(PYTHON) scripts/build_dictionary.py
 
 indexes: dict

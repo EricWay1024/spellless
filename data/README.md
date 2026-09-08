@@ -68,6 +68,50 @@ highest-value data change available — see DESIGN.md § 10.
 
 ---
 
+## `sources/varcon.txt`
+
+| | |
+| --- | --- |
+| **Origin** | [VarCon](http://wordlist.aspell.net/), revision 2020.12.07, `varcon/varcon.txt` |
+| **Licence** | permissive; use, copy, modify, distribute and sell for any purpose, provided the copyright and permission notice appear. © Kevin Atkinson and Benjamin Titze, plus Ispell's © Geoff Kuenning. The file has no header of its own, so the notice is vendored as `sources/varcon-COPYRIGHT` |
+| **Upstream provenance** | compiled against Oxford, Merriam-Webster and other dictionaries; the variant half of SCOWL, the same word lists our frequency source was filtered against |
+| **Format** | clusters headed `# word (level NN)`, then one line per sense mapping tagged spellings: `A Cv DV: color / B C D: colour` |
+| **Encoding** | **Latin-1**, not UTF-8 — it carries `führer` and friends |
+| **Lines as vendored** | 32,543 |
+| **SHA-256** | `340858b990255ec409adcf7faaf2b992aa2a76a16f30b4b9e2663863191dba33` |
+
+Chosen because the distinctions this feature needs are already in it and
+cannot be recovered by rule. `program` is tagged American *and* British, so it
+is never hidden; `licence` and `practise` are tagged British on the noun and
+verb lines respectively, so they survive a British mode and vanish in an
+American one; and `analyse` inherits the Oxford tag while `realise` does not,
+which is exactly the `-yse`/`-ise` split. A regex over word endings gets all
+three wrong, and would additionally hide `colorado`.
+
+### Tags
+
+`A` American, `B` British `-ise`, `Z` British `-ize` or OED-preferred, `C`
+Canadian, `D` Australian, `_` other. A category may carry a variant indicator:
+`.` equal, `v` variant, `V` seldom used, `-` should generally not be used, `x`
+improper. Only a bare tag or `.` counts as "this is what you write".
+
+Three inheritance rules from the upstream README, which do real work here: with
+no `Z` on a line, `B` implies `Z`; with no `C`, `Z` implies `C`; with no `D`,
+`B` implies `D`. The first is why `colour` and `analyse` are Oxford spellings
+without being tagged as such.
+
+### Preprocessing
+
+`scripts/build_variants.py` reads the tags, applies those inheritance rules,
+unions words that share a line so the noun and verb senses of `program` become
+one group, and writes `generated/spellless.variants`: one group per line, the
+SCOWL level first, then each member as `word|modes-where-it-is-written`.
+Groups no member of which we could ship are dropped, as are groups whose
+members are written in exactly the same places — nothing there could ever be
+hidden.
+
+---
+
 ## `vocab/*.txt` — supplemental vocabulary
 
 Plain text, one entry per line, merged into the dictionary at build time:
@@ -242,4 +286,12 @@ is not in the dictionary.
 * Spellless code: MIT.
 * `sources/frequency_dictionary_en_82_765.txt`: MIT, © Wolf Garbe / SymSpell
   contributors.
+* `sources/varcon.txt`: three notices, all in `sources/varcon-COPYRIGHT`.
+  © 2000–2019 Kevin Atkinson and © 2016 Benjamin Titze, each permitting use,
+  copy, modify, distribute and sell for any purpose without fee provided the
+  copyright and permission notice appear in all copies and in supporting
+  documentation; and, because the original word lists come from Ispell,
+  © 1993 Geoff Kuenning under three-clause BSD terms. **`varcon.txt` carries no
+  header of its own**, so the notice is vendored beside it rather than inside
+  it, and must travel with any redistribution of this repository.
 * `vocab/math_sample.txt` and `packs/*.txt`: written for this project, MIT.
