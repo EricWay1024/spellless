@@ -481,6 +481,22 @@ M.defaults = {
   -- reason: it has to remove characters that are already in the document, and
   -- it only ever acts on text the frontend has actually read back.
   absorb_fragment   = true,
+  -- The other answer to the same situation, and the more conservative one:
+  -- instead of taking the word into the composition, stop being an input
+  -- method until the word is finished.  The letters land as letters -- no
+  -- candidates, no capital, no automatic space, nothing to undo -- and the
+  -- keyboard comes back at the first key that is not part of a word.
+  --
+  -- The case for it is that a word the caret is sitting inside has no visible
+  -- end: the frontend reads the text in front of the caret and no further, so
+  -- the matcher would be answering questions about a word it can see half of.
+  -- The case against is that you lose the matcher exactly where a long word is
+  -- most likely to be the one you cannot spell.
+  --
+  -- Wins over `absorb_fragment` where both are on, and needs no permission to
+  -- edit the document, because it edits nothing: it works in a terminal and in
+  -- every application on `commit_only_apps`, where absorbing refuses to act.
+  ascii_fragment    = false,
   -- Backspace twice in a row, with nothing composing, to delete the whole word
   -- in front of the caret rather than one more character of it -- for when a
   -- word is wrong enough to start again.  Same frontend requirement.

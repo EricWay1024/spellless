@@ -41,6 +41,14 @@ switches:
   - name: edit_document
     reset: 0
     states: [ "commit only", "edits document" ]
+  # Try `ascii_fragment` without editing a file: put the caret inside a word
+  # and this decides whether the word comes into the composition or the
+  # keyboard goes quiet until the word is finished.  No `reset`, so it is
+  # remembered between sessions -- it is a preference, not a precaution, and
+  # nothing it does can damage a document.  Turning `spellless/ascii_fragment`
+  # on below makes it the permanent answer and this switch then adds nothing.
+  - name: ascii_fragment
+    states: [ "pick the word up", "plain typing in a word" ]
 
 engine:
   processors:
@@ -151,6 +159,12 @@ spellless:
   # Start re-typing a word and pick up what is already there: delete the space
   # after "so", type "oner", and the candidates are for "sooner".
   absorb_fragment: true
+  # Or, instead of that, stop being an input method until the word is finished:
+  # the letters land as plain ASCII -- no candidates, no capital, no automatic
+  # space -- and the keyboard comes back at the first key that is not part of a
+  # word.  Wins over absorb_fragment when both are on, and works in a terminal,
+  # where absorbing will not act.
+  ascii_fragment: false
   # Backspace twice with nothing composing to delete the whole word.
   word_backspace: true
   # Offer a capital on the first word of a sentence -- after . ! ? and on a new

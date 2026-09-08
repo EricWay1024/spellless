@@ -1877,6 +1877,50 @@ second case. Nothing here can see past the caret — `SurroundingText.cpp` reads
 the text in front of it and no further — so this is the honest end of what is
 knowable, and being wrong costs one space either way.
 
+**Or the other answer: `ascii_fragment`.** Same trigger, opposite response — do
+not take the word anywhere, just stop being an input method until it is
+finished.
+
+```
+// in M.absorb.func, where the fragment has been found
+if cfg.ascii_fragment or context:get_option("ascii_fragment"):
+    ascii_mode ← true;  ASCII_WORD ← "1";  SENTENCE ← ""
+    return kRejected            // ascii_composer already ran for this key, so
+                                // the mode we just set would not be seen; being
+                                // rejected sends the letter to the application
+
+// in M.handover.func, the gear ahead of ascii_composer
+if ASCII_WORD = "1":
+    if key is not a letter, an apostrophe, or Backspace:
+        ASCII_WORD ← "";  ascii_mode ← false     // and the key is not consumed
+    return kNoop
+```
+
+The argument for absorbing is that the letters in front of the caret belong to
+the word being typed, so the composition should hold them. That is true, and it
+still asks the matcher about a word whose boundary nobody knows: the letters
+*after* the caret are invisible from here, so the trailing space, the sentence
+capital and the candidate list are all answering questions about a word only half
+of which can be seen — §D.6's `RESUMED` is one patch over one corner of that.
+Handing the keyboard over answers all of them at once by declining to answer any:
+the letters land as letters, and there is nothing to undo.
+
+What it costs is the matcher, in exactly the place a long word is most likely to
+be the one you cannot spell. Which is why this is a preference rather than a
+finding: it ships off, `ascii_fragment` in the schema makes it permanent, and the
+`ascii_fragment` switch in the F4 menu turns it on for a session so it can be
+lived with before it is decided. `zzver` reports which of the three states
+`absorb` is in, because "did my switch take" is the question that line exists to
+answer.
+
+Two things it does *not* need, both because it deletes nothing: permission to
+edit the document (so it works in a terminal, and in every application on
+`commit_only_apps`, where absorbing refuses), and a frontend that honours U+0008.
+It still needs one that can *read* the document, since the trigger is the text in
+front of the caret. And nothing watches the caret afterwards, so clicking away
+mid-word leaves the mode on until the next non-letter; a tap on Shift is the way
+out, as it is out of every other ASCII run.
+
 ### D.7 Digit selection, the `PICKED` note, and notation
 
 ```

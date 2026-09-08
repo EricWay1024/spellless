@@ -521,9 +521,89 @@ do
   ctxA.input = ""
 end
 
+
+H.suite("adapter: handing the keyboard over instead of picking the word up")
+-- The other answer to the same situation.  A word the caret is sitting inside
+-- has no visible end -- the frontend reads the text in front of the caret and
+-- no further -- so rather than ask the matcher about a word it can see half
+-- of, stop being an input method until the word is finished.
+do
+  local XK_BS, XK_Ret = 0xff08, 0xff0d
+  local cfg = env.spellless.cfg
+  local was_absorb, was_ascii = cfg.absorb_fragment, cfg.ascii_fragment
+  cfg.absorb_fragment, cfg.ascii_fragment = true, true    -- ascii wins over absorb
+
+  local function land_on(document)
+    ctxA.input = ""
+    ctxA:set_option("ascii_mode", false)
+    ctxA:set_property("spellless_ascii_word", "")
+    ctxA:set_property("surrounding_text", document)
+    local before = #mock.committed
+    local rc = spellless.absorb.func(mock.key(string.byte("o")), env)
+    return rc, #mock.committed - before
+  end
+
+  local rc, wrote = land_on("I think so")
+  H.eq(rc, 0, "the letter is rejected, so the application types it itself")
+  H.eq(wrote, 0, "nothing is committed -- the document is not touched")
+  H.eq(ctxA.input, "", "and nothing is pulled into the composition")
+  H.ok(ctxA:get_option("ascii_mode"), "the keyboard is in ASCII mode")
+
+  -- A caret that is not flush against a word is an ordinary new word.
+  land_on("I think so ")
+  H.ok(not ctxA:get_option("ascii_mode"), "a space behind means nothing to hand over")
+
+  -- Handing over deletes nothing, so it needs no permission to edit the
+  -- document -- which is the one thing it can do that absorbing cannot.
+  ctxA:set_option("commit_only", true)
+  land_on("I think so")
+  H.ok(ctxA:get_option("ascii_mode"), "and it acts even where the document is read-only")
+  ctxA:set_option("commit_only", false)
+
+  -- Giving it back.  handover runs ahead of ascii_composer, which is the only
+  -- gear that sees a key at all once the mode is on.
+  local function still_ascii_after(code)
+    land_on("I think so")
+    spellless.handover.func(mock.key(code), env)
+    return ctxA:get_option("ascii_mode")
+  end
+  H.ok(still_ascii_after(string.byte("n")), "a letter is more of the same word")
+  H.ok(still_ascii_after(XK_BS),
+       "and so is a Backspace -- correcting it must not drop you back mid-word")
+  H.ok(not still_ascii_after(0x20), "a space ends the word and the mode with it")
+  H.ok(not still_ascii_after(string.byte(".")), "so does punctuation")
+  H.ok(not still_ascii_after(XK_Ret), "and so does Return")
+
+  -- Left ASCII by some other route -- a tapped Shift, F4 -- and the run is
+  -- over however it ended.
+  land_on("I think so")
+  ctxA:set_option("ascii_mode", false)
+  spellless.handover.func(mock.key(string.byte("n")), env)
+  H.eq(ctxA:get_property("spellless_ascii_word"), "",
+       "and a mode turned off elsewhere takes the run with it")
+
+  -- And the F4 switch turns it on for a window without editing a file, which
+  -- is how it gets tried at all.
+  cfg.ascii_fragment = false
+  ctxA:set_option("ascii_fragment", false)
+  land_on("I think so")
+  H.ok(not ctxA:get_option("ascii_mode"),
+       "with the setting off and the switch off, the word is picked up instead")
+  H.eq(ctxA.input, "so", "which is what absorb_fragment does")
+  ctxA:set_option("ascii_fragment", true)
+  land_on("I think so")
+  H.ok(ctxA:get_option("ascii_mode"), "and the switch alone is enough to try it")
+  ctxA:set_option("ascii_fragment", false)
+
+  cfg.absorb_fragment, cfg.ascii_fragment = was_absorb, was_ascii
+  ctxA.input = ""
+  ctxA:set_option("ascii_mode", false)
+end
+
 env.spellless.cfg.absorb_fragment = false
 ctxA:set_property("surrounding_text", "")
 ctxA:set_property("spellless_resumed", "")
+ctxA:set_property("spellless_ascii_word", "")
 mock.history:clear()
 
 H.suite("adapter: Backspace twice deletes the whole word")
@@ -1145,6 +1225,21 @@ do
 
   H.ok(version_lines(""):find("frontend reports none", 1, true),
        "an application the frontend cannot name is said to be unnamed")
+
+  -- The F4 switch is the half a configuration file cannot show you, so the
+  -- line that answers "did my setting take" has to answer for it too.
+  -- A fresh application name each time, because the answer is memoised on one
+  -- and the settings being read here are not part of that key.
+  local was_absorb = env.spellless.cfg.absorb_fragment
+  env.spellless.cfg.absorb_fragment = true
+  local absorbing = version_lines("mspaint.exe")
+  H.ok(absorbing:find("absorb on", 1, true),
+       "absorbing is reported as on: " .. absorbing)
+  ctx0:set_option("ascii_fragment", true)
+  H.ok(version_lines(""):find("absorb plain typing", 1, true),
+       "and the switch shows up there: " .. version_lines(""))
+  ctx0:set_option("ascii_fragment", false)
+  env.spellless.cfg.absorb_fragment = was_absorb
 
   -- Ordinary input must not pay for any of it.
   ctx0:set_property("client_app", "code.exe")

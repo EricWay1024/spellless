@@ -73,6 +73,9 @@ local PICKED = "spellless_picked"
 -- the translator and the gear that sets it is a processor, and they get
 -- separate `env` tables.
 local FORCED_CASE = "spellless_case"
+-- Set while the keyboard has been handed to ASCII mode for the rest of a word
+-- the caret was already sitting inside.  See `ascii_fragment`.
+local ASCII_WORD = "spellless_ascii_word"
 -- Set while the composition was started by taking a word back out of the
 -- middle of the document, where whatever followed that word -- a space, a
 -- comma -- is still sitting there.  The word then commits without the
@@ -464,6 +467,10 @@ local function read_behind(engine, context, input)
     out.client_app = context:get_property("client_app")
     out.may_edit = may_edit_document(context, engine)
     out.readable = document ~= nil
+    -- Including the F4 switch, which is the half a configuration file cannot
+    -- show you.
+    out.ascii_fragment = cfg.ascii_fragment
+        or context:get_option("ascii_fragment")
   end
   local forced = context:get_property(FORCED_CASE)
   if forced ~= "" then out.force_style = forced end
@@ -517,6 +524,7 @@ local function suggest(engine, input, behind)
   local key = tostring(behind.sentence_start) .. tostring(behind.literal_first)
       .. tostring(behind.client_app) .. tostring(behind.force_style)
       .. tostring(behind.prefer_bare) .. tostring(behind.after_digit)
+      .. tostring(behind.ascii_fragment)
   if cache.engine == engine and cache.input == input and cache.key == key
      and cache.stamp == engine.user.dirty_stamp then
     return cache.result
@@ -674,8 +682,24 @@ function M.absorb.func(key, env)
       and not (key:ctrl() or key:alt() or key:super())
   context:set_property(PICKED, picked and "1" or "")
 
-  if not engine or not engine.cfg.absorb_fragment then return kNoop end
-  if not may_edit_document(context, engine) then return kNoop end
+  -- Two answers to one situation, and the schema picks which.  `ascii_fragment`
+  -- wins where both are on: it is the more conservative of the two, and
+  -- somebody who turned it on asked for it.
+  if not engine then return kNoop end
+  -- The switch is how it gets tried: F4, flip it, type for a day.  Reading it
+  -- as an override rather than as the setting keeps the schema key meaning
+  -- what every other schema key means -- this is what happens unless you say
+  -- otherwise -- and matches `edit_document`, the other switch that turns
+  -- something on for the window you are in.
+  local handover_ascii = engine.cfg.ascii_fragment
+      or context:get_option("ascii_fragment")
+  if not (handover_ascii or engine.cfg.absorb_fragment) then return kNoop end
+  -- Absorbing *deletes* from the document and so needs a frontend that will
+  -- let it; handing the keyboard over deletes nothing, and works anywhere the
+  -- document can be read -- a terminal, an application on `commit_only_apps`.
+  if not handover_ascii and not may_edit_document(context, engine) then
+    return kNoop
+  end
   if key:ctrl() or key:alt() or key:super() then return kNoop end
   if not is_word_char(key.keycode) then return kNoop end
   if context:is_composing() then return kNoop end
@@ -687,6 +711,34 @@ function M.absorb.func(key, env)
   if not document then return kNoop end
   local fragment = document:match("([%a][%a']*)$")
   if not fragment then return kNoop end
+
+  -- The other answer: do not take the word anywhere, just stop being an input
+  -- method until it is finished.
+  --
+  -- The reasoning behind absorbing is that the letters in front of the caret
+  -- belong to the word being typed, so the composition should hold them.  That
+  -- is true, and it still asks the matcher to guess at a word whose boundary
+  -- nobody knows: the letters after the caret are invisible from here, and
+  -- every rule downstream -- the trailing space, the sentence capital, what
+  -- the candidates even are -- is answering a question about a word it can
+  -- only see half of.
+  --
+  -- So: hand the keyboard to ASCII mode and let the letters land as letters.
+  -- No candidates, no capital, no space, nothing to undo.  `handover` gives it
+  -- back at the first key that is not part of a word, which is where the word
+  -- was going to end anyway.
+  --
+  -- kRejected rather than kNoop, because ascii_composer has already run for
+  -- this key -- it sits ahead of this gear -- and would not see the mode we
+  -- just set.  Rejecting means librime does the default processing and the
+  -- letter reaches the application as itself, which is the same trick the
+  -- snippet triggers use.
+  if handover_ascii then
+    context:set_option("ascii_mode", true)
+    context:set_property(ASCII_WORD, "1")
+    context:set_property(SENTENCE, "")
+    return kRejected
+  end
 
   -- Take it out of the document and put it in the composition.  kNoop, so the
   -- speller then appends the letter that started all this.
@@ -1199,6 +1251,9 @@ function M.handover.func(key, env)
     if context:get_property(DELIMITER) ~= "" then
       context:set_property(DELIMITER, "")
     end
+    if context:get_property(ASCII_WORD) ~= "" then
+      context:set_property(ASCII_WORD, "")
+    end
 
     -- A command typed into the middle of a word.
     --
@@ -1253,6 +1308,28 @@ function M.handover.func(key, env)
         if snippet.ascii then context:set_option("ascii_mode", true) end
         return kRejected
       end
+    end
+    return kNoop
+  end
+
+  -- A word we handed over ends at the first key that is not part of a word,
+  -- and that is the whole rule: the mode was borrowed for one word and the
+  -- word is over.  The key itself is not consumed -- it goes on to be a space,
+  -- a full stop, a Return, in English again, with all the spacing and
+  -- capitalisation that implies.
+  --
+  -- Backspace is part of the word.  Correcting the thing you came here to
+  -- correct must not drop you back into the matcher half way through it, where
+  -- a composition would start from whatever letters were left.
+  --
+  -- Nothing here watches the caret, so clicking away in the middle of such a
+  -- word leaves the mode on until the next non-letter.  A tap on Shift is the
+  -- way out of that, as it is out of every other ASCII run.
+  if context:get_property(ASCII_WORD) == "1" then
+    local code = key.keycode
+    if not (is_word_char(code) or code == 0x27 or code == XK_BackSpace) then
+      context:set_property(ASCII_WORD, "")
+      context:set_option("ascii_mode", false)
     end
     return kNoop
   end
