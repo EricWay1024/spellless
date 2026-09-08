@@ -1384,22 +1384,37 @@ function M.handover.func(key, env)
     return kNoop
   end
 
-  -- A word we handed over ends at the first key that is not part of a word,
-  -- and that is the whole rule: the mode was borrowed for one word and the
-  -- word is over.  The key itself is not consumed -- it goes on to be a space,
-  -- a full stop, a Return, in English again, with all the spacing and
-  -- capitalisation that implies.
+  -- A run we borrowed the keyboard for ends at a space, and at nothing else
+  -- printable.
   --
-  -- Backspace is part of the word.  Correcting the thing you came here to
+  -- Ending it at the first non-letter was the obvious rule and it is wrong,
+  -- because the tokens this exists for are full of punctuation: `p.m.`, `4D`,
+  -- `v1.2`, `a.out`, `foo_bar`, `and/or`.  Under that rule the full stop of
+  -- `p.m.` ended the run, reached the English punctuation path and was given
+  -- the automatic space that every mark after a word gets -- so "5p.m." came
+  -- out "5p. m. ", which is the one thing plain typing was supposed to
+  -- guarantee against.
+  --
+  -- A space is the honest boundary.  Nothing here can see where the token ends
+  -- -- that is the whole reason the mode was borrowed -- so the person typing
+  -- says where, with the key they were going to press anyway.  Everything
+  -- printable before that goes in as itself, unspaced and uncapitalised, and
+  -- the space that ends the run is a real space typed into the document, after
+  -- which the next word composes and carries its own trailing space as usual.
+  --
+  -- Backspace stays inside the run: correcting the thing you came here to
   -- correct must not drop you back into the matcher half way through it, where
-  -- a composition would start from whatever letters were left.
+  -- a composition would start from whatever letters were left.  Everything
+  -- that is not printable at all -- Return, Tab, the arrow keys, Escape --
+  -- ends it, because each of them means the caret is going somewhere else.
   --
-  -- Nothing here watches the caret, so clicking away in the middle of such a
-  -- word leaves the mode on until the next non-letter.  A tap on Shift is the
-  -- way out of that, as it is out of every other ASCII run.
+  -- Nothing here watches the caret, so clicking away in the middle of a run
+  -- leaves the mode on until one of those.  A tap on Shift is the way out of
+  -- that, as it is out of every other ASCII run.
   if context:get_property(ASCII_WORD) == "1" then
     local code = key.keycode
-    if not (is_word_char(code) or code == 0x27 or code == XK_BackSpace) then
+    local inside = (code > 0x20 and code < 0x7f) or code == XK_BackSpace
+    if not inside then
       context:set_property(ASCII_WORD, "")
       context:set_option("ascii_mode", false)
     end

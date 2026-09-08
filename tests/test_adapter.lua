@@ -583,12 +583,25 @@ do
     spellless.handover.func(mock.key(code), env)
     return ctxA:get_option("ascii_mode")
   end
-  H.ok(still_ascii_after(string.byte("n")), "a letter is more of the same word")
+  H.ok(still_ascii_after(string.byte("n")), "a letter is more of the same token")
   H.ok(still_ascii_after(XK_BS),
        "and so is a Backspace -- correcting it must not drop you back mid-word")
-  H.ok(not still_ascii_after(0x20), "a space ends the word and the mode with it")
-  H.ok(not still_ascii_after(string.byte(".")), "so does punctuation")
-  H.ok(not still_ascii_after(XK_Ret), "and so does Return")
+  -- The tokens this exists for are full of punctuation.  Ending the run at the
+  -- first non-letter sent the full stop of "p.m." down the English path, which
+  -- gave it the space every mark after a word gets: "5p. m. ".
+  H.ok(still_ascii_after(string.byte(".")),
+       "and so is a full stop -- p.m., v1.2, a.out are all one token")
+  H.ok(still_ascii_after(string.byte("/")), "and a slash, and every other mark")
+  H.ok(not still_ascii_after(0x20), "a space is the boundary, and the only one")
+  H.ok(not still_ascii_after(XK_Ret), "along with anything that is not printable")
+
+  -- Which is the property that matters: inside a run the mark is written by
+  -- the application, as itself, and this input method contributes nothing --
+  -- no space, no capital, nothing to take back afterwards.
+  land_on("about 4")
+  local before = #mock.committed
+  spellless.handover.func(mock.key(string.byte(".")), env)
+  H.eq(#mock.committed, before, "nothing at all is committed for a mark inside a run")
 
   -- Left ASCII by some other route -- a tapped Shift, F4 -- and the run is
   -- over however it ended.
