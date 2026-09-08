@@ -60,7 +60,7 @@ Floer
 Vassiliev
 Turaev
 Witten
-Chern-Simons
+Chern–Simons
 Temperley–Lieb
 
 # --- objects and constructions
@@ -156,7 +156,7 @@ index
 Euler characteristic
 characteristic class
 Chern class
-Stiefel-Whitney
+Stiefel–Whitney
 Pontryagin class
 obstruction
 spectral sequence

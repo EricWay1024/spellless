@@ -94,10 +94,10 @@ Travis
 
 # --- and as phrases, which commit in one selection
 Bloom filter
-Bellman-Ford
+Bellman–Ford
 Raft consensus
 Prim's algorithm
-Ford-Fulkerson
+Ford–Fulkerson
 Shannon entropy
 Hamming distance
 
