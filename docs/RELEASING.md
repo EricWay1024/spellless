@@ -144,8 +144,9 @@ cd /d C:\Users\you\spellless-weasel
   output\install.nsi
 ```
 
-Six `no files found` warnings for the ARM binaries and the OpenCC data are
-expected on an x64-only build; every one of those lines is `/nonfatal`.
+Nine `no files found` warnings are expected on an x64-only build — six ARM
+binaries, `data\*.gram`, and two OpenCC lines — and every one of them is
+`/nonfatal`.
 
 **Check the payload before publishing**, because the failure mode is an
 installer that works and an input method that offers nothing:
@@ -155,7 +156,8 @@ cd <fork>/output && ./7z.exe l archives/spellless-0.1.0-installer.exe \
   | grep -E 'data.(lua|spellless)'
 ```
 
-That should list 17 Lua modules and six files under `data\spellless\`. If it
+That should list 18 files under `data\lua\` — the adapter and 17 modules — and
+six under `data\spellless\`. If it
 lists only `data\spellless.schema.yaml`, the `File /r "data\lua\*.*"` lines
 have gone missing again — `File "data\*.yaml"` takes the schema and nothing
 else.
