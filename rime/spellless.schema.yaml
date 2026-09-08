@@ -46,6 +46,18 @@ switches:
   # comparison.  Each starts every session at whatever `spellless/<name>` says
   # below -- that is the setting, and the only place a permanent answer is
   # written; these are for deciding what the answer should be.
+  # Which spellings to offer.  In a mode the other dialect's spellings are not
+  # offered at all -- `clr` under "British -ise" gives `colour` and never
+  # `color` -- and where the surviving spelling is too far from what you typed
+  # to be found on its own, it is substituted (`plgh` gives `plow` under
+  # American).  What you typed is still in slot 7, and the first space over a
+  # refused spelling is swallowed so the change cannot pass unnoticed.
+  #
+  # "British -ize" is Oxford spelling: -ize, but also -yse, so `analyse` and
+  # `paralyse` stay.  Ships off; `spellless/spelling_variant` is the setting.
+  - options: [ spelling_off, spelling_us, spelling_gb_ise, spelling_gb_ize ]
+    states: [ "both spellings", "American", "British -ise", "British -ize (Oxford)" ]
+    reset: 0
   - name: reclaim_space
     states: [ "keep the space before punctuation", "close it up" ]
   - name: absorb_fragment

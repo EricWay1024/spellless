@@ -389,19 +389,47 @@ local SWITCHES_SET = "spellless_switches"
 --- Rime gives each application its own.  So a flip is for the window you are
 --- in and the setting is for everywhere -- the same division `edit_document`
 --- has, and the reason a permanent answer goes in the schema.
-local function feature(context, engine, name)
+--- Which spellings to offer, as the boolean options a Rime radio switch
+--- really is: exactly one of these is set, or none of them and the answer is
+--- "both spellings".
+local SPELLING = {
+  { mode = "us",     option = "spelling_us" },
+  { mode = "gb-ise", option = "spelling_gb_ise" },
+  { mode = "gb-ize", option = "spelling_gb_ize" },
+}
+
+local function seed_switches(context, engine)
   local cfg = engine.cfg
   local mark = (cfg.reclaim_space and "1" or "0")
       .. (cfg.absorb_fragment and "1" or "0")
       .. (cfg.ascii_fragment and "1" or "0")
       .. (cfg.word_backspace and "1" or "0")
+      .. tostring(cfg.spelling_variant)
   if context:get_property(SWITCHES_SET) ~= mark then
     for _, key in ipairs(SWITCHED) do
       context:set_option(key, cfg[key] and true or false)
     end
+    for _, s in ipairs(SPELLING) do
+      context:set_option(s.option, cfg.spelling_variant == s.mode)
+    end
     context:set_property(SWITCHES_SET, mark)
   end
+end
+
+local function feature(context, engine, name)
+  seed_switches(context, engine)
   return context:get_option(name)
+end
+
+--- The spelling variant in force in this window: "off", "us", "gb-ise" or
+--- "gb-ize".  A radio group is three booleans underneath, and none of them set
+--- means the schema chose "both spellings".
+local function spelling_mode(context, engine)
+  seed_switches(context, engine)
+  for _, s in ipairs(SPELLING) do
+    if context:get_option(s.option) then return s.mode end
+  end
+  return "off"
 end
 
 --- The features that answer to an F4 switch, for the drift test.  A feature
@@ -495,6 +523,7 @@ local function read_behind(engine, context, input)
   local tail = text_behind(context)
   local document = document_tail(context)
   local out = {
+    variant_mode = spelling_mode(context, engine),
     literal_first = preceding.expects_literal(tail),
     sentence_start = false,
     -- A digit hard against the caret: what follows is notation, not a word.
@@ -578,6 +607,10 @@ local function suggest(engine, input, behind)
   local key = tostring(behind.sentence_start) .. tostring(behind.literal_first)
       .. tostring(behind.client_app) .. tostring(behind.force_style)
       .. tostring(behind.prefer_bare) .. tostring(behind.after_digit)
+      -- A flipped variant switch changes every answer, and a cache that did
+      -- not know would keep serving the other dialect until a keystroke
+      -- changed the input.
+      .. tostring(behind.variant_mode)
       -- Only set for the version query, whose answer describes the switches
       -- and so goes stale when one is flipped.
       .. (behind.features and tostring(behind.features.absorb_fragment)
@@ -1086,8 +1119,17 @@ function M.processor.func(key, env)
   if composing and engine and engine.cfg.confirm_literal and code == XK_space
      and not key:ctrl() and not key:alt() and not key:super() then
     local chosen = context:get_selected_candidate()
-    if chosen and chosen.type == "raw"
-       and context:get_property(LITERAL) ~= "1" then
+    -- Two reasons to pause on the first space.  The candidate is the raw
+    -- input, which is the original case; or a variant switch is on and what
+    -- you typed is a spelling it refuses, so the leader is the other dialect's
+    -- and committing it silently would rewrite a word you chose.
+    local ask = chosen and chosen.type == "raw"
+    if not ask then
+      local input = context.input
+      ask = engine:variant_refuses(input,
+                                   { variant_mode = spelling_mode(context, engine) })
+    end
+    if ask and context:get_property(LITERAL) ~= "1" then
       context:set_property(LITERAL, "1")
       return kAccepted
     end

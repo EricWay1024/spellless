@@ -19,6 +19,7 @@ local skeleton = require("spellless.skeleton")
 local distance = require("spellless.distance")
 local wordclass = require("spellless.wordclass")
 local util = require("spellless.util")
+local Variants = require("spellless.variants")
 
 local Engine = {}
 Engine.__index = Engine
@@ -131,6 +132,37 @@ local function apply_case(word, style)
   return word
 end
 Engine.apply_case = apply_case
+
+--- The variant groups for the mode in force, or nil when no mode is on.
+---
+--- `opts.variant_mode` is the F4 switch; `cfg.spelling_variant` is the setting
+--- it starts from.  Off is the default, and off costs one table lookup.
+function Engine:variants(opts)
+  local mode = opts and opts.variant_mode
+  if mode == nil then mode = self.cfg.spelling_variant end
+  if not mode or mode == "off" then return nil end
+  return Variants.load(self.corpus.dir, mode)
+end
+
+--- Is `raw` a spelling this mode refuses to offer?
+---
+--- The one case where hiding can corrupt a document rather than tidy it.
+--- `color` is a CSS property, `center` a LaTeX environment, `analyze` and
+--- `catalog` are function names, and a British writer types them deliberately
+--- inside code.  With the switch on the leader is `colour`, and the space bar
+--- -- which is doing double duty as "pick this" and "separate the words" --
+--- would commit it without the writer noticing.  ALGORITHM.md §1.1 calls
+--- silently converting a deliberate token the one failure that corrupts a
+--- document unseen, and slot 7 does not help: what failed is the space bar,
+--- not reachability.
+---
+--- So the adapter asks once, exactly as it does for a word the dictionary has
+--- never seen.  Return still commits immediately.
+function Engine:variant_refuses(raw, opts)
+  local v = self:variants(opts)
+  if not v or not raw or raw == "" then return false end
+  return v:hidden(raw:lower())
+end
 
 --- The text to actually show and commit for a matched word.
 ---
@@ -416,9 +448,10 @@ function Engine:describe(opts)
   local now = (opts and opts.features) or cfg
   local absorb = now.absorb_fragment and "on" or "OFF"
   if now.ascii_fragment then absorb = "plain typing" end
-  out[#out + 1] = ("reclaim %s, absorb %s, word-backspace %s"):format(
+  local spelling = (opts and opts.variant_mode) or cfg.spelling_variant or "off"
+  out[#out + 1] = ("reclaim %s, absorb %s, word-backspace %s, spelling %s"):format(
       now.reclaim_space and "on" or "OFF", absorb,
-      now.word_backspace and "on" or "OFF")
+      now.word_backspace and "on" or "OFF", spelling)
   -- What the matcher can actually see about the application it is typing into,
   -- which is not always what the configuration implies -- and when the two
   -- disagree, this line is the one that is true.
@@ -604,14 +637,58 @@ function Engine:suggest(raw, limit, opts)
   -- for a suppressed word exactly as it does for `kubectl`, so nothing here
   -- can make a string untypeable.  Committing it again lifts the suppression,
   -- which is the same undo `learn` already has for a spelling.
-  if self.user:has_suppressions() then
+  --
+  -- A spelling variant you do not write is the same thing said in bulk: with
+  -- `gb-ise` on, `color` is not a word you are choosing between, so it leaves
+  -- here rather than being demoted.  Where the surviving spelling is too far
+  -- from the input to be generated on its own -- `plough` to `plow` is 2.70
+  -- against a typo budget of 1.35 -- it is substituted in place instead, so
+  -- hiding never leaves the query with nothing.
+  local hidden = self:variants(opts)
+  if self.user:has_suppressions() or hidden then
+    local present
+    if hidden then
+      present = {}
+      for i = 1, #items do present[items[i].word] = true end
+    end
     local kept = {}
     for i = 1, #items do
-      if not self.user:is_suppressed(items[i].word) then kept[#kept + 1] = items[i] end
+      local item = items[i]
+      local drop = self.user:is_suppressed(item.word)
+      if not drop and hidden and hidden:hidden(item.word) then
+        local instead = hidden:survivor(item.word)
+        if not instead or present[instead] then
+          -- The surviving spelling is already here on its own evidence, so
+          -- this one just goes.
+          drop = true
+        else
+          -- Keep the evidence, change the answer.  The rewrite waits until
+          -- after ranking, because the score belongs to the spelling that was
+          -- actually matched: re-scoring `realize` against `rls` throws away
+          -- the skeleton hit `realise` earned and drops it ten places.
+          item.variant_to = instead
+        end
+      end
+      if not drop then kept[#kept + 1] = item end
     end
     items = kept
   end
   local ranked = rank.rank(items, search, cfg, ctx)
+
+  -- The spelling that was matched has been ranked; now say the one this mode
+  -- writes.  Group members were levelled to one frequency at build time, so
+  -- swapping the id here cannot move anything.  Guarded, because with no mode
+  -- on there is nothing to rewrite and this would be a scan of every candidate
+  -- on every keystroke for nothing.
+  if hidden then
+    for i = 1, #ranked do
+      local instead = ranked[i].variant_to
+      if instead then
+        local id = corpus:lookup(instead)
+        if id then ranked[i].word, ranked[i].id = instead, id end
+      end
+    end
+  end
 
   -- Two dictionary entries can commit the same text -- "tmrw" and "tomorrow"
   -- both show "tomorrow" -- and a list that offers the same word twice wastes

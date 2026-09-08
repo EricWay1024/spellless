@@ -539,6 +539,15 @@ M.defaults = {
   -- where a moment's attention is worth having.  Return still commits
   -- immediately, and always did.
   confirm_literal   = true,
+  -- Which spellings to offer: "off", "us", "gb-ise", or "gb-ize" (Oxford,
+  -- which keeps -ize but also keeps -yse: analyse, paralyse).  In a mode the
+  -- spellings of the other variant are not offered at all -- typing `clr`
+  -- under "gb-ise" gives `colour` and never `color` -- and where the survivor
+  -- is too far from the input to be reached on its own it is substituted.
+  --
+  -- Off by default, because a dictionary that quietly refuses a spelling is a
+  -- thing somebody should choose.  The F4 switch is how you try it.
+  spelling_variant  = "off",
   limit             = 20,   -- candidates handed to Rime
   -- Type this and the candidate list says which build is running, which words
   -- it loaded and how it is configured.  Nothing else answers that question
