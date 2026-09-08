@@ -40,14 +40,13 @@ presses of it.
 
 ## Install
 
-It runs on [Rime](https://rime.im), a free, open-source input method for all
-three systems, and **the build of Rime to install is ours** — the same program
-with four small additions: punctuation tidies up the space in front of it,
-typing in the middle of a word leaves that word alone (so `4D` and `p.m.`
-arrive as you typed them), a word you go back and re-type is picked up, and
-<kbd>Backspace</kbd> twice deletes a whole word. On Windows it installs
-*beside* the Weasel you already have; on macOS it goes in as Squirrel and takes
-its place, reading the same settings.
+For the best experience, use the Spellless builds of [Rime](https://rime.im)
+below. They add a few small integration features that stock Rime cannot
+provide.
+
+Already use Rime and want to keep it? Spellless works there too —
+[docs/INSTALL.md](docs/INSTALL.md) has all six routes in, and what each one
+trades.
 
 | | **recommended** |
 | --- | --- |
@@ -62,10 +61,7 @@ click **Deploy** in the Rime icon's menu, then press <kbd>F4</kbd> and choose
 
 Python 3.8+ runs the installer, and on Windows you do not need even that.
 
-**If you would rather keep the Rime you already have**, that works, and costs
-you only those four conveniences. [docs/INSTALL.md](docs/INSTALL.md) has all
-six routes in — three systems, our Rime or yours — as one self-contained
-section each. If something does not work,
+If something does not work,
 [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 ---
