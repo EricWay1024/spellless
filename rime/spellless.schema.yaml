@@ -41,14 +41,19 @@ switches:
   - name: edit_document
     reset: 0
     states: [ "commit only", "edits document" ]
-  # Try `ascii_fragment` without editing a file: put the caret inside a word
-  # and this decides whether the word comes into the composition or the
-  # keyboard goes quiet until the word is finished.  No `reset`, so it is
-  # remembered between sessions -- it is a preference, not a precaution, and
-  # nothing it does can damage a document.  Turning `spellless/ascii_fragment`
-  # on below makes it the permanent answer and this switch then adds nothing.
+  # The four things the input method can do to text you have already typed, so
+  # that each can be tried without editing a file and redeploying between every
+  # comparison.  Each starts every session at whatever `spellless/<name>` says
+  # below -- that is the setting, and the only place a permanent answer is
+  # written; these are for deciding what the answer should be.
+  - name: reclaim_space
+    states: [ "keep the space before punctuation", "close it up" ]
+  - name: absorb_fragment
+    states: [ "start a new word at the caret", "pick up the word at the caret" ]
   - name: ascii_fragment
-    states: [ "pick the word up", "plain typing in a word" ]
+    states: [ "match words at the caret", "plain typing inside a word" ]
+  - name: word_backspace
+    states: [ "Backspace deletes a character", "twice deletes a word" ]
 
 engine:
   processors:
@@ -157,16 +162,20 @@ spellless:
   leading_space: false
   reclaim_space: true
   # Start re-typing a word and pick up what is already there: delete the space
-  # after "so", type "oner", and the candidates are for "sooner".
-  absorb_fragment: true
+  # after "so", type "oner", and the candidates are for "sooner".  Off: it
+  # moves text you can see into a composition you did not open, and hands the
+  # matcher a word whose end it cannot see.
+  absorb_fragment: false
   # Or, instead of that, stop being an input method until the word is finished:
   # the letters land as plain ASCII -- no candidates, no capital, no automatic
   # space -- and the keyboard comes back at the first key that is not part of a
   # word.  Wins over absorb_fragment when both are on, and works in a terminal,
   # where absorbing will not act.
   ascii_fragment: false
-  # Backspace twice with nothing composing to delete the whole word.
-  word_backspace: true
+  # Backspace twice with nothing composing to delete the whole word.  Off: a
+  # key that deletes a character sometimes and a word at other times is worse
+  # than either, so it ships as the one everybody already knows.
+  word_backspace: false
   # Offer a capital on the first word of a sentence -- after . ! ? and on a new
   # line.  Only when you typed the word in lower case; an explicit capital of
   # your own is never overridden.

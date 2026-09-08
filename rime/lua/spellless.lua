@@ -357,6 +357,58 @@ local function app_listed(context, list)
   return false
 end
 
+--- The four features the F4 menu can turn on and off while you type.
+---
+--- `spellless/<name>` in the schema is the *setting*: what this feature does
+--- unless somebody says otherwise, and the only place to say it permanently.
+--- The switch of the same name is a session-long override of that setting, for
+--- deciding whether you want it at all -- which is a question about how it
+--- feels to type with, and cannot be answered by editing a file and redeploying
+--- between every comparison.
+---
+--- A Rime option is a plain boolean with no third "unset" state, so a switch
+--- cannot start anywhere but off by itself, and `reset:` in the schema would
+--- be a second place to write the default down and a second thing to drift.
+--- The options are set from the settings instead, once, the first time a
+--- context is used: the menu then opens showing what is actually true, a flip
+--- lasts as long as the context that heard it, and there is exactly one place
+--- a permanent answer is written.
+local SWITCHED = { "reclaim_space", "absorb_fragment",
+                   "ascii_fragment", "word_backspace" }
+--- Stamped on a context whose switches have been given their starting values,
+--- with the settings they were given.  A stamp rather than a flag so that the
+--- invariant is the honest one -- the switches follow the settings, unless you
+--- have flipped one since the settings last changed -- rather than "whatever
+--- happened to be read first wins".  In a running input method the settings
+--- change only when a schema is loaded, which brings a new context with it, so
+--- this costs one comparison and never fires; it is what makes the rule
+--- statable at all.
+local SWITCHES_SET = "spellless_switches"
+
+--- A switch flipped in the F4 menu belongs to the context that heard it, and
+--- Rime gives each application its own.  So a flip is for the window you are
+--- in and the setting is for everywhere -- the same division `edit_document`
+--- has, and the reason a permanent answer goes in the schema.
+local function feature(context, engine, name)
+  local cfg = engine.cfg
+  local mark = (cfg.reclaim_space and "1" or "0")
+      .. (cfg.absorb_fragment and "1" or "0")
+      .. (cfg.ascii_fragment and "1" or "0")
+      .. (cfg.word_backspace and "1" or "0")
+  if context:get_property(SWITCHES_SET) ~= mark then
+    for _, key in ipairs(SWITCHED) do
+      context:set_option(key, cfg[key] and true or false)
+    end
+    context:set_property(SWITCHES_SET, mark)
+  end
+  return context:get_option(name)
+end
+
+--- The features that answer to an F4 switch, for the drift test.  A feature
+--- the schema forgets to declare a switch for is configurable only by editing
+--- a file, and nothing else would ever say so.
+M.switched = SWITCHED
+
 --- May we ask the frontend to take text back out of the document?
 ---
 --- `reclaim_space`, `absorb_fragment` and `word_backspace` all work the same
@@ -467,10 +519,12 @@ local function read_behind(engine, context, input)
     out.client_app = context:get_property("client_app")
     out.may_edit = may_edit_document(context, engine)
     out.readable = document ~= nil
-    -- Including the F4 switch, which is the half a configuration file cannot
-    -- show you.
-    out.ascii_fragment = cfg.ascii_fragment
-        or context:get_option("ascii_fragment")
+    -- As the switches have them now, which is the half a configuration file
+    -- cannot show you.
+    out.features = {}
+    for _, key in ipairs(SWITCHED) do
+      out.features[key] = feature(context, engine, key)
+    end
   end
   local forced = context:get_property(FORCED_CASE)
   if forced ~= "" then out.force_style = forced end
@@ -691,9 +745,10 @@ function M.absorb.func(key, env)
   -- what every other schema key means -- this is what happens unless you say
   -- otherwise -- and matches `edit_document`, the other switch that turns
   -- something on for the window you are in.
-  local handover_ascii = engine.cfg.ascii_fragment
-      or context:get_option("ascii_fragment")
-  if not (handover_ascii or engine.cfg.absorb_fragment) then return kNoop end
+  local handover_ascii = feature(context, engine, "ascii_fragment")
+  if not (handover_ascii or feature(context, engine, "absorb_fragment")) then
+    return kNoop
+  end
   -- Absorbing *deletes* from the document and so needs a frontend that will
   -- let it; handing the keyboard over deletes nothing, and works anywhere the
   -- document can be read -- a terminal, an application on `commit_only_apps`.
@@ -993,7 +1048,7 @@ function M.processor.func(key, env)
   -- digit that follows says so.  Taking the space back then is the only way
   -- to get "3.14" without either guessing ahead or leading spaces.
   -- Covers "1,000", "12:30" and "Smith:2020" as well.
-  if engine and engine.cfg.auto_space and engine.cfg.reclaim_space
+  if engine and engine.cfg.auto_space and feature(context, engine, "reclaim_space")
      and not composing and code >= 0x30 and code <= 0x39
      and not key:shift() and may_edit_document(context, engine) then
     local behind = commit_tail(context.commit_history)
@@ -1072,7 +1127,7 @@ function M.processor.func(key, env)
     -- do that.  See `reclaim_space`; on stock Weasel the U+0008 would be
     -- inserted literally, which is why this is off by default.
     local reclaim = ""
-    if engine.cfg.reclaim_space and preceding.hugs_previous(mark)
+    if feature(context, engine, "reclaim_space") and preceding.hugs_previous(mark)
        and may_edit_document(context, engine) then
       local stripped = behind:match("^(.-) $")
       if stripped then reclaim, behind = "\8", stripped end
@@ -1118,7 +1173,7 @@ function M.processor.func(key, env)
       context:set_property(BACKSPACE, "1")
       -- Only with nothing composing: while a word is being typed, Backspace
       -- belongs to the composition.
-      if repeated and engine and engine.cfg.word_backspace
+      if repeated and engine and feature(context, engine, "word_backspace")
          and may_edit_document(context, engine) then
         local document = document_tail(context)
         local word = document and document:match("([%a][%a']*)$")

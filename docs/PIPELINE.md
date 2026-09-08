@@ -2108,6 +2108,30 @@ learns it explicitly, because `engine:commit_text` does not fire the notifier.
 
 ### D.10 The frontend capability latch and the U+0008 protocol
 
+**Settings and switches.** Each of the four is a `spellless/<name>` key in the
+schema *and* a switch of the same name in the F4 menu. The key is the setting —
+what happens unless somebody says otherwise, and the only place a permanent
+answer is written. The switch is somebody saying otherwise for the window they
+are in, because whether you want any of these is a question about how it feels
+to type with them, and that cannot be answered by editing a file and redeploying
+between every comparison.
+
+A Rime option is a plain boolean with no third "unset" state, so a switch cannot
+start anywhere but off by itself. `feature(context, engine, name)` sets all four
+options from their settings the first time it is asked, stamping the context with
+the settings it used; a flip therefore lasts as long as the context that heard
+it, and the rule is statable: *the switches follow the settings, unless you have
+flipped one since the settings last changed.* `reset:` in the schema would have
+been a second place to write the defaults down and a second thing to drift, and
+the drift test now also requires that every switched feature has a switch — a
+missing one fails silently, the option reading false wherever the setting said
+true.
+
+Shipped: `reclaim_space` on, the other three off. Reclaiming is invisible when it
+works and is what makes `you.` come out of `you` + `.`; the other three change
+what a key you already know does, or move text you can see, and those are
+opinions rather than corrections.
+
 Three features — `reclaim_space`, `absorb_fragment`, `word_backspace` — need the
 input method to take text back out of the document, which is further than any
 schema reaches. A companion build of the frontend adds exactly one convention:

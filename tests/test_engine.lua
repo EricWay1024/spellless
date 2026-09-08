@@ -588,11 +588,14 @@ do
   -- read", and that should cost one keystroke to find out, not an afternoon.
   local flags = table.concat(out_texts(engine:suggest("zzver", 20)), " ")
   H.ok(flags:find("reclaim on", 1, true), "the shipped defaults are on: " .. flags)
+  H.ok(flags:find("absorb OFF", 1, true) and flags:find("word-backspace OFF", 1, true),
+       "and the two that rewrite what you have typed ship off: " .. flags)
   local off = assert(Engine.new{ data_dir = DATA,
-                                 config = { reclaim_space = false, word_backspace = false } })
+                                 config = { reclaim_space = false,
+                                            word_backspace = true } })
   local flags_off = table.concat(out_texts(off:suggest("zzver", 20)), " ")
-  H.ok(flags_off:find("reclaim OFF", 1, true) and flags_off:find("absorb on", 1, true)
-       and flags_off:find("word-backspace OFF", 1, true),
+  H.ok(flags_off:find("reclaim OFF", 1, true) and flags_off:find("absorb OFF", 1, true)
+       and flags_off:find("word-backspace on", 1, true),
        "and each is reported separately: " .. flags_off)
 
   local off = assert(Engine.new{ data_dir = DATA, config = { version_query = "" } })

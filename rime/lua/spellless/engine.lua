@@ -408,14 +408,17 @@ function Engine:describe(opts)
   -- afternoon.  `edit_document` is a different question and the line below
   -- answers that one: it overrules the refusal list, it does not switch
   -- anything on.
-  -- `absorb` has three states rather than two, because the F4 switch can
-  -- replace it with the ASCII hand-over for the window you are in, and "did
-  -- the switch take" is exactly the question this line exists to answer.
-  local absorb = cfg.absorb_fragment and "on" or "OFF"
-  if opts and opts.ascii_fragment then absorb = "plain typing" end
+  -- As the F4 switches have them, when the caller could say -- which is the
+  -- half a configuration file cannot show you, and the reason this line exists:
+  -- "I turned it on and nothing happened" is nearly always "that is not what
+  -- is on".  `absorb` has three states rather than two, because the switch can
+  -- replace it with the ASCII hand-over.
+  local now = (opts and opts.features) or cfg
+  local absorb = now.absorb_fragment and "on" or "OFF"
+  if now.ascii_fragment then absorb = "plain typing" end
   out[#out + 1] = ("reclaim %s, absorb %s, word-backspace %s"):format(
-      cfg.reclaim_space and "on" or "OFF", absorb,
-      cfg.word_backspace and "on" or "OFF")
+      now.reclaim_space and "on" or "OFF", absorb,
+      now.word_backspace and "on" or "OFF")
   -- What the matcher can actually see about the application it is typing into,
   -- which is not always what the configuration implies -- and when the two
   -- disagree, this line is the one that is true.

@@ -606,6 +606,61 @@ ctxA:set_property("spellless_resumed", "")
 ctxA:set_property("spellless_ascii_word", "")
 mock.history:clear()
 
+H.suite("adapter: the settings say what happens, the F4 switches say what is happening")
+-- Whether you want any of these four is a question about how it feels to type
+-- with them, and that cannot be answered by editing a file and redeploying
+-- between every comparison.  So each is a switch as well as a setting: the
+-- setting is what happens unless somebody says otherwise, the switch is
+-- somebody saying otherwise for the window they are in.
+do
+  local cfg = env.spellless.cfg
+  local was = { reclaim_space = cfg.reclaim_space, word_backspace = cfg.word_backspace }
+  ctxA.input = ""
+  ctx0:set_property("client_app", "")
+  local function full_stop()
+    mock.history:clear(); mock.history:push("exact", "you ")
+    mock.selected = nil
+    env.engine.context.input = ""
+    return select(2, type_punct("."))
+  end
+
+  cfg.reclaim_space = true
+  H.eq(full_stop(), "\8. ", "reclaiming the space ships on")
+  env.engine.context:set_option("reclaim_space", false)
+  H.eq(full_stop(), ". ", "and the switch turns it off where you are typing")
+
+  -- The switches follow the settings, unless you have flipped one since the
+  -- settings last changed.  Changing a setting is a schema load in real life,
+  -- which brings a new context anyway; stating it this way is what makes a
+  -- flip's lifetime sayable at all.
+  cfg.reclaim_space = false
+  H.eq(full_stop(), ". ", "a setting turned off is off")
+  cfg.reclaim_space = true
+  H.eq(full_stop(), "\8. ", "and turned back on it takes the switch with it")
+
+  -- The other direction: a feature that ships off, switched on by hand.
+  cfg.word_backspace = false
+  ctxA:set_property("surrounding_text", "I think sooner")
+  local function backspace_twice()
+    local before = #mock.committed
+    spellless.absorb.func(mock.key(XK_BackSpace), env)
+    spellless.processor.func(mock.key(XK_BackSpace), env)
+    spellless.absorb.func(mock.key(XK_BackSpace), env)
+    spellless.processor.func(mock.key(XK_BackSpace), env)
+    return #mock.committed - before
+  end
+  H.eq(backspace_twice(), 0,
+       "Backspace ships as the key everybody already knows")
+  env.engine.context:set_option("word_backspace", true)
+  H.eq(backspace_twice(), 1, "and the switch is how you ask for the other one")
+
+  cfg.reclaim_space, cfg.word_backspace = was.reclaim_space, was.word_backspace
+  ctxA:set_property("surrounding_text", "")
+  ctxA:set_property("spellless_backspace", "")   -- or the next press reads as a repeat
+  ctxA.input = ""
+  mock.history:clear()
+end
+
 H.suite("adapter: Backspace twice deletes the whole word")
 env.spellless.cfg.word_backspace = true
 ctxA.input = ""
@@ -1044,6 +1099,24 @@ do
   for _, key in ipairs({ "minus", "equal", "comma", "period" }) do
     H.ok(not bindings:find("accept: " .. key, 1, true),
          key .. " is punctuation here, not a paging key")
+  end
+end
+
+H.suite("schema: every switchable feature is actually in the F4 menu")
+-- The switch is how these get tried at all, and a missing one fails silently:
+-- the option reads false, the feature is off wherever the setting said on, and
+-- the menu simply does not list it.
+do
+  local defaults = require("spellless.config").defaults
+  local fh = assert(io.open(_G.SPELLLESS_ROOT .. "/rime/spellless.schema.yaml"))
+  local text = fh:read("a")
+  fh:close()
+  local declared = {}
+  for name in text:gmatch("\n  %- name:%s*([%w_]+)") do declared[name] = true end
+  H.ok(#spellless.switched > 0, "there are switchable features to check")
+  for _, name in ipairs(spellless.switched) do
+    H.ok(declared[name], name .. " has a switch in the F4 menu")
+    H.ok(defaults[name] ~= nil, name .. " has a setting for the switch to start from")
   end
 end
 

@@ -480,7 +480,14 @@ M.defaults = {
   -- for "oner".  Needs the same frontend as reclaim_space, and for the same
   -- reason: it has to remove characters that are already in the document, and
   -- it only ever acts on text the frontend has actually read back.
-  absorb_fragment   = true,
+  --
+  -- Off, unlike the other two document features, and for a different kind of
+  -- reason: it is not unsafe, it is opinionated.  It moves text you can see
+  -- into a composition you did not open, and hands the matcher a word whose
+  -- end it cannot see -- see `ascii_fragment` below, which is the other answer
+  -- to the same situation, and the F4 switch, which is how you find out which
+  -- of the two you want without redeploying between every comparison.
+  absorb_fragment   = false,
   -- The other answer to the same situation, and the more conservative one:
   -- instead of taking the word into the composition, stop being an input
   -- method until the word is finished.  The letters land as letters -- no
@@ -500,7 +507,12 @@ M.defaults = {
   -- Backspace twice in a row, with nothing composing, to delete the whole word
   -- in front of the caret rather than one more character of it -- for when a
   -- word is wrong enough to start again.  Same frontend requirement.
-  word_backspace    = true,
+  --
+  -- Off.  Backspace is the key you reach for when something has gone wrong,
+  -- and a key that deletes a character sometimes and a word at other times is
+  -- worse than either -- so it ships as the one people already know, and the
+  -- F4 switch is there for anyone who wants the other.
+  word_backspace    = false,
   -- Offer a capital on the first word of a sentence.  Only when you typed the
   -- word in lower case: an explicit capital of your own is never overridden.
   auto_capitalize   = true,
