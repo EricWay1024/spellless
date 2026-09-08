@@ -170,8 +170,9 @@ spellless:
   # the letters land as plain ASCII -- no candidates, no capital, no automatic
   # space -- and the keyboard comes back at the first key that is not part of a
   # word.  Wins over absorb_fragment when both are on, and works in a terminal,
-  # where absorbing will not act.
-  ascii_fragment: false
+  # where absorbing will not act.  A digit counts as an unclear boundary too,
+  # so "4D" gets no candidate list, and a run swallows "p.m." and "v1.2" whole.
+  ascii_fragment: true
   # Backspace twice with nothing composing to delete the whole word.  Off: a
   # key that deletes a character sometimes and a word at other times is worse
   # than either, so it ships as the one everybody already knows.

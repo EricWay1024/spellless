@@ -503,7 +503,19 @@ M.defaults = {
   -- Wins over `absorb_fragment` where both are on, and needs no permission to
   -- edit the document, because it edits nothing: it works in a terminal and in
   -- every application on `commit_only_apps`, where absorbing refuses to act.
-  ascii_fragment    = false,
+  --
+  -- On, and it is the answer to more than the case it was written for.  A
+  -- digit counts as an unclear boundary too -- "4" is never composed, so "4D"
+  -- would otherwise open a fresh composition for "D" and offer a page of
+  -- English words for a token that was never going to be English -- and the
+  -- run it opens then swallows `p.m.`, `v1.2` and `a.out` whole, which is what
+  -- you want from a mode that exists precisely because nothing can see where
+  -- the token ends.
+  --
+  -- Safe to be on for the same reason the other three are: it needs to read
+  -- the document, no stock frontend offers one, and until one has it does
+  -- nothing at all.
+  ascii_fragment    = true,
   -- Backspace twice in a row, with nothing composing, to delete the whole word
   -- in front of the caret rather than one more character of it -- for when a
   -- word is wrong enough to start again.  Same frontend requirement.

@@ -452,6 +452,9 @@ H.suite("adapter: picking up a word already in the document")
 spellless.absorb.init(env)
 local ctxA = env.engine.context
 env.spellless.cfg.absorb_fragment = true
+-- The other answer to the same situation ships on and wins where both are, so
+-- switch it off to test this one.  The suite below is the other half.
+env.spellless.cfg.ascii_fragment = false
 
 ctxA.input = ""
 ctxA:set_property("surrounding_text", "I think so")
@@ -532,6 +535,10 @@ do
   local cfg = env.spellless.cfg
   local was_absorb, was_ascii = cfg.absorb_fragment, cfg.ascii_fragment
   cfg.absorb_fragment, cfg.ascii_fragment = true, true    -- ascii wins over absorb
+  local function leave_no_run()
+    ctxA:set_property("spellless_ascii_word", "")
+    ctxA:set_option("ascii_mode", false)
+  end
 
   local function land_on(document)
     ctxA.input = ""
@@ -626,7 +633,7 @@ do
 
   cfg.absorb_fragment, cfg.ascii_fragment = was_absorb, was_ascii
   ctxA.input = ""
-  ctxA:set_option("ascii_mode", false)
+  leave_no_run()
 end
 
 env.spellless.cfg.absorb_fragment = false
