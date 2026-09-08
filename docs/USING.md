@@ -78,8 +78,8 @@ it works.
 
 Four of the rows above — punctuation taking its space back, the caret inside a
 word, picking a word up out of the line, and word-backspace — need a frontend
-that can edit the document. [INSTALL.md](INSTALL.md#step-1--choose-your-frontend)
-says which frontends those are.
+that can edit the document. [INSTALL.md](INSTALL.md#install-our-frontend) says
+which frontends those are, and why they are the recommended way in.
 
 ---
 

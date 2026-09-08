@@ -75,7 +75,7 @@ You committed the word first (with the space bar or a number key) and typed the
 punctuation afterwards, so the word's trailing space was already in the
 document. On the Spellless frontends punctuation takes that space back. On a
 stock Weasel, Squirrel or Linux frontend it cannot, and the fix is
-`leading_space` — [INSTALL.md step 4](INSTALL.md#step-4--stock-rime-only-turn-on-leading_space).
+`leading_space` — [INSTALL.md](INSTALL.md#leading_space-and-what-it-trades).
 
 Typing the punctuation while the word is still being composed — the normal way
 — is right either way.
@@ -100,8 +100,8 @@ schema asks nothing of a frontend that has not shown it can answer. Line five of
 they are switched on at all. Confusing the two has cost an evening.
 
 * **On a stock Weasel or Squirrel** they are inert by design, whatever the
-  configuration says. [INSTALL.md step 1](INSTALL.md#step-1--choose-your-frontend)
-  has the frontends that carry them.
+  configuration says. [INSTALL.md](INSTALL.md#install-our-frontend) has the
+  frontends that carry them, and how to move to one.
 * **In VS Code and a few others** they are refused deliberately, because the
   editor and its integrated terminal are the same executable and the terminal
   cannot survive the edit. Press <kbd>F4</kbd> and turn on **edits document**

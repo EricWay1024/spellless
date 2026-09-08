@@ -97,29 +97,36 @@ commit something it cannot vouch for.
 
 ## Install
 
-Spellless is a Rime schema, so it needs a Rime frontend. Everything in it is
-data and Lua: nothing to compile, no administrator rights. Grab the files from
-[Releases](https://github.com/EricWay1024/spellless/releases).
+Spellless is a Rime schema, so it needs a Rime frontend — and **the one worth
+having is ours**. A schema cannot see the document it is typing into; that is
+where Rime's API stops. So four things live in the frontend instead, and
+[spellless-weasel](https://github.com/EricWay1024/spellless-weasel),
+[spellless-squirrel](https://github.com/EricWay1024/spellless-squirrel) and
+[spellless-fcitx5](https://github.com/EricWay1024/spellless-fcitx5) are the
+ordinary Rime frontends with the one convention added that lets a schema ask
+for them: punctuation takes its space back, a caret inside a word means plain
+typing, a word you re-type is picked up, and <kbd>Backspace</kbd> twice deletes
+the word. Nothing to configure, and on Windows it installs *beside* the Weasel
+you already have, so a Chinese input method on the same machine is untouched.
 
-| | the short way |
+| | **recommended** — with our frontend |
 | --- | --- |
-| **Windows** | Run `spellless-<version>-installer.exe`. It is the only download you need — the schema inside a Rime frontend, installed *beside* any Rime you already have. |
+| **Windows** | Run `spellless-<version>-installer.exe`. The schema is inside it, so it is the only download you need. |
 | **macOS** | Install `Spellless-Squirrel-<version>.pkg`, then unzip `spellless-<version>.zip` and run `python3 scripts/install.py`. |
-| **Linux** | Install `ibus-rime` or `fcitx5-rime` from your distribution, then unzip `spellless-<version>.zip` and run `python3 scripts/install.py`. |
+| **Linux** | Build [spellless-fcitx5](https://github.com/EricWay1024/spellless-fcitx5), then unzip `spellless-<version>.zip` and run `python3 scripts/install.py`. |
 
-Then **redeploy**: the Weasel tray icon or the Squirrel menu-bar icon →
-**Deploy**, or `ibus restart` / `fcitx5-remote -r`. Press <kbd>F4</kbd> and
-choose **Spellless**.
+Downloads are on [Releases](https://github.com/EricWay1024/spellless/releases).
+Then **redeploy** — tray or menu-bar icon → **Deploy**, or `fcitx5-remote -r` —
+press <kbd>F4</kbd>, choose **Spellless**, and type **`zzver`** in any text box
+to see the build that is actually running.
 
-**To check it took**, type `zzver` in any text box. It prints the build that is
-actually running, the size of the dictionary, and what is switched on.
+Everything is data and Lua: nothing to compile, no administrator rights, and
+Python 3.8+ only to run the installer.
 
-The installer needs Python 3.8+ and writes only inside your Rime user
-directory, adding Spellless to the schema list rather than replacing it.
-
-**Other setups** — a stock Weasel or Squirrel you would rather keep, the macOS
-and Linux frontends, installer flags, settings —
-[docs/INSTALL.md](docs/INSTALL.md). When something does not work,
+**Staying on the Rime you already have** works too, and costs you those four
+conveniences and nothing else. [docs/INSTALL.md](docs/INSTALL.md) has all six
+paths — three platforms, our frontend or yours — one self-contained section
+each, so you read one. When something does not work,
 [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 ---
@@ -140,7 +147,8 @@ and Linux frontends, installer flags, settings —
   that resist both (`iPhone`, `LaTeX`, `arXiv`).
 * **Literal typing, always.** What you typed is on the first page; a tapped
   <kbd>Shift</kbd> leaves Spellless entirely; `$` hands the keyboard to maths.
-* **Windows, macOS and Linux**, on stock Rime or on the Spellless frontends.
+* **Windows, macOS and Linux**, best on the Spellless frontends and fine
+  without them.
 
 [docs/USING.md](docs/USING.md) is the whole of it — every feature, every key,
 and how the personal vocabulary files work.

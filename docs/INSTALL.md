@@ -1,101 +1,270 @@
 # Installing Spellless
 
-The [README](../README.md) has the one-paragraph version. This is everything
-else: the choice of frontend, what the installer does, how to check it took,
-and the settings worth knowing about.
+Six ways in — three platforms, and on each of them either **our frontend**
+(recommended) or **the Rime you already have**. Find yours in the table below
+and read that one section; each is self-contained.
 
-If a build does not reach the input method, [DEPLOYING.md](DEPLOYING.md) is
-the file for that.
-
----
-
-## What it needs
-
-Everything in Spellless is data and Lua, so it runs wherever Rime does:
-**Weasel** on Windows, **Squirrel** on macOS, `ibus-rime` or `fcitx5-rime` on
-Linux. You need **Python 3.8+** to run the installer, and only for that.
-
-Lua support is already there on Windows and macOS: official librime release
-builds bundle `librime-lua`, and Weasel and Squirrel ship those builds, so
-there is nothing to compile and no administrator rights needed. On Linux the
-distribution builds librime itself and packages the plugin separately —
-`fcitx5-rime` and `ibus-rime` normally pull it in, and if Spellless loads no
-candidates at all that is the first thing to check.
+When something does not work afterwards,
+[TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 
 ---
 
-## Step 1 — choose your frontend
+## Install our frontend
 
-Four features need the input method to see the document, and three of them to
-reach in and take text back out — which is further than any schema goes. That
-is the entire difference between the two paths:
+**Do this if you can.** Spellless is a Rime schema, and a schema cannot see the
+document it is typing into — that is where Rime's API stops. Four things
+therefore live in the frontend rather than the schema, and
+**spellless-weasel**, **spellless-squirrel** and **spellless-fcitx5** are the
+ordinary Rime frontends with the one convention added that lets a schema ask
+for them:
 
-| | stock Weasel / Squirrel / `ibus-rime` / `fcitx5-rime` | **spellless-weasel** / **spellless-squirrel** / **spellless-fcitx5** |
+| | stock Weasel / Squirrel / `ibus-rime` / `fcitx5-rime` | our frontend |
 | --- | :---: | :---: |
 | everything in [USING.md](USING.md) | ✓ | ✓ |
 | punctuation takes its space back — `you` <kbd>Space</kbd> `.` gives `you. `, not `you . ` | — | ✓ |
 | a caret inside a word means plain typing — `4D`, `p.m.`, `v1.2` get no candidate list | — | ✓ |
 | a word you re-type is picked up — delete the space after `so`, type `oner`, get `sooner` | — | <kbd>F4</kbd> |
 | <kbd>Backspace</kbd> twice deletes the whole word | — | <kbd>F4</kbd> |
-| what you have to configure | `leading_space`, [step 4](#step-4--stock-rime-only-turn-on-leading_space) | nothing |
+| what you have to configure | `leading_space` | nothing |
 
 The first two are on; the last two change what a key you already know does, or
 move text you can see, so they are opinions rather than corrections and you
-turn them on yourself. All four are switches in the <kbd>F4</kbd> menu.
+turn them on yourself in the <kbd>F4</kbd> menu, where all four are switches.
 
-**The fork is the better experience, and it does not displace anything.**
-
-[spellless-weasel](https://github.com/EricWay1024/spellless-weasel) is Weasel
-with that one convention added, rebuilt to install *beside* the Weasel you
-already have — its own GUIDs, pipe, registry key and user directory — so a
-Chinese input method on the same machine carries on untouched and both appear
-in the input-method list. It also carries the schema inside it, so on Windows
-**it is the only download you need**: run it and go to step 3.
-
-[spellless-squirrel](https://github.com/EricWay1024/spellless-squirrel) is the
-same for macOS, built by GitHub Actions on a macOS runner, but ships the
-frontend alone — install it, then do step 2.
-
-[spellless-fcitx5](https://github.com/EricWay1024/spellless-fcitx5) is
-`fcitx5-rime` with the same convention, and is **newer and rougher than the
-other two**. Build it from source — there are no packages yet — and note two
-things before you do. It tracks upstream `fcitx5-rime`, which needs
-fcitx5 ≥ 5.1.22, so Arch, Fedora 41+ and Tumbleweed are fine and Ubuntu 24.04
-LTS is not; and on Linux it is the *client* that has to offer surrounding
-text, which GTK and Qt do, much of Chromium does not, and no terminal does.
-Where a client will not answer you get stock behaviour, silently — the right
-failure, but it does mean these four features are not everywhere. Everything
-in [USING.md](USING.md) works regardless.
+**It does not displace anything.** On Windows the fork installs *beside* the
+Weasel you already have — its own GUIDs, pipe, registry key and user directory
+— so a Chinese input method on the same machine carries on untouched and both
+appear in the input-method list. On Windows it also carries the schema inside
+it, which makes it a single download and nothing else to run.
 
 Each is licensed as the project it forks — GPL-3.0 for Weasel and Squirrel,
 GPL-2.0-or-later for `fcitx5-rime`; this repository is MIT. The Windows and
-macOS builds ship unsigned, as upstream Squirrel's own releases do:
-right-click → **Open** the first time.
+macOS builds ship unsigned, as upstream Squirrel's own releases do.
 
 **Staying on the Rime you already have** costs you those four rows and nothing
-else. Do steps 2, 3 and 4.
+else. Sections 4 to 6 are for that, and they work.
 
-Either way the schema install is the same, and the two that ship on switch
-themselves on when they find a frontend that can carry them — see
-[DESIGN.md §5.6](../DESIGN.md#56-what-the-frontend-can-do-and-rime-cannot).
+## Which section is yours
+
+| | our frontend (recommended) | the Rime you already have |
+| --- | --- | --- |
+| **Windows** | [1. Windows, with spellless-weasel](#1-windows-with-spellless-weasel) | [4. Windows, on stock Weasel](#4-windows-on-stock-weasel) |
+| **macOS** | [2. macOS, with spellless-squirrel](#2-macos-with-spellless-squirrel) | [5. macOS, on stock Squirrel](#5-macos-on-stock-squirrel) |
+| **Linux** | [3. Linux, with spellless-fcitx5](#3-linux-with-spellless-fcitx5) | [6. Linux, on ibus-rime or fcitx5-rime](#6-linux-on-ibus-rime-or-fcitx5-rime) |
+
+Everything in Spellless is data and Lua, so nothing is ever compiled and no
+administrator rights are needed. Five of the six need **Python 3.8+** to run
+the installer, and only for that.
 
 ---
 
-## Step 2 — install the schema
+## 1. Windows, with spellless-weasel
 
-Take a release archive from
-[Releases](https://github.com/EricWay1024/spellless/releases) and run the
-installer inside it, or clone this repository and run `make && make test`
-first. Then:
+The shortest path there is. One download, and it carries the schema.
 
-```powershell
-python scripts\install.py
+1. Download **`spellless-<version>-installer.exe`** from
+   [Releases](https://github.com/EricWay1024/spellless/releases).
+2. Run it. It is unsigned, so SmartScreen will object: **More info** →
+   **Run anyway**. It installs alongside any Weasel already on the machine.
+3. Right-click the tray icon → **Deploy** (「重新部署」).
+4. Press <kbd>F4</kbd> and choose **Spellless**. The tray icon and the
+   language-bar button turn into an **S**; tapping Shift into plain typing
+   brings back the **A**.
+5. Type **`zzver`** in any text box. Five lines means it is running.
+
+Nothing to configure. If you also keep a stock Weasel for Chinese, note that
+the two have separate user directories — see
+[TROUBLESHOOTING.md](TROUBLESHOOTING.md#changes-have-no-effect).
+
+## 2. macOS, with spellless-squirrel
+
+Two downloads: the frontend carries no schema.
+
+1. Download **`Spellless-Squirrel-<version>.pkg`** and
+   **`spellless-<version>.zip`** from
+   [Releases](https://github.com/EricWay1024/spellless/releases).
+2. Install the `.pkg`. It is unsigned: right-click → **Open** the first time.
+   It installs under the ordinary Squirrel bundle identifier, so it *upgrades*
+   a Squirrel you already have rather than sitting beside it, and it will ask
+   you to log out and back in.
+3. Unzip the archive and run the installer inside it:
+
+   ```bash
+   python3 scripts/install.py
+   ```
+
+4. Menu-bar icon → **Deploy**.
+5. Press <kbd>F4</kbd> and choose **Spellless**.
+6. Type **`zzver`** in any text box. Five lines means it is running.
+
+Nothing to configure.
+
+## 3. Linux, with spellless-fcitx5
+
+**Newer and rougher than the other two**, and the only one you have to build
+yourself.
+
+1. Check your fcitx5 is **≥ 5.1.22** — it tracks upstream `fcitx5-rime`, so
+   Arch, Fedora 41+ and Tumbleweed are fine and Ubuntu 24.04 LTS is not.
+2. Build and install
+   [spellless-fcitx5](https://github.com/EricWay1024/spellless-fcitx5) from
+   source — there are no packages yet.
+3. Download **`spellless-<version>.zip`** from
+   [Releases](https://github.com/EricWay1024/spellless/releases), unzip it, and
+   run the installer inside it:
+
+   ```bash
+   python3 scripts/install.py
+   ```
+
+4. `fcitx5-remote -r`
+5. Press <kbd>F4</kbd> and choose **Spellless**.
+6. Type **`zzver`** in any text box. Five lines means it is running.
+
+One caveat particular to Linux: it is the *client* that has to offer
+surrounding text. GTK and Qt do, much of Chromium does not, and no terminal
+does. Where a client will not answer you get stock behaviour, silently — the
+right failure, but it does mean those four features are not everywhere.
+Everything in [USING.md](USING.md) works regardless.
+
+## 4. Windows, on stock Weasel
+
+1. If you do not have Weasel, install it from [rime.im](https://rime.im).
+2. Download **`spellless-<version>.zip`** from
+   [Releases](https://github.com/EricWay1024/spellless/releases) and unzip it.
+3. Run the installer inside it:
+
+   ```powershell
+   python scripts\install.py
+   ```
+
+   From WSL, `python3 scripts/install.py` finds the Windows-side Rime
+   directory by itself.
+4. Right-click the tray icon → **Deploy** (「重新部署」).
+5. Press <kbd>F4</kbd> and choose **Spellless**.
+6. Type **`zzver`** in any text box. Five lines means it is running.
+7. **Turn on `leading_space`.** A stock frontend cannot take a character back,
+   so punctuation typed after a word you have *already* committed leaves its
+   space stranded — `you .` Put this in `spellless.custom.yaml` in your Rime
+   user directory (`%APPDATA%\Rime`, unless you have moved it) and redeploy:
+
+   ```yaml
+   patch:
+     spellless/leading_space: true
+   ```
+
+   [What it costs](#leading_space-and-what-it-trades) is one line, below.
+
+## 5. macOS, on stock Squirrel
+
+1. If you do not have Squirrel, install it from [rime.im](https://rime.im).
+2. Download **`spellless-<version>.zip`** from
+   [Releases](https://github.com/EricWay1024/spellless/releases) and unzip it.
+3. Run the installer inside it:
+
+   ```bash
+   python3 scripts/install.py
+   ```
+
+4. Menu-bar icon → **Deploy**.
+5. Press <kbd>F4</kbd> and choose **Spellless**.
+6. Type **`zzver`** in any text box. Five lines means it is running.
+7. **Turn on `leading_space`.** A stock frontend cannot take a character back,
+   so punctuation typed after a word you have *already* committed leaves its
+   space stranded — `you .` Put this in `spellless.custom.yaml` in
+   `~/Library/Rime` and redeploy:
+
+   ```yaml
+   patch:
+     spellless/leading_space: true
+   ```
+
+   [What it costs](#leading_space-and-what-it-trades) is one line, below.
+
+## 6. Linux, on ibus-rime or fcitx5-rime
+
+1. Install `ibus-rime` or `fcitx5-rime` from your distribution — **and check
+   that librime-lua came with it.** On Linux the distribution builds librime
+   itself and packages the Lua plugin separately; both frontends normally pull
+   it in, and without it nothing in Spellless can run. (This is never the
+   problem on Windows or macOS, where the official builds bundle it.)
+2. Download **`spellless-<version>.zip`** from
+   [Releases](https://github.com/EricWay1024/spellless/releases) and unzip it.
+3. Run the installer inside it:
+
+   ```bash
+   python3 scripts/install.py
+   ```
+
+4. `ibus restart`, or `fcitx5-remote -r`.
+5. Press <kbd>F4</kbd> and choose **Spellless**.
+6. Type **`zzver`** in any text box. Five lines means it is running.
+7. **Turn on `leading_space`.** A stock frontend cannot take a character back,
+   so punctuation typed after a word you have *already* committed leaves its
+   space stranded — `you .` Put this in `spellless.custom.yaml` in your Rime
+   user directory (`~/.config/ibus/rime` or `~/.local/share/fcitx5/rime`) and
+   redeploy:
+
+   ```yaml
+   patch:
+     spellless/leading_space: true
+   ```
+
+   [What it costs](#leading_space-and-what-it-trades) is one line, below.
+
+---
+
+# Reference
+
+## What `zzver` tells you
+
+Typing `zzver` in a text box asks the schema which build is actually running,
+so "am I testing what I just deployed, or what Rime loaded twenty minutes ago"
+stops being a guess:
+
+```
+zzver  →  spellless 0.1.5 installed 2026-09-07 01:12
+          83414 words, 809 forms, 3 shortcuts
+          cue 70/9.0, slip 10.0, learn on
+          reclaim on, absorb on, word-backspace on
+          app com.apple.Notes, document readable, edits allowed
 ```
 
-or `python3 scripts/install.py` on macOS, Linux, and from WSL — where it finds
-the Windows-side Rime directory by itself. It knows where each frontend keeps
-its user directory: the registry on Windows, `~/Library/Rime` on macOS,
-`~/.config/ibus/rime` or `~/.local/share/fcitx5/rime` on Linux.
+Five lines, each answering a different question: the build, the dictionary, the
+matching constants, whether the four document features are switched on at all,
+and whether *this* application is allowed to have them.
+
+## `leading_space`, and what it trades
+
+The automatic space normally rides on the word, which is right — stop typing
+anywhere and the text is finished. It costs exactly one thing, and only where
+the frontend cannot take a character back: punctuation after a word you have
+already committed leaves the space stranded, so picking `you` by number and
+then ending the sentence gives `you .`
+
+With `leading_space` on, the space goes in front of the *next* word instead,
+where punctuation never has to argue with it:
+
+```
+                        stock frontend, default   with leading_space
+typing "hello. world."   Hello . World .           Hello. World.
+```
+
+It is off by default because the trade goes the other way once your frontend
+*can* reclaim: leave the caret after a word and there is no space behind it
+until you type again, so a line you stop in the middle of ends flush. While you
+are typing it looks the same — the space is written on the first letter of the
+next word rather than carried by the candidate, so the candidate list never
+shows a leading space either. `reclaim_space` and `enter_space` become
+redundant rather than wrong when it is on; they simply never have a space to
+act on.
+
+## What the installer does
+
+It knows where each frontend keeps its user directory: the registry on Windows,
+`~/Library/Rime` on macOS, `~/.config/ibus/rime` or
+`~/.local/share/fcitx5/rime` on Linux. Run from WSL it finds the Windows-side
+directory by itself.
 
 | Flag | |
 | --- | --- |
@@ -126,67 +295,8 @@ backed up first and only ever has lines inserted, so your comments survive; if
 it already patches `schema_list`, the installer prints what to add rather than
 guessing.
 
----
-
-## Step 3 — redeploy, and check it took
-
-Redeploy the frontend — the Weasel tray icon → **Deploy** (「重新部署」), the
-Squirrel menu-bar icon → **Deploy**, `ibus restart` or `fcitx5-remote -r` —
-then press <kbd>F4</kbd> and choose **Spellless**. On Windows the tray icon and
-the language-bar button turn into an **S**, and tapping Shift into plain typing
-brings back Weasel's **A**.
-
-**Type `zzver` in any text box** to see which build is actually running, so
-"am I testing what I just deployed, or what Rime loaded twenty minutes ago"
-stops being a guess:
-
-```
-zzver  →  spellless 41223bf installed 2026-09-06 12:34
-          83414 words, 809 forms, 3 shortcuts
-          cue 70/9.0, slip 10.0, learn on
-```
-
-If something misbehaves on first deploy, [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
-lists the symptoms and what each one usually is. The two places to look yourself
-are the candidate comments (`spellless/show_debug_comments: true`) and
-`%APPDATA%\Rime\rime.log`; [DEPLOYING.md](DEPLOYING.md) has how a build reaches
-the input method and the ways it silently does not.
-
----
-
-## Step 4 — stock Rime only: turn on `leading_space`
-
-The automatic space rides on the word, which is right — stop typing anywhere
-and the text is finished. It costs exactly one thing, and only where the
-frontend cannot take a character back: punctuation after a word you have
-*already* committed leaves the space stranded, so picking `you` by number and
-then ending the sentence gives `you .`
-
-Put this in `spellless.custom.yaml` in your Rime user directory and redeploy:
-
-```yaml
-patch:
-  spellless/leading_space: true
-```
-
-The space now goes in front of the *next* word, where punctuation never has to
-argue with it:
-
-```
-                        stock frontend, default   with leading_space
-typing "hello. world."   Hello . World .           Hello. World.
-```
-
-It is off by default because the trade goes the other way once your frontend
-*can* reclaim: leave the caret after a word and there is no space behind it
-until you type again, so a line you stop in the middle of ends flush. While you
-are typing it looks the same — the space is written on the first letter of the
-next word rather than carried by the candidate, so the candidate list never
-shows a leading space either. `reclaim_space` and `enter_space` become
-redundant rather than wrong when it is on; they simply never have a space to
-act on.
-
----
+**Installing from a clone** rather than a release archive works the same way;
+run `make && make test` first.
 
 ## Configuration
 
@@ -208,8 +318,6 @@ patch:
   spellless/auto_capitalize: false     # and your own capitals
   menu/page_size: 9                    # a bigger window (the literal slot follows it)
 ```
-
----
 
 ## Uninstalling
 
