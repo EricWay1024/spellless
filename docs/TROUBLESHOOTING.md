@@ -21,6 +21,31 @@ installed, you are testing something else; see *changes have no effect*.
 
 ---
 
+## macOS: there is no Squirrel to switch to
+
+Before <kbd>F4</kbd> or `zzver` can tell you anything, Squirrel has to be an
+input source macOS will switch to. Installing the `.pkg` does not finish that
+on its own.
+
+1. **Log out and back in**, if you have not since installing. The package
+   declares `RequireLogout` and the input method is not loaded until you do.
+2. **Add it**: System Settings → Keyboard → Text Input → Input Sources →
+   **Edit… → `+`**. It is filed under **Chinese, Simplified** as
+   **Squirrel - Simplified** (`鼠须管`), *not* under English — Squirrel
+   registers as a Chinese input source whatever schema it runs, and Spellless
+   types English out of it. `Squirrel - Traditional` (`鼠鬚管`) is the same
+   application.
+3. **Check it installed at all**:
+
+   ```bash
+   ls -d "/Library/Input Methods/Squirrel.app"
+   ```
+
+   If that is missing, the `.pkg` did not run — it is unsigned, so it needs
+   right-click → **Open** rather than a double-click.
+
+[INSTALL.md](INSTALL.md#2-macos-with-our-squirrel) is the whole sequence.
+
 ## Spellless is not in the list when I press <kbd>F4</kbd>
 
 The files are installed, but Rime has not been told to offer them, or has not

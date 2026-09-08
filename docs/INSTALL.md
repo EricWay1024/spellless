@@ -101,23 +101,54 @@ Two files: our Squirrel does not carry Spellless inside it.
    **`spellless-<version>.zip`** from
    [Releases](https://github.com/EricWay1024/spellless/releases).
 2. Install the `.pkg`. It is unsigned: right-click → **Open** the first time.
-   It goes in as ordinary Squirrel, so it takes the place of a Squirrel you
-   already have rather than sitting beside it. Everything you already type on
-   Rime keeps working — it reads the same settings — and macOS will ask you to
-   log out and back in.
-3. Unzip the other file and run the installer inside it:
+   It installs into `/Library/Input Methods`, so it asks for an administrator
+   password, and it goes in as ordinary Squirrel — it takes the place of a
+   Squirrel you already have rather than sitting beside it. Everything you
+   already type on Rime keeps working, because it reads the same settings.
+
+   **Log out and back in when it asks.** The installer declares
+   `RequireLogout`; until you do, the input method is not loaded.
+
+3. **Add Squirrel as an input source**, in
+   **System Settings → Keyboard → Text Input → Input Sources → Edit… → `+`**.
+   (Monterey and earlier: System Preferences → Keyboard → Input Sources → `+`.)
+
+   The package's `postinstall` does run `--register-input-source`,
+   `--enable-input-source` and `--select-input-source`, so it may already be
+   there and already selected — but upstream's own installer ends by saying
+   *"You need to add this input method from Text Input in macOS System
+   Settings"*, and on a fresh install that is usually what is needed. Check
+   before assuming it worked.
+
+   **Look under Chinese, Simplified — not English.** Squirrel is Rime's macOS
+   frontend and registers two Chinese input modes, `zh-Hans` and `zh-Hant`,
+   whatever schema it is actually running. Spellless types English out of one
+   of them. So the entry you are adding is:
+
+   | in the list | if System Settings is in Chinese |
+   | --- | --- |
+   | **Squirrel - Simplified** | 鼠须管 |
+   | *Squirrel - Traditional* | 鼠鬚管 |
+
+   Either works — they are one application, and the schema decides what gets
+   typed. **Squirrel - Simplified** is the one the installer selects.
+
+4. Switch to it, with <kbd>Ctrl</kbd>+<kbd>Space</kbd> or the input menu in the
+   menu bar. A Squirrel icon in the menu bar means it is running.
+5. Unzip the other file and run the installer inside it:
 
    ```bash
    python3 scripts/install.py
    ```
 
-4. Menu-bar icon → **Deploy** — Rime's word for "pick up what was just
+6. Menu-bar icon → **Deploy** — Rime's word for "pick up what was just
    installed".
-5. Press <kbd>F4</kbd>. That is Rime's list of what it can type; choose
+7. Press <kbd>F4</kbd>. That is Rime's list of what it can type; choose
    **Spellless**.
-6. Type **`zzver`** in any text box. Five lines back means it is running.
+8. Type **`zzver`** in any text box. Five lines back means it is running.
 
-Nothing to set up.
+Nothing to configure — the input source in step 3 is macOS's requirement, not
+Spellless's.
 
 ## 3. Linux, with our fcitx5-rime
 

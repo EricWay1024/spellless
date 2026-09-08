@@ -117,7 +117,7 @@ already type on Rime keeps working.
 | | **recommended** |
 | --- | --- |
 | **Windows** | **One file.** Download `spellless-<version>-installer.exe` and run it — Spellless is already inside. |
-| **macOS** | Install `Spellless-Squirrel-<version>.pkg`, then unzip `spellless-<version>.zip` and run `python3 scripts/install.py` inside it. |
+| **macOS** | Install `Spellless-Squirrel-<version>.pkg`, log out and back in, and add **Squirrel - Simplified** in System Settings → Keyboard → Text Input (it is filed under *Chinese*, not English). Then unzip `spellless-<version>.zip` and run `python3 scripts/install.py` inside it. |
 | **Linux** | Build [spellless-fcitx5](https://github.com/EricWay1024/spellless-fcitx5), then unzip `spellless-<version>.zip` and run `python3 scripts/install.py` inside it. |
 
 The downloads are on
