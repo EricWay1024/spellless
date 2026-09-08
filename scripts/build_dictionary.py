@@ -28,6 +28,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _common import REPO, sha256_file, write_bytes, write_text  # noqa: E402
 
 SOURCE = REPO / "data" / "sources" / "frequency_dictionary_en_82_765.txt"
+VARCON = REPO / "data" / "sources" / "varcon.txt"
+VARIANTS = REPO / "generated" / "spellless.variants"
 VOCAB_DIR = REPO / "data" / "vocab"
 FORMS = REPO / "data" / "forms.txt"
 OUT = REPO / "generated"
@@ -189,6 +191,15 @@ def main() -> int:
                     help="floor the frequency of apostrophe contractions at the frequency "
                          "of the base corpus word at this rank (default 2000); the corpus "
                          "under-counts them badly, see data/README.md")
+    ap.add_argument("--variant-level", type=int, default=60,
+                    help="only level and fill spelling-variant groups at or below this "
+                         "SCOWL level (default 60, which is Hunspell's own default "
+                         "dictionary size; 70+ starts admitting rarities)")
+    ap.add_argument("--default-dialect", default="us",
+                    choices=("us", "gb-ise", "gb-ize"),
+                    help="which spelling leads when a variant group ties, with no "
+                         "variant switch set (default us, which is what shipped "
+                         "before this was deliberate)")
     args = ap.parse_args()
 
     if not SOURCE.exists():
@@ -281,7 +292,63 @@ def main() -> int:
             bare_added += 1
     print(f"  {bare_added} contractions also reachable without the apostrophe")
 
-    ranked = sorted(freqs.items(), key=lambda kv: (-kv[1], kv[0]))
+    # Spelling variants, levelled.
+    #
+    # The corpus treats a variant pair three different ways: one shared count
+    # (colour/color both 29,049,269), two unrelated counts (realize 14.1M
+    # against realise 3.4M), or the pair merged onto one spelling with the
+    # other missing entirely (favourite 24.2M, favorite absent).  All three are
+    # accidents of how it was compiled, not facts about English, and each one
+    # hurts.  The third is why an American writer cannot type `analyze` at all.
+    #
+    # So a variant group is one word for frequency purposes: every member gets
+    # the group's best count, and a member the corpus lost is added at that
+    # count rather than at the supplemental default -- otherwise `favorite`
+    # would arrive 20,000 ranks below `favourite` and lose to it on every
+    # query.  See docs/proposals/spelling-variants.md §5.0.
+    variant_default = {}
+    levelled = added_variants = 0
+    if VARIANTS.exists():
+        for line in VARIANTS.read_text(encoding="utf-8").splitlines():
+            if not line or line.startswith("#"):
+                continue
+            fields = line.split("\t")
+            try:
+                level = int(fields[0])
+            except ValueError:
+                continue
+            if level > args.variant_level:
+                continue
+            members = []
+            for field in fields[1:]:
+                word, _, modes = field.partition("|")
+                members.append((word, set() if modes == "-" else set(modes.split(","))))
+            present = [w for w, _ in members if w in freqs]
+            if not present:
+                continue
+            best = max(freqs[w] for w in present)
+            for word, modes in members:
+                if not accept(word):
+                    continue
+                if word not in freqs:
+                    if not modes:
+                        continue          # preferred nowhere; not worth adding
+                    freqs[word] = best
+                    added_variants += 1
+                elif freqs[word] < best:
+                    freqs[word] = best
+                    levelled += 1
+                # Ties inside a group are now exact, so the final sort would
+                # fall back to alphabetical order -- which is not a neutral
+                # tie-break: `color` < `colour`, `center` < `centre`,
+                # `catalog` < `catalogue`.  Order by the default dialect
+                # instead, so that whichever form leads is a decision.
+                variant_default[word] = 0 if args.default_dialect in modes else 1
+    print(f"  variants: {added_variants} members added, {levelled} levelled "
+          f"(level <= {args.variant_level}, default dialect {args.default_dialect})")
+
+    ranked = sorted(freqs.items(),
+                    key=lambda kv: (-kv[1], variant_default.get(kv[0], 0), kv[0]))
     if args.limit:
         ranked = ranked[: args.limit]
 
@@ -336,6 +403,12 @@ def main() -> int:
                           " (SymSpell/frequency_dictionary_en_82_765.txt)",
                 "licence": "MIT",
             },
+            *([{
+                "path": str(VARCON.relative_to(REPO)),
+                "sha256": sha256_file(VARCON),
+                "origin": "http://wordlist.aspell.net/ (VarCon 2020.12.07)",
+                "licence": "permissive, see data/sources/varcon-COPYRIGHT",
+            }] if VARCON.exists() else []),
             *[
                 {"path": str(p.relative_to(REPO)), "sha256": sha256_file(p),
                  "origin": "this repository", "licence": "MIT"}

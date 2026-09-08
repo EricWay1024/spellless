@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-08T00:55:29+00:00",
+  "generated_at": "2026-09-08T17:27:52+00:00",
   "generator": "scripts/build_dictionary.py",
-  "entries": 83414,
+  "entries": 84342,
   "parameters": {
     "limit": 0,
     "vocab_rank": 20000,
@@ -15,6 +15,12 @@
       "sha256": "c604e1121e398ae7c7fbf777f11e0a0f2fa66eda932cb9fba1321466cf3acd7b",
       "origin": "https://github.com/wolfgarbe/SymSpell (SymSpell/frequency_dictionary_en_82_765.txt)",
       "licence": "MIT"
+    },
+    {
+      "path": "data/sources/varcon.txt",
+      "sha256": "340858b990255ec409adcf7faaf2b992aa2a76a16f30b4b9e2663863191dba33",
+      "origin": "http://wordlist.aspell.net/ (VarCon 2020.12.07)",
+      "licence": "permissive, see data/sources/varcon-COPYRIGHT"
     },
     {
       "path": "data/vocab/abbreviations.txt",
@@ -91,13 +97,13 @@
   ],
   "indexes": {
     "alpha": {
-      "entries": 83414,
+      "entries": 84342,
       "encoding": "u24le"
     },
     "skel": {
-      "entries": 83414,
+      "entries": 84342,
       "encoding": "u24le",
-      "distinct_skeletons": 62518
+      "distinct_skeletons": 63012
     }
   }
 }
