@@ -175,7 +175,7 @@ fcitx5 ≥ 5.1.22, so Arch, Fedora 41+ and Tumbleweed are fine and Ubuntu 24.04
 LTS is not; and on Linux it is the *client* that has to offer surrounding
 text, which GTK and Qt do, much of Chromium does not, and no terminal does.
 Where a client will not answer you get stock behaviour, silently — the right
-failure, but it does mean these three features are not everywhere. Everything
+failure, but it does mean these four features are not everywhere. Everything
 in [Everything it does](#everything-it-does) works regardless.
 
 Each is licensed as the project it forks — GPL-3.0 for Weasel and Squirrel,
@@ -183,10 +183,10 @@ GPL-2.0-or-later for `fcitx5-rime`; this repository is MIT. The Windows and
 macOS builds ship unsigned, as upstream Squirrel's own releases do:
 right-click → **Open** the first time.
 
-**Staying on the Rime you already have** costs you those three rows and nothing
+**Staying on the Rime you already have** costs you those four rows and nothing
 else. Do steps 2, 3 and 4.
 
-Either way the schema install is the same, and the three features switch
+Either way the schema install is the same, and the two that ship on switch
 themselves on when they find a frontend that can carry them — see
 [the frontend fork](#the-other-half-a-frontend-that-can-edit-the-document).
 
@@ -662,7 +662,7 @@ The last two are limits of where a schema sits, and the fork lifts both.
 
 ## The other half: a frontend that can edit the document
 
-The three features in [step 1](#step-1--choose-your-frontend) all exist because
+The four features in [step 1](#step-1--choose-your-frontend) all exist because
 a commit is a string: once it has left the input method the text belongs to the
 application. The frontend is on the other side of that line — it holds a handle
 on the document, so it can read the few characters in front of the caret and
