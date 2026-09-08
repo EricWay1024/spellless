@@ -36,6 +36,9 @@ When it does get something wrong, one key makes it forget. The space bar takes
 whatever is first, and a word the dictionary has never seen takes **two**
 presses of it.
 
+Why this is an input method and not a spell checker:
+[MANIFESTO.md](MANIFESTO.md).
+
 ---
 
 ## Install
