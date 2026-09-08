@@ -23,9 +23,10 @@ sth       →  something         dont          →  don't
 you picked**: the list appears, you choose, and <kbd>Enter</kbd> always commits
 exactly what you typed.
 
-It is a [Rime](https://rime.im) schema for Windows, macOS and Linux, and **the
-word you meant is first 89.8% of the time, in the top five 99.3%** — measured
-on ten fresh draws the tuning never saw, ± 0.6.
+It becomes one of the input methods in your keyboard menu, on Windows, macOS
+and Linux, so it is there in every program you type in. **The word you meant is
+first 89.8% of the time, and in the top five 99.3%** — measured on ten fresh
+draws the tuning never saw, ± 0.6.
 
 ---
 
@@ -97,36 +98,39 @@ commit something it cannot vouch for.
 
 ## Install
 
-Spellless is a Rime schema, so it needs a Rime frontend — and **the one worth
-having is ours**. A schema cannot see the document it is typing into; that is
-where Rime's API stops. So four things live in the frontend instead, and
-[spellless-weasel](https://github.com/EricWay1024/spellless-weasel),
-[spellless-squirrel](https://github.com/EricWay1024/spellless-squirrel) and
-[spellless-fcitx5](https://github.com/EricWay1024/spellless-fcitx5) are the
-ordinary Rime frontends with the one convention added that lets a schema ask
-for them: punctuation takes its space back, a caret inside a word means plain
-typing, a word you re-type is picked up, and <kbd>Backspace</kbd> twice deletes
-the word. Nothing to configure, and on Windows it installs *beside* the Weasel
-you already have, so a Chinese input method on the same machine is untouched.
+Spellless is not a separate app you switch to. It joins the list of input
+methods in your keyboard menu — the way a Chinese or Japanese one does — and
+then it is simply there, in every program you type in.
 
-| | **recommended** — with our frontend |
+It runs on [Rime](https://rime.im), a free, open-source input method for all
+three systems, and **the build of Rime to install is ours**. It is the same
+program with four small additions Spellless cannot make on its own:
+punctuation tidies up the space in front of it, typing in the middle of a word
+leaves that word alone (so `4D` and `p.m.` arrive as you typed them), a word
+you go back and re-type is picked up, and <kbd>Backspace</kbd> twice deletes a
+whole word. There is nothing to set up, and it sits *beside* any Rime you
+already have rather than replacing it, so an input method you use for another
+language carries on untouched.
+
+| | **recommended** |
 | --- | --- |
-| **Windows** | Run `spellless-<version>-installer.exe`. The schema is inside it, so it is the only download you need. |
-| **macOS** | Install `Spellless-Squirrel-<version>.pkg`, then unzip `spellless-<version>.zip` and run `python3 scripts/install.py`. |
-| **Linux** | Build [spellless-fcitx5](https://github.com/EricWay1024/spellless-fcitx5), then unzip `spellless-<version>.zip` and run `python3 scripts/install.py`. |
+| **Windows** | **One file.** Download `spellless-<version>-installer.exe` and run it — Spellless is already inside. |
+| **macOS** | Install `Spellless-Squirrel-<version>.pkg`, then unzip `spellless-<version>.zip` and run `python3 scripts/install.py` inside it. |
+| **Linux** | Build [spellless-fcitx5](https://github.com/EricWay1024/spellless-fcitx5), then unzip `spellless-<version>.zip` and run `python3 scripts/install.py` inside it. |
 
-Downloads are on [Releases](https://github.com/EricWay1024/spellless/releases).
-Then **redeploy** — tray or menu-bar icon → **Deploy**, or `fcitx5-remote -r` —
-press <kbd>F4</kbd>, choose **Spellless**, and type **`zzver`** in any text box
-to see the build that is actually running.
+The downloads are on
+[Releases](https://github.com/EricWay1024/spellless/releases). Afterwards,
+click **Deploy** in the Rime icon's menu — its word for "pick up what was just
+installed" — then press <kbd>F4</kbd> and choose **Spellless** from the list.
+Type `zzver` anywhere to confirm it is running.
 
-Everything is data and Lua: nothing to compile, no administrator rights, and
-Python 3.8+ only to run the installer.
+Nothing is compiled and no administrator rights are needed. Python 3.8+ runs
+the installer, and on Windows you do not need even that.
 
-**Staying on the Rime you already have** works too, and costs you those four
-conveniences and nothing else. [docs/INSTALL.md](docs/INSTALL.md) has all six
-paths — three platforms, our frontend or yours — one self-contained section
-each, so you read one. When something does not work,
+**If you would rather keep the Rime you already have**, that works, and costs
+you only those four conveniences. [docs/INSTALL.md](docs/INSTALL.md) has all
+six routes in — three systems, our Rime or yours — as one self-contained
+section each, so you read one and no more. If something does not work,
 [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 ---
@@ -147,8 +151,7 @@ each, so you read one. When something does not work,
   that resist both (`iPhone`, `LaTeX`, `arXiv`).
 * **Literal typing, always.** What you typed is on the first page; a tapped
   <kbd>Shift</kbd> leaves Spellless entirely; `$` hands the keyboard to maths.
-* **Windows, macOS and Linux**, best on the Spellless frontends and fine
-  without them.
+* **Windows, macOS and Linux**, in every program you type in.
 
 [docs/USING.md](docs/USING.md) is the whole of it — every feature, every key,
 and how the personal vocabulary files work.
@@ -175,7 +178,7 @@ Anything you choose twice overrules it.
 | | |
 | --- | --- |
 | [docs/USING.md](docs/USING.md) | every feature, the keys, and your own vocabulary |
-| [docs/INSTALL.md](docs/INSTALL.md) | frontends, installer flags, settings |
+| [docs/INSTALL.md](docs/INSTALL.md) | the six routes in, and everything you can change |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | symptoms, and what each one usually is |
 | [DESIGN.md](DESIGN.md) | the architecture, and why each decision went that way |
 | [docs/ALGORITHM.md](docs/ALGORITHM.md) | the matcher in full, with the evaluation |
@@ -202,7 +205,7 @@ API. Every generated file is byte-for-byte reproducible from `data/`, and
 `generated/spellless.build.json` records the sources, their SHA-256 sums and
 the parameters used.
 
-The three frontend forks live in their own repositories:
+Our builds of Rime live in their own repositories:
 [spellless-weasel](https://github.com/EricWay1024/spellless-weasel) (Windows),
 [spellless-squirrel](https://github.com/EricWay1024/spellless-squirrel) (macOS)
 and [spellless-fcitx5](https://github.com/EricWay1024/spellless-fcitx5)
@@ -228,10 +231,11 @@ has the full list and the reason behind each.
 3. **Very short input is genuinely ambiguous**, and the ranking does not
    pretend otherwise: `frm` offers `from`, `form`, `firm`, `farm`, `forum`,
    `frame` in frequency order.
-4. **On a stock frontend, spacing and capitals are inferred** from what the
-   input method committed rather than from the document, so you will
-   occasionally get a stray space or capital. Backspace re-syncs it, either can
-   be turned off, and the Spellless frontends do not have to guess.
+4. **On the standard Rime, spacing and capitals are guesswork.** Spellless can
+   see what it typed but not the document it typed into, so a click that moves
+   the cursor is invisible and you will occasionally get a stray space or
+   capital. Backspace re-syncs it, either can be turned off, and our own build
+   does not have to guess.
 
 ---
 
