@@ -108,9 +108,11 @@ program with four small additions Spellless cannot make on its own:
 punctuation tidies up the space in front of it, typing in the middle of a word
 leaves that word alone (so `4D` and `p.m.` arrive as you typed them), a word
 you go back and re-type is picked up, and <kbd>Backspace</kbd> twice deletes a
-whole word. There is nothing to set up, and it sits *beside* any Rime you
-already have rather than replacing it, so an input method you use for another
-language carries on untouched.
+whole word. There is nothing to set up. On Windows it installs *beside* the
+Weasel you already have, so both appear in your keyboard menu and an input
+method you keep for another language is untouched; on macOS it goes in as
+Squirrel and takes its place, reading the same settings, so everything you
+already type on Rime keeps working.
 
 | | **recommended** |
 | --- | --- |
