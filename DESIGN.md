@@ -114,6 +114,22 @@ Three consequences worth stating explicitly:
   because librime cancels the toggle if any other key arrives in between, or if
   Shift is held for more than 500 ms — so `Shift`+`M` cannot trip it.
 
+### The repository
+
+```
+spellless/
+├── DESIGN.md      architecture, and why each decision went that way
+├── EVALUATION.md  accuracy and latency, and how to reproduce them
+├── rime/          the schema, its icon, the Rime adapter, and the matcher
+├── scripts/       dictionary build, index build, test-set build, icon, installer
+├── data/          vendored corpus, supplemental vocabulary, surface forms
+├── generated/     build output (1.3 MB) — what gets deployed
+├── tests/         2,327 assertions + the evaluation cases
+├── bench/         evaluate.lua, tune.lua, probe.lua, naive.lua
+└── docs/          installing and using it, the algorithm in full, deployment,
+                   editor snippets, the pipeline, releasing, the typing bench
+```
+
 ### What the schema deliberately does *not* have
 
 * **No `*.dict.yaml`.** A Rime table dictionary would only duplicate the exact
@@ -573,6 +589,23 @@ than one replacing the other: fresh TSF GUIDs, its own named pipe, its own
 registry key and its own user directory, so the Chinese input method already
 installed is untouched.
 
+**The same convention on three platforms.** macOS is the shorter half of it:
+`insertText(_:replacementRange:)` does in one call what TSF needs an edit
+session for. fcitx5 has both halves as first-class `InputContext` operations
+already — `surroundingText()` and `deleteSurroundingText()` — which is why
+[spellless-fcitx5](https://github.com/EricWay1024/spellless-fcitx5) is much the
+smallest of the three forks. It pays for that elsewhere: there is no atomic
+replace, so taking a space back is a delete followed by a commit rather than
+one operation, and a client may apply them out of order. On Linux it is also
+the *client* that has to offer surrounding text — GTK and Qt do, much of
+Chromium does not, and no terminal does — so where a client will not answer,
+the latch never trips and stock behaviour is what you get, silently.
+
+They work where the document is a document. A terminal has already forwarded
+what it was given, so the attempt replays its buffer instead of correcting it;
+that is what `commit_only_apps` is for, and `docs/PIPELINE.md` D.10 has the
+list, the two things tried before it, and the F4 switch that overrules it.
+
 ### Where a sentence starts
 
 Capitalisation wants the same signal and cannot quite use it, because Rime
@@ -847,6 +880,17 @@ and hide every other schema — a real hazard for anyone running a distribution
 like rime-ice. The file is backed up first, only ever has lines inserted (so
 comments survive), and if it already patches `schema_list` the installer prints
 what to add instead of guessing.
+
+Before any of that, `check_payload` refuses to install a `generated/` whose
+parts disagree with each other — a word count that does not match the weights,
+the alphabetical index or the skeleton index, or a file missing altogether. The
+Lua side checks the same invariant at load, but by then the half-build is in
+the live Rime directory and the symptom is a schema with no candidates at all.
+
+Two things here were checked rather than reasoned about: the librime behaviour
+the schema relies on, against librime's own source; and the directory
+detection, dry-run against a live Weasel 0.17.4 / librime 1.13.1 install with
+rime-ice on it.
 
 ---
 

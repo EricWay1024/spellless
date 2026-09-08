@@ -3,6 +3,9 @@
 How a build gets from the repository into the input method, how to check that
 it actually did, and the ways it silently does not.
 
+If you are *using* Spellless rather than working on it,
+[TROUBLESHOOTING.md](TROUBLESHOOTING.md) is the same ground by symptom.
+
 Development happens in WSL; the input method runs on Windows, and on macOS
 through [spellless-squirrel](https://github.com/EricWay1024/spellless-squirrel).
 Nothing here can be tested end to end from the development machine — the
