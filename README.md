@@ -119,8 +119,8 @@ directory, adding Spellless to the schema list rather than replacing it.
 
 **Other setups** — a stock Weasel or Squirrel you would rather keep, the macOS
 and Linux frontends, installer flags, settings —
-[docs/INSTALL.md](docs/INSTALL.md). When a deploy does not take,
-[docs/DEPLOYING.md](docs/DEPLOYING.md).
+[docs/INSTALL.md](docs/INSTALL.md). When something does not work,
+[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 ---
 
@@ -168,12 +168,13 @@ Anything you choose twice overrules it.
 | --- | --- |
 | [docs/USING.md](docs/USING.md) | every feature, the keys, and your own vocabulary |
 | [docs/INSTALL.md](docs/INSTALL.md) | frontends, installer flags, settings |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | symptoms, and what each one usually is |
 | [DESIGN.md](DESIGN.md) | the architecture, and why each decision went that way |
 | [docs/ALGORITHM.md](docs/ALGORITHM.md) | the matcher in full, with the evaluation |
 | [docs/NOISY-CHANNEL.md](docs/NOISY-CHANNEL.md) | the same algorithm as a decision problem over noisy channels |
 | [EVALUATION.md](EVALUATION.md) | accuracy and latency, and how to reproduce them |
 | [docs/PIPELINE.md](docs/PIPELINE.md) | every step from keystroke to candidate, in pseudocode |
-| [docs/DEPLOYING.md](docs/DEPLOYING.md) | how a build reaches the input method, and how to tell |
+| [docs/DEPLOYING.md](docs/DEPLOYING.md) | how a build reaches the input method, and the ways it silently does not |
 | [docs/SNIPPETS.md](docs/SNIPPETS.md) | writing maths with an editor's snippets |
 | [docs/RELEASING.md](docs/RELEASING.md) | cutting the archive and the bundled installer |
 | [data/README.md](data/README.md) | the corpus, its provenance and its weaknesses |

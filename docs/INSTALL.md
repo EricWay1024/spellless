@@ -146,10 +146,11 @@ zzver  →  spellless 41223bf installed 2026-09-06 12:34
           cue 70/9.0, slip 10.0, learn on
 ```
 
-If something misbehaves on first deploy, the candidate comments
-(`spellless/show_debug_comments: true`) and `%APPDATA%\Rime\rime.log` are the
-two places to look. [DEPLOYING.md](DEPLOYING.md) has how a build reaches the
-input method and the ways it silently does not.
+If something misbehaves on first deploy, [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+lists the symptoms and what each one usually is. The two places to look yourself
+are the candidate comments (`spellless/show_debug_comments: true`) and
+`%APPDATA%\Rime\rime.log`; [DEPLOYING.md](DEPLOYING.md) has how a build reaches
+the input method and the ways it silently does not.
 
 ---
 
