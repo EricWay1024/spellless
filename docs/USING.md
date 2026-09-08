@@ -75,6 +75,7 @@ it works.
 | 83,414 words | plus technology, the 2020s internet, contractions, interjections, names |
 | Eight importable packs | algebra, topology, software, philosophy, culture, europe, china, britain |
 | Your own list | plain text, hand-editable, never overwritten by an upgrade |
+| One dialect only, if you want | `clr` → colour and never color, or the other way round |
 
 Four of the rows above — punctuation taking its space back, typing in the
 middle of a word, picking a word up out of the line, and word-backspace — need
@@ -153,6 +154,38 @@ A space turns it back off: `in 4 days` is ordinary text. snake_case identifiers
 **The literal text you typed is always on the first page** — in slot 7 by
 default, or first when nothing plausible was found — so pressing space on
 `kubectl` or `argmax` cannot turn it into an English word.
+
+### British or American, and nothing in between
+
+Off by default: type `clr` and you are offered `color` *and* `colour`, which is
+right when you write both and clutter when you write one. Pick a dialect in the
+<kbd>F4</kbd> menu — or set `spellless/spelling_variant` to `us`, `gb-ise` or
+`gb-ize` — and the other one's spellings stop being offered at all. Not
+demoted, not moved down the page: `color` is at no position.
+
+**`gb-ize` is Oxford spelling**, which is `-ize` *and* `-yse`. So `realize`
+survives it and `analyse` does too, and the two are not the same question —
+which is why there are two British modes rather than one.
+
+Nothing is lost by choosing wrongly.
+
+* **What you typed is still in slot 7**, as always.
+* **The first space asks.** `color` is a CSS property and `center` a LaTeX
+  environment, so committing `colour` because you reached for the space bar
+  would be the one failure worth avoiding. Over a spelling this mode refuses,
+  the first space is swallowed and the second commits. <kbd>Return</kbd> is
+  immediate, as always.
+* **Insist and it stops.** Commit `color` twice and the mode never hides it
+  from you again — the same "you have said this twice" the rest of your
+  personal vocabulary runs on, and per word, so it says nothing about
+  `favorite`.
+
+Words spelled one way everywhere are untouched, and that is not a rule about
+letters: `program` is British too, `advertise` is `-ise` on both sides of the
+Atlantic, `licence` and `practise` are British parts of speech rather than
+British spellings, and `colorado` is a place. The lists come from
+[VarCon](http://wordlist.aspell.net/), which knows all four; an ending rule
+would get every one of them wrong.
 
 ---
 

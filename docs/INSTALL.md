@@ -310,6 +310,7 @@ them in `spellless.custom.yaml` in Rime's settings folder and Deploy again.
 
 ```yaml
 patch:
+  spellless/spelling_variant: gb-ise   # British spellings only (or us, gb-ize, off)
   spellless/leading_space: true        # standard Rime: put the space before the next word
   spellless/raw_candidate_index: 1     # put what you literally typed first, always
   spellless/raw_comment: "literal"     # and mark it, so it is obvious which it is

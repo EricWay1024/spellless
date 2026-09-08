@@ -1,9 +1,38 @@
 # British and American spelling, as a switch
 
-Written 2026-09-08, revised the same day after review. **A proposal; nothing is
-built.** It describes a feature that hides the spellings of the variant you do
-not write, and an implementation whose contact with the matcher is a single
-widened predicate.
+Written 2026-09-08, revised the same day after review, and **shipped the same
+day**. Kept as written, with what actually happened recorded below, because the
+places the plan was wrong are the useful part.
+
+## What shipped, and where it differed
+
+Everything in §5 is built and tested (`tests/test_variants.lua`, 70 checks).
+Four differences worth knowing:
+
+* **The substitution had to move after ranking, and for a reason the plan did
+  not have.** §5.2 wanted aliases only for pairs beyond the typo budget.  In
+  fact *every* substitution has to happen after `rank.rank`, because the score
+  belongs to the spelling that was matched: `rls` is an exact skeleton hit for
+  `realise` and not for `realize`, so swapping first and ranking after dropped
+  the survivor from slot 8 to slot 18.
+* **So §5.7's "one widened predicate" is not true.** There are two touch points
+  in `Engine:suggest`: the filter before ranking, and the rewrite after it. Both
+  are in one function and the second is guarded, but the claim as written was
+  wrong.
+* **Unhiding needed no new file format.** §2.1 proposed a counter; committing a
+  spelling already records `> color color 2` in the personal store, and
+  `choice_confirm_count` already means "you have said this twice". So
+  `Engine:variant_insisted` is a lookup, and there is no new record type.
+* **The coverage gap ran both ways.** §1 said 29 American forms missing and
+  none the other way, which was true of the 59 pairs hand-checked and false at
+  scale: 928 members were added at SCOWL level 60 or below, of which 494 are
+  British `-ise` forms — `agonise`, `amortise`, `alphabetise`. The corpus leans
+  American on the `-ise`/`-ize` axis and British on `-our`/`-re`.
+
+The predicted risk did not materialise. Levelling changes no benchmark number:
+every fixed case file scores identically with it on and off, TOTAL holds at
+90.2% / 99.0% / 99.3%, and interleaved runs put the runtime hook inside noise.
+Australian and Canadian are still unbuilt, and still want a native check.
 
 ---
 

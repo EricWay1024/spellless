@@ -144,6 +144,31 @@ function Engine:variants(opts)
   return Variants.load(self.corpus.dir, mode)
 end
 
+--- Have you insisted on this spelling yourself?
+---
+--- The escape hatch, and the answer to "what if the dictionary is wrong about
+--- me".  Committing a refused spelling from slot 7 records it the way any
+--- other choice is recorded -- `> color color 2` in the personal file -- and
+--- once it is confirmed, the mode stops hiding it for you.  A British writer
+--- who really does write `color` in CSS says so by doing it twice, and needs
+--- no setting and no list.
+---
+--- Deliberately the same threshold and the same store as every other
+--- correction: `choice_confirm_count` is what "you have said this twice" means
+--- everywhere else in the program, and a second meaning for it would be a
+--- second thing to explain.
+function Engine:variant_insisted(word)
+  local choices = self.user:choices_for(word)
+  if not choices then return false end
+  for i = 1, #choices do
+    local c = choices[i]
+    if c.text:lower() == word and c.count >= self.cfg.choice_confirm_count then
+      return true
+    end
+  end
+  return false
+end
+
 --- Is `raw` a spelling this mode refuses to offer?
 ---
 --- The one case where hiding can corrupt a document rather than tidy it.
@@ -161,7 +186,8 @@ end
 function Engine:variant_refuses(raw, opts)
   local v = self:variants(opts)
   if not v or not raw or raw == "" then return false end
-  return v:hidden(raw:lower())
+  local word = raw:lower()
+  return v:hidden(word) and not self:variant_insisted(word)
 end
 
 --- The text to actually show and commit for a matched word.
@@ -655,7 +681,8 @@ function Engine:suggest(raw, limit, opts)
     for i = 1, #items do
       local item = items[i]
       local drop = self.user:is_suppressed(item.word)
-      if not drop and hidden and hidden:hidden(item.word) then
+      if not drop and hidden and hidden:hidden(item.word)
+         and not self:variant_insisted(item.word) then
         local instead = hidden:survivor(item.word)
         if not instead or present[instead] then
           -- The surviving spelling is already here on its own evidence, so

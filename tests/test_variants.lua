@@ -143,3 +143,37 @@ for _, pair in ipairs({ { "color", "colour" }, { "realize", "realise" },
   H.eq(math.abs(a - b) <= 1, true,
        pair[1] .. " and " .. pair[2] .. " are ranked side by side")
 end
+
+H.suite("variants: insisting on a spelling unhides it, for you")
+
+-- The escape hatch. A British writer who really does write `color` -- in CSS,
+-- in a function name -- says so by committing it, and the mode stops arguing.
+local UserDB = require("spellless.userdb")
+UserDB.forget("")
+local mine = assert(Engine.new{ data_dir = DATA,
+                                config = { spelling_variant = "gb-ise" } })
+
+local function offered(query)
+  local out, names = mine:suggest(query, 8, {}), {}
+  for i, c in ipairs(out) do names[i] = c.text or c.word end
+  return names
+end
+
+H.eq(has(offered("clr"), "color"), false, "before: color is hidden")
+H.eq(mine:variant_refuses("color", {}), true, "and the space bar asks")
+
+-- Once: not yet.  This is the same "said it twice" rule the rest of the
+-- personal store uses, so a single accident does not change anything.
+mine:learn_choice("color", "color")
+H.eq(mine:variant_insisted("color"), false, "one commit is not insisting")
+H.eq(has(offered("clr"), "color"), false, "so it is still hidden")
+
+mine:learn_choice("color", "color")
+H.eq(mine:variant_insisted("color"), true, "twice is")
+H.eq(has(offered("clr"), "color"), true, "and clr offers it again")
+H.eq(has(offered("clr"), "colour"), true, "beside colour, which never left")
+H.eq(mine:variant_refuses("color", {}), false, "the space bar stops asking")
+
+-- One word only: insisting on `color` says nothing about `favorite`.
+H.eq(mine:variant_insisted("favorite"), false, "the escape hatch is per word")
+H.eq(has(offered("fvrt"), "favorite"), false, "favorite is still hidden")
