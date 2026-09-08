@@ -1597,9 +1597,15 @@ because it can never remove one. The only exception is §D.10.
 ### D.1 The trailing space rides on the word
 
 ```
-M.func: trail ← cfg.auto_space ? " " : ""
+M.func: trail ← (cfg.auto_space and not cfg.leading_space
+                 and RESUMED ≠ "1") ? " " : ""
         every candidate is yielded as  c.text .. trail
 ```
+
+Two exceptions, and both are about a space that is somewhere else already:
+`leading_space` puts it on the front of the *next* word instead, and `RESUMED`
+(§D.6) says this word was taken back out of the middle of a line, where its
+space never left the document.
 
 Whichever key commits the word — space bar, a number key, a click — puts the
 space in too. Punctuation is the exception that needs no retraction: it ends the
@@ -1607,9 +1613,14 @@ word *before* the space is written and supplies the one that follows itself.
 
 Two earlier designs failed, and both failures are instructive:
 
-* **A leading space on the next word.** Same final text, but the candidate list
-  showed a space on every entry, and any commit that bypassed our candidates — a
-  Shift tap mid-word, anything typed in plain-ASCII mode — lost it.
+* **A leading space carried by the next candidate.** Same final text, but the
+  candidate list showed a space on every entry, and any commit that bypassed our
+  candidates — a Shift tap mid-word, anything typed in plain-ASCII mode — lost
+  it. (`leading_space` is the surviving form of this idea and avoids both
+  problems by writing the space on the *first letter* of the next word rather
+  than onto a candidate. It is off by default: it costs a line that ends flush
+  with no space after it, which is the right trade only for a frontend that
+  cannot take a committed space back.)
 * **Committing the space when the next word starts.** That needed the processor
   ahead of `ascii_composer`, where nothing ever composes in ASCII mode — so "no
   composition" was true for *every* keystroke and it put a space before every
@@ -1827,13 +1838,16 @@ processor below.
 
 ```
 M.absorb.func(key, env):                                 // spellless.lua
+    after_backspace ← BACKSPACE = "1"                    // read BEFORE it is cleared
     ... note-keeping (BACKSPACE, LITERAL, PICKED) ...
+    if not context:is_composing(): RESUMED ← ""          // a finished word drops its note
     if not cfg.absorb_fragment: return kNoop
     if not may_edit_document(context, engine): return kNoop
     if modifiers, or not a letter, or already composing: return kNoop
     document ← document_tail(context)                    // NEVER the commit history
     fragment ← document's trailing ^[%a][%a']*$
     if not fragment: return kNoop
+    RESUMED ← after_backspace ? "" : "1"                 // does it still need a space?
     commit_text("\8" × #fragment)                        // take it out of the document
     context:push_input(fragment)                         // put it in the composition
     return kNoop                                         // the speller then appends the letter
@@ -1847,6 +1861,21 @@ commit — with no special case anywhere.
 
 Only from the document, because absorbing means *deleting*, and Rime's own commit
 history is a guess — cleared by the very Backspace that creates this situation.
+
+**The space it brings back with it, or does not.** Absorbing takes the *letters*
+out and leaves everything else, so whatever separated that word from what follows
+it is still sitting after the caret. Pick a word up from the middle of a line —
+a caret put there by a click or an arrow key — and the space after it is still
+there, so the one every candidate carries (`trail`, §D.1) would make two. Pick
+one up after a Backspace, which is the case the feature was written for, and
+there is nothing after the caret at all, so the space is due as usual. `RESUMED`
+says which, the translator reads it, and Return (§D.4) answers to it too.
+
+All that separates the two is the key before the letter, and that is all this
+knows: a Backspace somewhere else, then a click, then a letter still reads as the
+second case. Nothing here can see past the caret — `SurroundingText.cpp` reads
+the text in front of it and no further — so this is the honest end of what is
+knowable, and being wrong costs one space either way.
 
 ### D.7 Digit selection, the `PICKED` note, and notation
 
@@ -2479,6 +2508,7 @@ string or situation that put it there.
 | `PICKED` limited to `1..page_size`, no modifiers | `8` and `9` name nothing on a seven-candidate page |
 | `page > 9 → 9` | there are only nine digit keys |
 | `BACKSPACE` kept in `M.absorb` | it is the only gear that sees every key |
+| `RESUMED` set from the key *before* the letter | nothing can see past the caret, so why the caret is flush against a word is the only evidence there is about whether a space follows it |
 | word-backspace asks for `#word − 1` | a swallowed keystroke made Backspace work every other press wherever the request went unanswered |
 | absorb reads only the document | the very Backspace that creates the situation clears the history |
 | the closing `$` only closes a run *we* opened | `$PATH` in a terminal |

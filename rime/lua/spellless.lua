@@ -73,6 +73,12 @@ local PICKED = "spellless_picked"
 -- the translator and the gear that sets it is a processor, and they get
 -- separate `env` tables.
 local FORCED_CASE = "spellless_case"
+-- Set while the composition was started by taking a word back out of the
+-- middle of the document, where whatever followed that word -- a space, a
+-- comma -- is still sitting there.  The word then commits without the
+-- automatic trailing space, because the separator it needs is already in the
+-- document and a second one would show as a gap.
+local RESUMED = "spellless_resumed"
 -- Set while the composition ends in the `qq` prefix and the next key may be a
 -- command.  Stamped with the input it was armed on, so an arming cannot
 -- outlive the word that caused it.
@@ -540,8 +546,10 @@ function M.func(input, seg, env)
   -- bar, a number, a click -- puts the space in too.  Unless `leading_space`
   -- is on, in which case the next word brings its own and this one goes bare;
   -- see the note in the processor.
-  local trail = (engine.cfg.auto_space and not engine.cfg.leading_space)
-      and " " or ""
+  -- A word taken back out of the middle of a line is the exception: its
+  -- separator is still in the document.  See RESUMED.
+  local trail = (engine.cfg.auto_space and not engine.cfg.leading_space
+                 and context:get_property(RESUMED) ~= "1") and " " or ""
 
   for i = 1, #candidates do
     local c = candidates[i]
@@ -630,9 +638,18 @@ function M.absorb.func(key, env)
   -- key: a letter is consumed by the speller and never reaches the processor
   -- below.  That makes it the only place the "was the last key a Backspace"
   -- flag can honestly be kept.
+  --
+  -- Read before it is cleared: it is the only evidence available about *why*
+  -- the caret is sitting flush against a word, and the answer decides whether
+  -- the word will need a space after it.  See RESUMED below.
+  local after_backspace = context:get_property(BACKSPACE) == "1"
   if key.keycode ~= XK_BackSpace then
     context:set_property(BACKSPACE, "")
   end
+  -- A composition that has ended takes its note with it.  Here rather than in
+  -- the commit notifier because a composition can also end by being committed
+  -- from this file -- punctuation, Return -- and those never reach it.
+  if not context:is_composing() then context:set_property(RESUMED, "") end
   if key.keycode ~= XK_space then
     context:set_property(LITERAL, "")
   end
@@ -673,6 +690,24 @@ function M.absorb.func(key, env)
 
   -- Take it out of the document and put it in the composition.  kNoop, so the
   -- speller then appends the letter that started all this.
+  --
+  -- Only the letters come out; whatever separated the word from what follows
+  -- it is untouched.  So if the caret was put here by a click or an arrow key
+  -- -- the middle of a line, a word being corrected in place -- the space
+  -- after that word is still there, and the one every candidate carries would
+  -- make two.  Say so, and the translator sends the word back bare.
+  --
+  -- A Backspace is the exception, and it is the case this feature was written
+  -- for: delete the space after "so" and start typing again, and there is
+  -- nothing after the caret to separate the word from.  Then the space is due
+  -- as usual.
+  --
+  -- The evidence is the key before this one and that is all it is: Backspace
+  -- somewhere else, then a click, then a letter still reads as the first case.
+  -- Nothing here can see past the caret -- the frontend reads the text in
+  -- front of it and no further -- so this is the honest end of what is
+  -- knowable, and the cost of being wrong is one space either way.
+  context:set_property(RESUMED, after_backspace and "" or "1")
   env.engine:commit_text(string.rep("\8", #fragment))
   context:push_input(fragment)
   return kNoop
@@ -893,7 +928,8 @@ function M.processor.func(key, env)
      and engine.cfg.auto_space and engine.cfg.enter_space
      and not engine.cfg.leading_space then
     local text = context.input
-    env.engine:commit_text(text .. " ")
+    env.engine:commit_text(
+        text .. (context:get_property(RESUMED) == "1" and "" or " "))
     engine:learn(text)
     context:set_property(SENTENCE, "")
     context:clear()

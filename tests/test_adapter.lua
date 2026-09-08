@@ -476,8 +476,54 @@ mock.history:clear(); mock.history:push("exact", "so")
 n = #mock.committed
 H.eq(spellless.absorb.func(mock.key(string.byte("o")), env), 2, "passed through")
 H.eq(#mock.committed, n, "the commit history is not good enough to delete on")
+
+-- The space it brings back with it, or does not.
+--
+-- Absorbing takes the letters out and leaves everything else, so a word picked
+-- up from the middle of a line still has its space sitting after the caret and
+-- the one every candidate carries would make two.  A word picked up after a
+-- Backspace has nothing after it, and needs one.  All that separates the two
+-- is the key before the letter.
+do
+  local XK_BS = 0xff08
+  local function resumed_candidate(previous_key)
+    ctxA.input = ""
+    ctxA:set_property("spellless_resumed", "")
+    ctxA:set_property("spellless_backspace", "")
+    ctxA:set_property("surrounding_text", "I think so")
+    -- Backspace with nothing composing is what sets the flag; anything else
+    -- clears it, which is what a click or an arrow key looks like from here.
+    spellless.absorb.func(mock.key(previous_key), env)
+    if previous_key == XK_BS then
+      ctxA:set_property("spellless_backspace", "1")   -- written by the processor
+    end
+    spellless.absorb.func(mock.key(string.byte("o")), env)
+    ctxA.input = ctxA.input .. "o"
+    local out = mock.translate(spellless, ctxA.input,
+                               mock.segment({ "abc" }, 0, #ctxA.input), env)
+    return out[1].text
+  end
+
+  H.ok(resumed_candidate(XK_BS):find(" $"),
+       "a word resumed after a Backspace still carries its space")
+  local mid = resumed_candidate(0xff51)   -- Left arrow: a caret moved by hand
+  H.ok(not mid:find(" $"),
+       "one picked up in the middle of a line does not: " .. mid)
+
+  -- And the note does not outlive the word.  A composition that has ended is
+  -- the signal, because punctuation and Return end one without the commit
+  -- notifier ever hearing about it.
+  ctxA.input = ""
+  ctxA:set_property("surrounding_text", "I think so ")
+  spellless.absorb.func(mock.key(string.byte("z")), env)
+  H.eq(ctxA:get_property("spellless_resumed"), "",
+       "and the next word starts clean")
+  ctxA.input = ""
+end
+
 env.spellless.cfg.absorb_fragment = false
 ctxA:set_property("surrounding_text", "")
+ctxA:set_property("spellless_resumed", "")
 mock.history:clear()
 
 H.suite("adapter: Backspace twice deletes the whole word")
