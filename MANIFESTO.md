@@ -43,19 +43,36 @@ thousands of keys, so from day one the consensus was that **what you input is
 not what you commit.** You type a pronunciation, the machine offers candidates,
 you pick one. Hundreds of millions of people write this way every day.
 
-The economy of it is easy to miss. Full pinyin `zhongguo` gives `中国`, but so
-does `zhguo`, or `zg`. Under the Xiaohe Shuangpin encoding, each initial and
-each final take one letter — `zhong` is `vs`, `guo` is `go` — so `中国` is four
-keystrokes, `vsgo`. Against that:
+What matters here is not the writing system. It is the habit the arrangement
+produced: **nobody types the full spelling.** Full pinyin `zhongguo` gives
+`中国`, but so does `zhguo`, and so does `zg`. You shorten as far as you guess
+the list can still find it, glance, and pick — and the shortening is improvised
+each time. The same person types `描述` as `msh` in one line and `mshu` in the
+next, depending on how sure they feel.
 
-| English | | Chinese | |
-| --- | ---: | --- | ---: |
-| `describe` | 8 | `描述` (`mnuu`) | 4 |
-| `successful` | 10 | `成功` (`iggs`) | 4 |
-| `understanding` | 13 | `理解` (`lijp`) | 4 |
+| | English | 全拼, as people actually type it | 小鹤双拼 |
+| --- | --- | --- | --- |
+| `描述` | `describe` (8) | `msh` (3), `mshu` (4), `miaosh` (6) | `mnuu` (4) |
+| `成功` | `successful` (10) | `cg` (2), `chg` (3) | `iggs` (4) |
+| `理解` | `understanding` (13) | `lj` (2), `lij` (3) | `lijp` (4) |
 
-English on a desktop never got this, because a full keyboard was taken to mean
-you could spell perfectly and needed no help. That is simply not true.
+The last column is Xiaohe Shuangpin, which encodes every initial and every
+final as a single letter — `zhong` is `vs`, `guo` is `go` — so any character is
+exactly two keystrokes. It is a genuine gain bought with a genuine cost: a
+mapping unrelated to how anything is spelled, learned up front, before it saves
+you anything. Most people never learn one, and they do not need to. The middle
+column is already most of the benefit and costs nothing to start.
+
+**Spellless is the middle column, not the last one.** There is no scheme to
+memorise and no official abbreviation for any word. You shorten as much as you
+feel like, differently on different days — `satfcatn`, `stfcatn` and `strtfctn`
+all reach `stratification` — and the machine ranks the candidates, shows you
+the list, and learns the shortenings you keep choosing. That last part matters:
+in an encoding scheme the abbreviation is fixed in advance and you adapt to it,
+whereas here it is invented on the fly and the machine adapts to you.
+
+English on a desktop never got any of this, because a full keyboard was taken
+to mean you could spell perfectly and needed no help. That is simply not true.
 
 ## The arrangement
 
