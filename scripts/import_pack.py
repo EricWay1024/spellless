@@ -36,12 +36,19 @@ the personal store; `--count` if you disagree.
 
 Importing is idempotent.  A word already in the file keeps whatever count it
 has earned, because a pack should never undo your own history.
+
+**Stop the input method first.**  A running frontend holds this file in memory
+and writes its copy back when it stops, deploys or flushes, so words added
+underneath it disappear at the next deploy with no error anywhere.  This script
+refuses while one is running; `--force` overrides and usually loses the words.
 """
 
 from __future__ import annotations
 
 import argparse
+import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -116,6 +123,46 @@ def existing_words(store: Path) -> set[str]:
     return keys
 
 
+# Frontends that hold the personal store open.  A running one keeps its own
+# copy in memory and writes it back over the file when it stops, deploys or
+# flushes -- so a word added underneath it survives only until the next of
+# those, and then vanishes with no error anywhere.  See docs/DEPLOYING.md,
+# "The personal vocabulary is written by the running server".
+FRONTEND_PROCESSES = ("WeaselServer.exe", "Squirrel", "fcitx5", "ibus-daemon")
+
+
+def running_frontends() -> list[str]:
+    """Names of Rime frontends that appear to be running.
+
+    Best effort, and deliberately fails *open*: if we cannot tell -- no
+    tasklist, no pgrep, an unreadable process table -- the answer is "none
+    seen" and the import proceeds.  Refusing on a guess would be worse than
+    the problem, and `--force` exists for the rest.
+    """
+    found: list[str] = []
+    tasklist = None
+    if os.name == "nt":
+        tasklist = "tasklist"
+    elif Path("/mnt/c/Windows/System32/tasklist.exe").exists():
+        tasklist = "/mnt/c/Windows/System32/tasklist.exe"   # WSL
+    if tasklist:
+        try:
+            out = subprocess.run([tasklist], capture_output=True, text=True,
+                                 timeout=20).stdout
+            if "WeaselServer.exe" in out:
+                found.append("WeaselServer.exe")
+        except (OSError, subprocess.SubprocessError):
+            pass
+    for name in ("Squirrel", "fcitx5", "ibus-daemon"):
+        try:
+            if subprocess.run(["pgrep", "-x", name], capture_output=True,
+                              timeout=10).returncode == 0:
+                found.append(name)
+        except (OSError, subprocess.SubprocessError):
+            pass
+    return found
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -125,6 +172,9 @@ def main() -> int:
     ap.add_argument("--user-dir", help="Rime user directory, if it cannot be found")
     ap.add_argument("--count", type=int, default=4,
                     help="starting familiarity for imported words (default 4)")
+    ap.add_argument("--force", action="store_true",
+                    help="import even though a frontend is running, which will "
+                         "usually lose the words at its next flush")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
 
@@ -195,13 +245,43 @@ def main() -> int:
         print(f"would add {added} words")
         return 0
 
+    # Writing under a running frontend loses the words, so refuse rather than
+    # succeed and be undone.  Only when we are writing the real store: `--to`
+    # names a file nothing else owns.
+    running = [] if args.to else running_frontends()
+    if running and not args.force:
+        print(f"\nnot importing: {', '.join(running)} is running.", file=sys.stderr)
+        print(
+            "\nThe frontend keeps its own copy of this file in memory and writes it\n"
+            "back when it stops, deploys or flushes -- so these words would be added\n"
+            "and then silently disappear at the next deploy.  Stop it first:\n"
+            "\n"
+            "    <frontend>/WeaselServer.exe /q       # Windows; quits, flushing first\n"
+            "    then re-run this, then start it again\n"
+            "\n"
+            "macOS and Linux: quit the input method from its menu, or\n"
+            "`fcitx5-remote -e` / `ibus exit`, import, and start it again.\n"
+            "\n"
+            "--force imports anyway, and usually loses them.  --dry-run is safe.\n"
+            "See docs/DEPLOYING.md, \"The personal vocabulary is written by the\n"
+            "running server\".",
+            file=sys.stderr)
+        return 1
+
     store.parent.mkdir(parents=True, exist_ok=True)
     body = store.read_text(encoding="utf-8", errors="replace") if store.exists() else ""
     if body and not body.endswith("\n"):
         body += "\n"
     store.write_text(body + "\n".join(lines) + "\n", encoding="utf-8")
     print(f"added {added} words, left {skipped} alone")
-    print("\nRestart the input method to pick them up, or they arrive at the next start.")
+    if args.to:
+        pass                       # a file nothing else owns; no advice to give
+    elif running:
+        print("\n--force was given and a frontend is running: expect these words to be\n"
+              "overwritten at its next flush.  Check with `zzver` after a restart.")
+    else:
+        print("\nStart the input method and they are there: this file is read once, at\n"
+              "startup, and written back when the frontend stops.")
     return 0
 
 
