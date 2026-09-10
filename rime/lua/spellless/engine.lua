@@ -801,20 +801,32 @@ function Engine:suggest(raw, limit, opts)
   -- than from a measurement of English.  So it is placed rather than scored:
   -- confirmed means first, and no amount of frequency argues with it.
   --
-  -- Except against the input itself.  Type a word you also use as a shorthand
-  -- for another -- "were" for `we're`, "its" for `it's`, "windows" for
-  -- `window` -- and both readings end up confirmed, at which point the tally
-  -- is a race between two things you meant on different days: `its` leads
-  -- `it's` 8 to 7 here and one keystroke turns that over, after which every
-  -- "its" you type comes out apostrophised.  A count that close is not
-  -- evidence about English, and the two readings are not equally reachable:
-  -- `it's` is one apostrophe away and `its` typed as `its` has no other
-  -- spelling to ask for.  So when you have confirmed both, the reading that is
-  -- what you actually typed leads and the other follows it.
+  -- Except against a word.  Type an English word, spelled correctly, and that
+  -- word is what you get -- no tally about what you once meant by it argues
+  -- with a thing you have just spelled right.  "start" is `start`, however
+  -- many times you have reached `started` through it; "its" is `its`,
+  -- "windows" is `windows`, "were" is `were`.  The correction keeps the slot
+  -- behind, one keystroke away, which is where it was before you confirmed it
+  -- and is all confirming it ever needed to buy.
   --
-  -- Only when both are confirmed.  Where you have said one thing and one thing
-  -- only -- "dont" for `don't`, "diff" for `different` -- nothing competes and
-  -- the correction still leads, which is what the store is for.
+  -- This replaces a narrower rule that asked whether *both* readings had been
+  -- confirmed.  That worked for `its` and `were`, where the literal had been
+  -- picked often enough to prove itself, and left `start` losing to `started`
+  -- on a single pick fewer -- a threshold nobody typing can see, deciding
+  -- something they can.  Whether the input is a word is not a threshold.
+  --
+  -- And it costs nothing that the store was for, because the dictionary
+  -- already distinguishes the two cases people mean here.  Where the
+  -- apostrophe form *is* the entry -- `dont` is a key whose form is `don't`,
+  -- `im` a key whose form is `I'm` -- the exact hit is the apostrophe form and
+  -- this rule hands it the slot.  Where the bare spelling is a word in its own
+  -- right -- `cant`, `hes`, `ill`, `lets`, `whats` -- the word leads, and the
+  -- one keystroke that says "not for me" is the one that already exists:
+  -- forget it, it leaves your dictionary, and the contraction moves up.
+  --
+  -- An input that is not a word is untouched, which is most of the store:
+  -- "teh", "mthmtcs", "nbhood", "pcutation".  Nothing competes with a
+  -- confirmed correction there, and it still leads.
   local promoted = nil
   local choices = not (opts and opts.literal_first) and self.user:choices_for(query)
   if choices then
@@ -844,8 +856,30 @@ function Engine:suggest(raw, limit, opts)
         for j = #out, 1, -1 do
           if out[j].text == text then table.remove(out, j) end
         end
-        table.insert(out, 1, { text = text, source = "chosen",
-                               score = cfg.base_exact + choice.count, cost = 0 })
+        -- Behind the exact hit, when the input is one.
+        --
+        -- The dictionary already answers "did you type a word": it is looked
+        -- up again after suppression rather than trusted from `has_exact`,
+        -- because a word you have taken out of it is no longer one of yours
+        -- and must not go on holding the slot.  Rescanning `out` each time is
+        -- also what keeps the index honest -- the dedupe above may have just
+        -- removed the exact entry, which is how a confirmed choice that *is*
+        -- the literal reading ends up leading rather than doubling it.
+        --
+        -- And a capital is not a rival reading.  `OK` for "ok" is the word you
+        -- typed, spelled the way you taught; pushing it behind the exact hit
+        -- would answer a question about capitalisation with a rule about which
+        -- word you meant, and knock `OK` back down to `ok`.  Same word, same
+        -- slot.
+        local at = 1
+        if choice.text:lower() ~= query then
+          for j = 1, #out do
+            if out[j].source == "exact" then at = j + 1 break end
+          end
+        end
+        table.insert(out, math.min(at, #out + 1),
+                     { text = text, source = "chosen",
+                       score = cfg.base_exact + choice.count, cost = 0 })
         promoted = text
       end
     end
@@ -1073,8 +1107,21 @@ function Engine:forget(text)
   -- And every correction that produced it.  Forgetting the word but keeping
   -- "this is what you meant by cli" would leave it leading the list for ever,
   -- which is exactly what the key is for undoing.
-  for typed in pairs(self.user.choices) do
-    if self.user:forget_choice(typed, text) then gone = true end
+  --
+  -- Matched on the lowercased word, not on `text`.  What the caller hands us
+  -- is the candidate as it was on screen, and at the start of a sentence that
+  -- is "Started" -- while `learn_choice` deliberately strips a plain sentence
+  -- capital before storing, so the row says "started".  The two could
+  -- therefore never match, and the key removed the word, reported success,
+  -- rewrote the file, and left the row that was actually doing the promoting.
+  -- `forget_word` above has always been case-insensitive; this is the same
+  -- word, so it is the same test.
+  for typed, byword in pairs(self.user.choices) do
+    for chosen in pairs(byword) do
+      if chosen:lower() == word and self.user:forget_choice(typed, chosen) then
+        gone = true
+      end
+    end
   end
   -- Nothing personal to forget, and the word is the dictionary's own: then
   -- the key means the other thing it could mean.  `hae` is Scots for `have`

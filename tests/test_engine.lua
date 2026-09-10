@@ -649,6 +649,17 @@ do
   e:forget("kubectl!")
   H.eq(first("kubectl"), before, "forgetting the word forgets the correction too")
 
+  -- Including when the candidate on screen carried a sentence capital.  The
+  -- key is handed the candidate as it was displayed -- "Hello" at the start of
+  -- a sentence -- while `learn_choice` strips a plain sentence capital before
+  -- storing, so the row says "hello".  Matched on the text, the two could
+  -- never meet: the word went, the key reported success, the file was
+  -- rewritten, and the row that was doing the promoting stayed.
+  e:learn_choice("teh", "hello"); e:learn_choice("teh", "hello")
+  H.eq(first("teh"), "hello", "the correction leads again")
+  H.ok(e:forget("Hello"), "forgetting the capitalised form is not a no-op")
+  H.ok(first("teh") ~= "hello", "and it takes the lowercase row with it")
+
   -- Return commits the raw input, which is a refusal to choose rather than a
   -- choice; the adapter never calls this for it, and it declines junk anyway.
   H.eq(e:learn_choice("", "x"), nil, "an empty input records nothing")
@@ -706,13 +717,19 @@ do
   os.remove(path)
 end
 
-H.suite("engine: when both readings are confirmed, the one you typed leads")
--- The failure this is about: "were" for `we're`, "its" for `it\'s`, "windows"
--- for `window`.  Both readings get confirmed, the counts then run neck and
--- neck -- 8 to 7 in the live store -- and a single keystroke turns the list
--- over, after which every "its" comes out apostrophised.  The two are not
--- equally reachable: `we\'re` is one apostrophe away and `were` typed as
--- "were" has no other spelling to ask for.
+H.suite("engine: a word you spelled right is not displaced by the store")
+-- The failure this is about: typing "start" and being offered `started`,
+-- because `started` had been picked twice and a confirmed choice was placed
+-- rather than scored.  `start` scores 121.7 against its 86.0 and still lost.
+--
+-- The rule now is the one thing a typist can see: you typed a word, spelled
+-- correctly, so that word leads.  The correction keeps the slot behind it,
+-- which is where it sat before it was ever confirmed.
+--
+-- This replaced a narrower rule that asked whether *both* readings had been
+-- confirmed.  It got `its` and `were` right and left `start` losing on one
+-- pick fewer -- a threshold nobody typing can see, deciding something they
+-- can.
 do
   local path = os.tmpname()
   require("spellless.userdb").forget(path)
@@ -720,21 +737,44 @@ do
   local function first(q) return e:suggest(q, 5)[1].text:gsub("%s+$", "") end
   local function second(q) return e:suggest(q, 5)[2].text:gsub("%s+$", "") end
 
-  -- One confirmed reading and nothing against it still leads, which is the
-  -- whole point of the store: this is "dont" for `don\'t`, and "dont" is a
-  -- word in the dictionary too.
+  -- The case itself.  One pick of the literal, two of the correction, and the
+  -- word still leads: the old rule wanted two of each.
+  e:learn_choice("start", "started"); e:learn_choice("start", "started")
+  e:learn_choice("start", "start")
+  H.eq(first("start"), "start", "a word you typed exactly leads")
+  H.eq(second("start"), "started", "and the correction keeps the slot behind")
+
+  -- No number of selections turns it over.  The count is the thing being
+  -- distrusted, so it cannot be the thing that settles it.
+  for _ = 1, 8 do e:learn_choice("start", "started") end
+  H.eq(first("start"), "start", "however far ahead the correction gets")
+
+  -- Never picked the literal at all, and it still leads.  The old rule needed
+  -- `own` to exist; this one asks the dictionary instead.
   e:learn_choice("were", "we\'re"); e:learn_choice("were", "we\'re")
-  H.eq(first("were"), "we\'re", "one confirmed reading leads, word or not")
+  H.eq(first("were"), "were", "a word leads without ever having been picked")
+  H.eq(second("were"), "we\'re", "the contraction is one keystroke away")
 
-  -- Confirm the other one and the tally stops deciding.
-  e:learn_choice("were", "were"); e:learn_choice("were", "were")
-  H.eq(first("were"), "were", "with both confirmed, the input\'s own reading leads")
-  H.eq(second("were"), "we\'re", "and the other keeps the slot below it")
+  -- And where the apostrophe form *is* the dictionary entry, this rule hands
+  -- it the slot rather than taking it away: `dont` is a key whose form is
+  -- `don\'t`, so the exact hit is already the contraction.  Nothing to
+  -- configure, and nothing for the store to do.
+  H.eq(first("dont"), "don\'t", "an apostrophe form that is the entry still leads")
+  H.eq(first("im"), "I\'m", "and the same for `im`")
 
-  -- Not a tiebreak that a bigger count wins: the counts are what is being
-  -- distrusted, so no number of selections turns it over.
-  for _ = 1, 6 do e:learn_choice("were", "we\'re") end
-  H.eq(first("were"), "were", "however far ahead the other reading gets")
+  -- The escape hatch for the other kind, where the bare spelling is a word in
+  -- its own right.  `cant` is hypocrisy or a tilt, and if you never write it,
+  -- one press of the forget key takes it out of your dictionary -- after
+  -- which the contraction is what a correct spelling resolves to.
+  e:learn_choice("cant", "can\'t"); e:learn_choice("cant", "can\'t")
+  H.eq(first("cant"), "cant", "a word of its own leads while it is yours")
+  e:forget("cant")
+  H.eq(first("cant"), "can\'t", "and forgetting it hands the slot over")
+
+  -- An input that is not a word is untouched, which is most of the store.
+  e:learn_choice("nbhood", "neighbourhood")
+  e:learn_choice("nbhood", "neighbourhood")
+  H.eq(first("nbhood"), "neighbourhood", "a confirmed correction still leads")
 
   -- A capital you taught is the input\'s own reading, not a rival to it, so
   -- this must not knock `OK` back down to `ok`.
