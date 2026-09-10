@@ -60,6 +60,33 @@ H.eq(us:hidden("licence"), true, "American writes license for both")
 H.eq(gb:hidden("practise"), false, "practise is the British verb")
 H.eq(us:hidden("practise"), true, "American writes practice for both")
 
+-- Trap 5: VarCon writes one line per *sense*, and a sense in which a word does
+-- not vary gets a line with a single spelling on it.  Those lines were skipped
+-- whole, so the only statement VarCon makes about the word outside the sense
+-- that varies was thrown away:
+--
+--     A CV: check / B C: cheque   | bank      <- the only line read
+--     A B:  check                 | verify    <- skipped, and it is the one
+--                                                that says check is British
+--
+-- `check` came out American-only, and with `gb-ise` on it was hidden and
+-- `cheque` offered in its place -- for the verb, in every sentence.  `checked`
+-- became `chequed` and `checking` `chequing`, which are words in no dialect.
+for _, word in ipairs{ "check", "checks", "checked", "checking", "checker",
+                       "bark", "story", "tire", "meter", "draft", "curb",
+                       "ass", "program", "gram", "prize", "premise", "wolfs" } do
+  H.eq(gb:hidden(word), false, word .. " is written in British too")
+  H.eq(us:hidden(word), false, "and in American")
+  H.eq(ox:hidden(word), false, "and in Oxford")
+end
+
+-- The other direction is untouched: a spelling genuinely confined to one
+-- dialect is still hidden in the others, sense-restricted line or not.
+H.eq(us:hidden("cheque"), true, "American writes check for the bank draft")
+H.eq(us:hidden("storey"), true, "and story for the floor of a building")
+H.eq(us:hidden("tyre"), true, "and tire for the wheel")
+H.eq(gb:hidden("cheque"), false, "while British keeps cheque")
+
 -- Trap 1: Oxford keeps -ize *and* -yse, so the two axes part company.
 H.eq(ox:hidden("realise"), true, "Oxford writes realize")
 H.eq(ox:hidden("realize"), false, "and keeps it")

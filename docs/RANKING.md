@@ -271,9 +271,10 @@ Honestly stated in [ALGORITHM.md](ALGORITHM.md) §8.2 and
 [PIPELINE.md](PIPELINE.md) §G.1, and not repeated here except for the headline:
 **the scoring function is linear, hand-designed, and fitted on the set it is
 scored on.** The bases and weights came from coordinate descent over
-`tests/cases/*.tsv`, and the benchmark that reports 90.2% top-1 draws from the
-same generator. Held-out numbers exist (ten fresh seeds, ± 0.6) and are the ones
-worth believing.
+`tests/cases/*.tsv`, and the in-sample benchmark draws from the same generator.
+**The number to quote is 89.8% ± 0.6 top-1 held out, 99.3% ± 0.2 top-5** — ten
+fresh seeds the tuning never saw; see EVALUATION.md. The in-sample total reads
+about a point and a half higher and is not the number worth believing.
 
 The placements are not fitted at all. They are arguments, and every one of them
 is written down beside the code that implements it — which is the only defence a

@@ -80,6 +80,26 @@ highest-value data change available — see DESIGN.md § 10.
 | **Lines as vendored** | 32,543 |
 | **SHA-256** | `340858b990255ec409adcf7faaf2b992aa2a76a16f30b4b9e2663863191dba33` |
 
+**Read every line, including the ones with a single spelling on them.** VarCon
+writes one line per *sense*, and a sense in which a word does not vary between
+dialects gets a line of its own carrying just that word and its tags. Skipping
+those -- they map nothing, so they look like nothing -- throws away the only
+statement VarCon makes about a word outside the sense that does vary:
+
+```
+A CV: check / B C: cheque   | bank      the sense that varies
+A B:  check                 | verify    the sense that does not
+```
+
+Read only the first and `check` is American-only, so a British mode hides it and
+offers `cheque` — for the verb, in every sentence, with `checked` becoming
+`chequed` and `checking` `chequing`, which are words in no dialect. The same
+silence hid `bark` behind `barque`, `story` behind `storey`, `tire` behind
+`tyre`, `draft` behind `draught`, `meter` behind `metre`, `program` behind
+`programme` and `ass` behind `arse`. Fixed in `scripts/build_variants.py`, and
+`tests/test_variants.lua` trap 5 pins it: a spelling written in a dialect in
+**any** sense carries that dialect and is never hidden in it.
+
 Chosen because the distinctions this feature needs are already in it and
 cannot be recovered by rule. `program` is tagged American *and* British, so it
 is never hidden; `licence` and `practise` are tagged British on the noun and
