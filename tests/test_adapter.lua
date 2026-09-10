@@ -1454,6 +1454,49 @@ do
   ctx0.input = "mathe"
   H.eq(press("c"), 2, "an arming from another word does not fire")
 
+  -- `qqd` reaches the candidate that was highlighted, not the first one.
+  --
+  -- The trap this is about: `qq` is text, so by the time the command runs the
+  -- input is `wontqq`, the segment has been re-translated for it, and the
+  -- highlight is back at the top.  Typing it on the third candidate forgot
+  -- whatever led `wontqq` and reported success -- so the word the typist was
+  -- looking at stayed, and there was nothing on screen to say so.
+  do
+    local forgotten
+    local real = env.spellless.forget
+    env.spellless.forget = function(_, text) forgotten = text; return true end
+
+    ctx0:set_property("spellless_armed", "")
+    ctx0:set_property("spellless_highlight", "")
+    mock.selected_index, mock.selected = 3, { text = "want " }
+    ctx0.input = "wont"
+    H.eq(press("q"), 2, "the first q is text here too")
+    H.eq(ctx0:get_property("spellless_highlight"), "wont\twant ",
+         "and the highlight is remembered before the input moves")
+
+    -- The re-translation the prefix causes: a new list, and no highlight in it.
+    mock.selected_index, mock.selected = 0, { text = "won't " }
+    ctx0.input = "wontq"
+    H.eq(press("q"), 2, "the second q does not overwrite it with a fresh list")
+
+    ctx0.input = "wontqq"
+    ctx0:set_property("spellless_armed", "wontqq")
+    H.eq(press("d"), 1, "the command key is consumed")
+    H.eq(forgotten, "want", "and it forgot what was highlighted, not what leads")
+
+    -- A memo from another word is not spendable here.
+    forgotten = nil
+    ctx0:set_property("spellless_highlight", "other\telsewhere")
+    ctx0.input = "wontqq"
+    ctx0:set_property("spellless_armed", "wontqq")
+    H.eq(press("d"), 1, "the command still runs")
+    H.eq(forgotten, "won't", "and falls back to the live selection")
+
+    env.spellless.forget = real
+    mock.selected_index, mock.selected = 0, nil
+    ctx0:set_property("spellless_highlight", "")
+  end
+
   ctx0:set_property("spellless_case", "")
   ctx0:set_property("spellless_armed", "")
   ctx0.input = ""

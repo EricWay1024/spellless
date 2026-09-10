@@ -86,6 +86,9 @@ local RESUMED = "spellless_resumed"
 -- command.  Stamped with the input it was armed on, so an arming cannot
 -- outlive the word that caused it.
 local ARMED = "spellless_armed"
+-- The candidate that was highlighted a keystroke ago, and the input it was
+-- highlighted in.  See the memo in process_key.
+local HIGHLIGHT = "spellless_highlight"
 local SENTENCE_YES, SENTENCE_NO = "1", "0"
 
 --- The note, if it still describes the text we are looking at.
@@ -228,6 +231,7 @@ function M.init(env)
     -- one of them that means "that word is done".
     ctx:set_property(FORCED_CASE, "")
     ctx:set_property(ARMED, "")
+    ctx:set_property(HIGHLIGHT, "")
   end)
 end
 
@@ -1316,8 +1320,21 @@ local function handle_magic(key, context, engine)
       if command.case then
         context:set_property(FORCED_CASE, command.case)
       elseif command.forget then
-        local chosen = context:get_selected_candidate()
-        local word = chosen and chosen.text:gsub("%s+$", "")
+        -- The candidate that was highlighted when the `qq` was typed, when
+        -- this is the composition it was highlighted in.  Without it `qqd`
+        -- can only ever reach the first candidate, which is not what it says
+        -- it does and not what anybody arrowing down a list means by it.
+        local word
+        local memo = context:get_property(HIGHLIGHT)
+        if memo and memo ~= "" then
+          local was, text = memo:match("^(.-)\t(.*)$")
+          if was and text ~= "" and input == was .. prefix then word = text end
+        end
+        if not word then
+          local chosen = context:get_selected_candidate()
+          word = chosen and chosen.text
+        end
+        word = word and word:gsub("%s+$", "")
         local gone = word and word ~= "" and engine:forget(word)
         log.info(("spellless: qq-forget %q -> %s"):format(tostring(word),
                  gone and "removed" or "was not in the personal store"))
@@ -1367,6 +1384,32 @@ function M.handover.func(key, env)
     end
     if context:get_property(ASCII_WORD) ~= "" then
       context:set_property(ASCII_WORD, "")
+    end
+
+    -- What is highlighted, for a command that has not been typed yet.
+    --
+    -- `qq` is text.  It goes into the composition, the segment is
+    -- re-translated for the longer input, and the highlight goes back to the
+    -- top -- so by the time `qqd` runs, the candidate it is documented to act
+    -- on is two keystrokes gone, and it forgets whatever leads `wontqq`
+    -- instead.  Read here, in the first gear of all, before the key has
+    -- reached anything that could change the input, the selection is still
+    -- the one on screen.
+    --
+    -- Only a highlight the typist moved to.  Index 0 is not a choice, it is
+    -- the absence of one, and recording it would overwrite the answer with the
+    -- first candidate of `wontq` on the very next keystroke.
+    --
+    -- Stamped with the input it belonged to, so it can only be spent on the
+    -- composition that produced it: `qqd` takes it when the input is exactly
+    -- that plus the prefix, and asks the frontend otherwise.  Ctrl+Shift+D
+    -- needs none of this -- nothing has changed the input by the time it runs.
+    local highlighted_in = context.composition and context.composition:back()
+    if highlighted_in and (highlighted_in.selected_index or 0) > 0 then
+      local highlighted = context:get_selected_candidate()
+      if highlighted and highlighted.text then
+        context:set_property(HIGHLIGHT, context.input .. "\t" .. highlighted.text)
+      end
     end
 
     -- A command typed into the middle of a word.

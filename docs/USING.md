@@ -207,6 +207,16 @@ would get every one of them wrong.
 Punctuation keys are punctuation: `,` `.` `-` `=` type themselves, where Rime's
 preset would page.
 
+**What forgetting does depends on what there is to forget.** A word you taught
+it, or a correction you confirmed, is undone: the entry goes and the ranking
+goes back to what the dictionary alone says. But on an ordinary English word
+with nothing personal behind it, the key means the other thing it can mean —
+*this is not a word I write* — and takes it out of your dictionary **for every
+input, not just this one**. That is what you want for `cant`, `wont` and `hae`,
+which are words you are never reaching for. It is not what you want for a word
+you do write: forget `want` to get it out of the way of `wont`, and `wnt` stops
+offering it too. Commit the word once and it comes back.
+
 **`qq` mid-word, then a key, is an instruction.** Capitalisation is otherwise
 inferred — from what you typed, from whether a sentence just ended, from what
 you have chosen before — and inference is right most of the time and
