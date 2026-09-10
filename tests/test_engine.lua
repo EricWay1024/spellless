@@ -771,6 +771,21 @@ do
   e:forget("cant")
   H.eq(first("cant"), "can\'t", "and forgetting it hands the slot over")
 
+  -- And it hands over the *guard* with it, not merely the slot.  With the bare
+  -- spelling gone there is one word the letters spell, so the apostrophe form
+  -- is the exact reading of what was typed rather than a repair of it -- which
+  -- is what stops a confirmed correction for some other word climbing over it.
+  e:forget("wont")
+  H.eq(first("wont"), "won\'t", "`wont` the habit gives way the same way")
+  H.eq(e:suggest("wont", 5)[1].source, "exact",
+       "and the apostrophe reading becomes the exact one, not a repair")
+  e:learn_choice("cant", "cannot"); e:learn_choice("cant", "cannot")
+  H.eq(first("cant"), "can\'t", "so a correction for another word stays behind it")
+
+  -- Keyed on the suppression, not on the shape of the word: an input whose
+  -- bare spelling is still yours is not touched by any of this.
+  H.eq(first("its"), "its", "an untouched word keeps its own reading")
+
   -- An input that is not a word is untouched, which is most of the store.
   e:learn_choice("nbhood", "neighbourhood")
   e:learn_choice("nbhood", "neighbourhood")

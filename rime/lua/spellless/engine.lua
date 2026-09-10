@@ -700,6 +700,35 @@ function Engine:suggest(raw, limit, opts)
     end
     items = kept
   end
+
+  -- The apostrophe reading of a word you have put aside.
+  --
+  -- "cant" and "wont" are words -- hypocrisy, and a habit -- so they lead what
+  -- you typed, and the key that says "not mine" takes them out of your
+  -- dictionary.  What is left is `can't` and `won't`, arriving through the
+  -- typo channel at the cost of the apostrophe they are missing, leading
+  -- because nothing better survived rather than because they are right.
+  --
+  -- They are right.  With the bare spelling gone there is exactly one word
+  -- your letters spell, and it is this one; the apostrophe is not a repair,
+  -- it is punctuation you cannot type without ending the composition.  So it
+  -- is the exact reading, and it takes the protection an exact reading has:
+  -- rank.hold_exact keeps familiarity off it, and a confirmed correction for
+  -- some other word goes behind it rather than on top.
+  --
+  -- Only when you have put the bare spelling aside.  Untouched, "its" is
+  -- `its`, "were" is `were`, and this rule says nothing about them -- which
+  -- is the whole reason it is keyed on the suppression and not on the shape
+  -- of the word.
+  if self.user:is_suppressed(query) then
+    for i = 1, #items do
+      local w = items[i].word
+      if w ~= query and w:find("'", 1, true) and w:gsub("'", "") == query then
+        items[i].source = "exact"
+        items[i].cost = 0
+      end
+    end
+  end
   local ranked = rank.rank(items, search, cfg, ctx)
 
   -- The spelling that was matched has been ranked; now say the one this mode
