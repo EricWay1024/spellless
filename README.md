@@ -102,6 +102,7 @@ and how the personal vocabulary files work.
 | [docs/INSTALL.md](docs/INSTALL.md) | the six routes in, and everything you can change |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | symptoms, and what each one usually is |
 | [DESIGN.md](DESIGN.md) | the architecture, and why each decision went that way |
+| [docs/RANKING.md](docs/RANKING.md) | why that candidate is first: every mechanism that orders the list |
 | [docs/ALGORITHM.md](docs/ALGORITHM.md) | the matcher in full, with the evaluation |
 | [docs/NOISY-CHANNEL.md](docs/NOISY-CHANNEL.md) | the same algorithm as a decision problem over noisy channels |
 | [EVALUATION.md](EVALUATION.md) | accuracy and latency, and how to reproduce them |

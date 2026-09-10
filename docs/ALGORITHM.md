@@ -1405,6 +1405,10 @@ code the IME runs.
 frontend can do that a schema cannot. `EVALUATION.md` is the long-form version
 of §5. `data/README.md` documents the corpus and its preprocessing.
 `prompt/expert-review.md` is the review this document was revised against.
+`docs/RANKING.md` answers the one question this section is usually consulted
+for -- why a particular candidate is first -- across all five mechanisms that
+can decide it.
+
 `docs/PIPELINE.md` is the mechanical companion to this one: every step from
 keystroke to candidate list, in pseudocode, with the edge cases named.
 

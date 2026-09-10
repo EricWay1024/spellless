@@ -8,7 +8,8 @@ prose after each block says why it is that way and what broke when it was not.
 Every function and constant name is the real one, so anything here can be
 checked against the source.
 
-Companion documents: `docs/ALGORITHM.md` is the algorithm as a decision
+Companion documents: `docs/RANKING.md` gathers every mechanism that orders
+the candidate list into one account of which overrules which; `docs/ALGORITHM.md` is the algorithm as a decision
 problem, with the evaluation; `docs/NOISY-CHANNEL.md` states the same channels
 §C.4 walks through in prose as one probabilistic model, and is the right place
 to argue with the *shape* of the cost function rather than its constants;
@@ -576,8 +577,10 @@ Engine:suggest(raw, limit, opts) → candidates, stats     // engine.lua
         append entry and its companion, skipping any text already present
 
  6  // placements, in this order — each inserts at a FIXED position       §C.6
-    promoted   ← a correction confirmed cfg.choice_confirm_count (2) times → slot 1
-                 (both readings confirmed? the input's own one leads)
+    promoted   ← a correction confirmed cfg.choice_confirm_count (2) times
+                 → behind the `exact` entry if there is one, else slot 1
+                 (a choice that IS the query's own reading takes slot 1: a
+                  taught capital is the same word, not a rival to it)
     expansions ← a user-written shortcut                                 → slot 1
     trusted    ← expansions or promoted or Engine:trustworthy(ranked.leader, …)
     coined     ← (not trusted) and Engine:find_affix(search, style)      → min(#out+1, limit)
@@ -1369,6 +1372,69 @@ those two facts); and points-per-nat matched to the frequency term. Note that
 options `Engine:suggest` receives, so turning the flag on in a schema changes
 nothing at all. Anyone reviving this has two halves to build.
 
+### C.5a The guard: a word you spelled right
+
+One rule stands between the ranking and every placement below it, and it is the
+only one a typist can see from the outside:
+
+> **You typed an English word, spelled correctly. That word leads.**
+
+Nothing the personal store has learned displaces it. A confirmed correction goes
+*behind* the `exact` entry rather than on top of it, which is the one exception
+to §C.6's "confirmed means first".
+
+The failure that produced the rule: typing "start" offered `started`, because
+`started` had been picked twice and a confirmed choice was placed rather than
+scored. `start` was an exact hit scoring 121.7 against its 86.0 and still came
+second. The rule that was meant to prevent this asked whether *both* readings had
+been confirmed — it got `its` and `were` right, where the literal had been picked
+often enough to prove itself, and left `start` losing on one pick fewer. That is
+a threshold nobody typing can see, deciding something they can.
+
+**Two things are not displacements and are not caught by it.**
+
+*A capital is the same word.* `OK` for "ok" is what you typed, spelled the way
+you taught; it keeps slot 1. The test is `lower(choice.text) = query`, so it
+catches exactly the readings that differ from the query by case alone.
+
+*An input that is not a word has nothing to guard.* "teh", "mthmtcs", "nbhood" —
+the correction still leads, which is what the store is for. Eighteen of the
+thirty-four confirmed corrections in the live store are of this kind.
+
+**Why it needs no list of exceptions.** The obvious objection is `dont` → `don't`
+and `im` → `I'm`: those bare spellings *are* in the dictionary, so a naive
+reading of the rule would hand them back unapostrophised. It does not, because
+the dictionary already distinguishes the two cases people mean here (§B.3):
+
+| | dictionary entry | so the exact hit is |
+| --- | --- | --- |
+| `dont`, `im` | a **key** whose form is `don't` / `I'm` | the contraction — nothing to configure |
+| `cant`, `hes`, `ill`, `lets`, `whats`, `wont` | words in their own right (hypocrisy; a habit) | the bare word, and `can't` arrives through the typo channel at the cost of its apostrophe |
+
+For the second row the escape hatch is the forget key (§E.3). Take `cant` out of
+your dictionary and what is left is the contraction — and it is then marked
+`exact` rather than left leading as the best thing that survived:
+
+```
+// Engine:suggest, after the suppression filter and before rank.rank
+if user:is_suppressed(query):
+    for item in items:
+        if item.word ≠ query and item.word contains "'"
+           and item.word with apostrophes removed = query:
+            item.source ← "exact";  item.cost ← 0
+```
+
+With the bare spelling gone there is exactly one word those letters spell, and
+the apostrophe is not a repair — it is punctuation you cannot type without
+ending the composition. So it is the exact reading, and it takes what an exact
+reading has: `rank.hold_exact` keeps familiarity off it, and a confirmed
+correction for some *other* word goes behind it rather than on top.
+
+Keyed on the suppression rather than on the shape of the word, so it says
+nothing about "its", "were" or "windows" while those are still yours. That is the
+same decision from the other side: **the dictionary answers what you meant, and
+the forget key is how you tell it.**
+
 ### C.6 Placements rather than scores
 
 Eight decisions in the pipeline are *positions*, not points. This is a design
@@ -1377,7 +1443,7 @@ stance, and the reasoning is the same each time: **there is no score that means
 
 | what | where it goes | why not a score |
 | --- | --- | --- |
-| a confirmed correction (`chosen`) | slot 1 | the only evidence that comes from the person rather than from a measurement of English; no amount of frequency argues with it. Two confirmed readings of one input are the exception: the tally is then a near-tie between two intentions and the input's own reading leads |
+| a confirmed correction (`chosen`) | behind the `exact` entry, else slot 1 | the only evidence that comes from the person rather than from a measurement of English, so no amount of frequency argues with it — but a word you have just spelled correctly is not a measurement of English either, and it wins. See §C.5a |
 | a user-written shortcut | slot 1 | the one place in the matcher with no guessing to do — they said what they meant |
 | a coinage (`coined`) | `min(#out+1, limit)`, displacing the last | the twentieth guess at what else the letters might have been is not worth the slot; "if there is room" made it appear or not according to how many rivals a query happened to attract |
 | a word split | last among the real answers | scored high it displaced real corrections; scored low it vanished exactly when wanted — `thisday` offered Thursday and Tuesday and no way to say "this day" |
@@ -1993,7 +2059,9 @@ handle_magic(key, context, engine):                      // spellless.lua
         if command:
             context:pop_input(#prefix)          // the prefix was never part of the word
             if command.case:   FORCED_CASE ← command.case
-            elif command.forget: engine:forget(selected candidate's text)
+            elif command.forget: engine:forget(HIGHLIGHT's text, when HIGHLIGHT
+                                 was stamped with input = this input minus the
+                                 prefix; else the live selected candidate)
             context:refresh_non_confirmed_composition()
             return kAccepted
         return nil                              // not a command: the key is text, and so was `qq`
@@ -2017,6 +2085,35 @@ MAGIC = { c → case "upper",   f → case "title",
 Capitalisation is otherwise *inferred* — from what you typed, from whether a
 sentence just ended, from what you have chosen before — and inference is right
 most of the time and unarguable-with when it is not. **These are the argument.**
+
+**`qqd` needs a memo, and the other three commands do not.** The three case
+commands act on the *input*, which is still there. `qqd` acts on a *candidate*,
+and by the time it runs there is no candidate to act on: `qq` is text, so the
+input is `wontqq`, the segment has been re-translated for it, and the highlight
+is back at the top. Arrowing down to the third candidate and typing `qqd` forgot
+whatever led the new list, reported success, and left the word the typist was
+looking at exactly where it was — with nothing on screen to say so.
+
+So the highlight is read in `M.handover.func`, the first processor of all,
+before the key has reached anything that can change the input, and written to
+the `spellless_highlight` property as `input \t candidate text`:
+
+```
+// M.handover.func, before handle_magic
+segment ← context.composition:back()
+if segment and segment.selected_index > 0:
+    HIGHLIGHT ← context.input .. "\t" .. context:get_selected_candidate().text
+```
+
+Two things make it safe. **Only a highlight the typist moved to** is recorded —
+index 0 is the absence of a choice, and recording it would overwrite the answer
+with the first candidate of `wontq` on the very next keystroke. And it is
+**stamped with the input it belonged to**, so `qqd` spends it only when the
+current input is exactly that plus the prefix, and asks the frontend otherwise.
+It is cleared on commit beside `FORCED_CASE` and `ARMED`.
+
+`Control+Shift+D` needs none of this and does not use it: nothing has touched
+the input by the time it runs, so the live selection is still the right answer.
 
 `qq` because English does not contain it: one word in 83,414 does (`sqq`, at rank
 65,608), and that one is a corpus artefact — so it can be typed mid-word without
@@ -2413,7 +2510,7 @@ Engine:learned_capital(word):                            // engine.lua
 
 // in Engine:suggest, step 6
 choices ← (not opts.literal_first) and user:choices_for(query)
-// two readings of the same input, both confirmed: the tally does not decide
+// several confirmed readings: the query's own one is placed first among them
 if more than one choice is confirmed
    and one of them has lower(text) = query:
     move that one to the front of `choices`
@@ -2421,8 +2518,12 @@ for choice in choices, weakest first:
     if choice.count ≥ cfg.choice_confirm_count:
         text ← Engine:surface(choice.text, style)     // NO suffix: the store is keyed
                                                       // by the WHOLE input, apostrophe and all
-        remove any duplicate further down; insert at slot 1
-        promoted ← text
+        remove any duplicate further down
+        at ← 1
+        if lower(choice.text) ≠ query:                // a different word, not a capital
+            at ← (index of the first `exact` entry in out) + 1, else 1
+        insert at `at`                                // rescanned each time: the dedupe
+        promoted ← text                               // above may have just removed it
 ```
 
 **One selection is not evidence.** Half of what anyone picks is picked once by
@@ -2432,19 +2533,17 @@ is the only signal in the whole matcher that comes from the person rather than
 from a measurement of English. So it is **placed** rather than scored: confirmed
 means first, and no amount of frequency argues with it.
 
-**Except against the input itself.** Type a word you also use as a shorthand for
-another — "were" for `we're`, "its" for `it's`, "windows" for `window` — and both
-readings end up confirmed, at which point the tally is a race between two things
-you meant on different days. In the live store `its` leads `it's` 8 to 7 and
-`windows` and `window` are tied at 2; one keystroke turns either over, after
-which every "its" you type comes out apostrophised. A count that close is not
-evidence about English, and the two readings are not equally reachable: `it's` is
-one apostrophe away, and `its` typed as "its" has no other spelling to ask for.
-So when both are confirmed, the reading that is what you actually typed leads and
-the other keeps the slot below it — however far ahead its count gets, because the
-count is the thing being distrusted. Where only one reading is confirmed — "dont"
-for `don't`, "diff" for `different` — nothing competes and the correction still
-leads, which is what the store is for.
+**Except against a word.** Type an English word, spelled correctly, and that
+word is what you get: no tally about what you once meant by it argues with a
+thing you have just spelled right. "start" is `start`, however many times you
+have reached `started` through it. The correction keeps the slot behind, one
+keystroke away, which is where it sat before you confirmed it and is all
+confirming it ever bought. See §C.5a for the full rule and for the two escape
+hatches — the dictionary's own apostrophe forms, and the forget key.
+
+An input that is *not* a word is untouched, which is most of the store: "teh",
+"mthmtcs", "nbhood", "pcutation". Nothing competes with a confirmed correction
+there, and it still leads, which is what the store is for.
 
 `learned_capital` is keyed on the *word*, so it follows the word rather than the
 keystrokes: teaching it by typing `windows` also reaches it from `wndows`. Both
@@ -2482,9 +2581,11 @@ what the other had learned.
 
 ```
 Engine:forget(text):                                     // engine.lua
-    gone ← user:forget_word(lower(trim(text)))
-    for typed in user.choices:                           // AND every correction
-        if user:forget_choice(typed, text): gone ← true  // that produced it
+    word ← lower(trim(text))
+    gone ← user:forget_word(word)
+    for typed, chosen in user.choices:                   // AND every correction
+        if lower(chosen) = word:                         // that produced it
+            if user:forget_choice(typed, chosen): gone ← true
     if gone: user:flush()                                // immediately
 ```
 
