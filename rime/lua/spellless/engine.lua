@@ -999,7 +999,7 @@ function Engine:suggest(raw, limit, opts)
   end
 
   self:insert_raw(out, raw, limit, trusted)
-  if query:find("^[a-z]$") then
+  if cfg.letter_first and query:find("^[a-z]$") then
     self:lead_with_letter(out, raw, query, style, limit,
                           expansions and #expansions or 0, opts)
   end
@@ -1108,6 +1108,8 @@ end
 --- Labelled `letter` rather than `raw`, so the space bar commits it at once.
 --- `confirm_literal` pauses over the literal because it is usually a
 --- misspelling, and a single letter is never a misspelling of anything.
+---
+--- Only with `letter_first` on, which it is not by default; see config.lua.
 function Engine:lead_with_letter(out, raw, query, style, limit, above, opts)
   local forced = opts and opts.force_style
   local word = not forced and not (opts and opts.literal_first)

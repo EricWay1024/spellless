@@ -151,13 +151,15 @@ capitals is deliberate. A letter hard against a digit is notation, so `4D`,
 A space turns it back off: `in 4 days` is ordinary text. snake_case identifiers
 (`foo_bar`, `max_iter2`) are taken literally as soon as the underscore appears.
 
-**One letter is always that letter**, first in the list, and the space bar
-commits it on the first press: `b` is `b`, not `by`, however often you have
-typed "by". It is exactly the case you typed, even at the start of a sentence,
-because `f` and `F` are different things. `a` and `i` are words as well, so they
-come out `A` at the start of a sentence and `I` always — unless you forget `i`,
-after which it is only a letter. `qqc` and `qql` still decide the case, and a
-one-letter entry in `spellless_shortcuts.txt` still comes first.
+**One letter can always be that letter**, if you set
+`spellless/letter_first: true` in `spellless.custom.yaml`; it is off by default.
+With it on, the letter is first in the list and the space bar commits it on the
+first press: `b` is `b`, not `by`. It is exactly the case you typed, even at the
+start of a sentence, because `f` and `F` are different things. `a` and `i` are
+words as well, so they come out `A` at the start of a sentence and `I` always —
+unless you forget `i`, after which it is only a letter. `qqc` and `qql` still
+decide the case, and a one-letter entry in `spellless_shortcuts.txt` still comes
+first.
 
 **The literal text you typed is always on the first page** — in slot 7 by
 default, or first when nothing plausible was found — so pressing space on

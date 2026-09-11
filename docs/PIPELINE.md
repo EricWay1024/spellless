@@ -587,7 +587,7 @@ Engine:suggest(raw, limit, opts) → candidates, stats     // engine.lua
     split      ← find_split(self, search)                                → last
     Engine:insert_raw(out, raw, limit, trusted)                          → cfg.raw_candidate_index,
                                                                             or slot 1 if not trusted
-    if query is one letter:
+    if cfg.letter_first (off) and query is one letter:
         Engine:lead_with_letter(out, raw, query, style, …)               → slot 1, or behind a shortcut
                  (`a` and `i` as the words they are; any other letter
                   exactly as typed, labelled "letter", not "raw")        §C.7
@@ -1565,11 +1565,13 @@ that corrupts a document silently.
 * **The one-letter, zero-cost exception survives**: `th → the` is worth trusting
   where `cm → come` and `x → xxx` are not.
 
-**One letter on its own is placed, not trusted.** The zero-cost exception
-trusted `b → by`, `d → do`, `o → of`, `s → so` and the rest of the letters with
-a common two-letter word behind them, and the `has_exact` hole trusted anything
-after a single commit. `Engine:lead_with_letter` runs after `insert_raw` and
-puts the letter first — behind a shortcut written for it, if there is one:
+**With `letter_first` on, one letter on its own is placed, not trusted.** Off
+by default: it was tried in real typing and did not feel right. What it
+answers is that the zero-cost exception trusts `b → by`, `d → do`, `o → of`,
+`s → so` and the rest of the letters with a common two-letter word behind them,
+and the `has_exact` hole trusts anything after a single commit.
+`Engine:lead_with_letter` runs after `insert_raw` and puts the letter first —
+behind a shortcut written for it, if there is one:
 
 ```
 Engine:lead_with_letter(out, raw, query, style, limit, above, opts):
@@ -1595,7 +1597,7 @@ Confirmed today:
 ```
 spellless → spellless           kubectl → kubectl        x  → x, xxx, xii …
 cm → cm, come, com …            QF → QF, QFT             th → the, that, this …
-4D: "D" → D, Do, Day …          plain "D" → D, Do, Day …  b  → b, by, be …
+4D: "D" → D, Do, Day …          plain "D" → Do, Day, De …
 ```
 
 ### C.8 Surface, case, and the companion capital
@@ -1908,9 +1910,9 @@ word and separate it from the next, and the second is so automatic that the firs
 happens without being noticed. That is fine when the candidate is a real word and
 exactly wrong when it is a misspelling. Anything else typed in between cancels
 it, because the reason to pause was that the word was wrong. Return still commits
-immediately, and always did. One letter on its own is the literal too, but it
-arrives labelled `letter` (§C.7), so it commits on the first press: it cannot be
-a misspelling.
+immediately, and always did. With `letter_first` on, one letter on its own is
+the literal too, but it arrives labelled `letter` (§C.7), so it commits on the
+first press: it cannot be a misspelling.
 
 **Word-backspace asks for one character short, and the key supplies the last.**
 Asking for the whole word and swallowing the keystroke was a trap: the request is

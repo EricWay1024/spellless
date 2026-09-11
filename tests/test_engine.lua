@@ -105,35 +105,40 @@ H.suite("engine: one letter is that letter")
 -- `b` completes to `by` at no cost, which the trust rule believed, so "let b
 -- be" came out "let by be"; `d`, `h`, `m`, `o`, `p`, `r`, `s` and `u` did the
 -- same.  And a letter committed once counted as an exact hit, after which
--- `x` offered `xxx` first.  One letter is placed now, not trusted.
+-- `x` offered `xxx` first.  With `letter_first` on, one letter is placed
+-- rather than trusted.  It is off by default: it did not feel right in use.
 do
+  H.eq(engine:suggest("b", 8)[1].text, "by", "off by default: b is ranked as ever")
+  local on = assert(Engine.new{ data_dir = DATA, config = { letter_first = true } })
+
   for c = string.byte("a"), string.byte("z") do
     local letter = string.char(c)
     local want = letter == "i" and "I" or letter
-    H.eq(engine:suggest(letter, 8)[1].text, want, ("%q leads with itself"):format(letter))
+    H.eq(on:suggest(letter, 8)[1].text, want, ("%q leads with itself"):format(letter))
   end
-  H.eq(engine:suggest("b", 8)[2].text, "by", "and the completion is one keystroke away")
-  H.eq(engine:suggest("x", 8)[1].source, "letter",
+  H.eq(on:suggest("b", 8)[2].text, "by", "and the completion is one keystroke away")
+  H.eq(on:suggest("x", 8)[1].source, "letter",
        "labelled so the space bar commits it without asking twice")
 
   -- As typed, capitals included, and no sentence capital on a variable.
-  H.eq(engine:suggest("B", 8)[1].text, "B", "a capital you typed is kept")
-  H.eq(engine:suggest("f", 8, { sentence_start = true })[1].text, "f",
+  H.eq(on:suggest("B", 8)[1].text, "B", "a capital you typed is kept")
+  H.eq(on:suggest("f", 8, { sentence_start = true })[1].text, "f",
        "f and F are different functions, wherever the sentence starts")
   -- `a` and `i` are words, and lead as the words they are.
-  H.eq(engine:suggest("a", 8, { sentence_start = true })[1].text, "A",
+  H.eq(on:suggest("a", 8, { sentence_start = true })[1].text, "A",
        "the article opens a sentence with its capital")
-  H.eq(engine:suggest("i", 8, { sentence_start = true })[1].text, "I")
+  H.eq(on:suggest("i", 8, { sentence_start = true })[1].text, "I")
   -- Asking for a case beats all of it, the pronoun's capital too.
-  H.eq(engine:suggest("x", 8, { force_style = "upper" })[1].text, "X", "qqc")
-  H.eq(engine:suggest("i", 8, { force_style = "lower" })[1].text, "i", "qql")
-  H.eq(engine:suggest("a", 8, { literal_first = true })[1].text, "a",
+  H.eq(on:suggest("x", 8, { force_style = "upper" })[1].text, "X", "qqc")
+  H.eq(on:suggest("i", 8, { force_style = "lower" })[1].text, "i", "qql")
+  H.eq(on:suggest("a", 8, { literal_first = true })[1].text, "a",
        "and after a backslash it is the literal, like everything else")
-  H.eq(texts("by")[1], "by", "two letters are not one: the rule stops here")
+  H.eq(on:suggest("by", 8)[1].text, "by", "two letters are not one: the rule stops here")
 
   local path = os.tmpname()
   require("spellless.userdb").forget(path)
-  local e = assert(Engine.new{ data_dir = DATA, personal_path = path })
+  local e = assert(Engine.new{ data_dir = DATA, personal_path = path,
+                              config = { letter_first = true } })
   local function first(q) return e:suggest(q, 8)[1].text end
   local function second(q) return e:suggest(q, 8)[2].text end
 
@@ -155,7 +160,8 @@ do
   local fh = assert(io.open(spath, "wb"))
   fh:write("w\twith\n")
   fh:close()
-  local s = assert(Engine.new{ data_dir = DATA, shortcuts_path = spath })
+  local s = assert(Engine.new{ data_dir = DATA, shortcuts_path = spath,
+                              config = { letter_first = true } })
   H.eq(s:suggest("w", 8)[1].text, "with", "a shortcut still comes first")
   H.eq(s:suggest("w", 8)[2].text, "w", "with the letter right behind it")
   os.remove(spath)

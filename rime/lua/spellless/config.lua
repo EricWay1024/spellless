@@ -537,10 +537,19 @@ M.defaults = {
   -- being noticed.  That is fine when the candidate is a real word.  It is
   -- exactly wrong when the candidate is a misspelling, which is the one case
   -- where a moment's attention is worth having.  Return still commits
-  -- immediately, and always did.  One letter on its own is exempt: it leads
-  -- labelled `letter` rather than `raw` (Engine:lead_with_letter), because a
+  -- immediately, and always did.  With `letter_first` on, one letter on its
+  -- own is exempt: it leads labelled `letter` rather than `raw`, because a
   -- single letter is never a misspelling of anything.
   confirm_literal   = true,
+  -- Type one letter and that letter is always first, and the space bar
+  -- commits it at once: `b` is `b`, not `by`, and a letter you have committed
+  -- before is not completed to `xxx`.  `a` and `i` still lead as the words
+  -- they are, `A` and `I`; see Engine:lead_with_letter.
+  --
+  -- Off.  It was tried in real typing and did not feel right, so the trust
+  -- rules decide single letters as they always did; this is here for anyone
+  -- who writes more variables than two-letter words.
+  letter_first      = false,
   -- Which spellings to offer: "off", "us", "gb-ise", or "gb-ize" (Oxford,
   -- which keeps -ize but also keeps -yse: analyse, paralyse).  In a mode the
   -- spellings of the other variant are not offered at all -- typing `clr`
