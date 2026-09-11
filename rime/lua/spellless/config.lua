@@ -537,7 +537,9 @@ M.defaults = {
   -- being noticed.  That is fine when the candidate is a real word.  It is
   -- exactly wrong when the candidate is a misspelling, which is the one case
   -- where a moment's attention is worth having.  Return still commits
-  -- immediately, and always did.
+  -- immediately, and always did.  One letter on its own is exempt: it leads
+  -- labelled `letter` rather than `raw` (Engine:lead_with_letter), because a
+  -- single letter is never a misspelling of anything.
   confirm_literal   = true,
   -- Which spellings to offer: "off", "us", "gb-ise", or "gb-ize" (Oxford,
   -- which keeps -ize but also keeps -yse: analyse, paralyse).  In a mode the

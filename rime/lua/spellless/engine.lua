@@ -999,6 +999,10 @@ function Engine:suggest(raw, limit, opts)
   end
 
   self:insert_raw(out, raw, limit, trusted)
+  if query:find("^[a-z]$") then
+    self:lead_with_letter(out, raw, query, style, limit,
+                          expansions and #expansions or 0, opts)
+  end
   stats.candidates = #out
   return out, stats
 end
@@ -1070,6 +1074,59 @@ function Engine:insert_raw(out, raw, limit, trusted)
 
   if slot > #out + 1 then slot = #out + 1 end
   table.insert(out, slot, { text = raw, source = "raw", score = 0, cost = 0, raw = true })
+  while #out > limit do table.remove(out) end
+end
+
+--- One letter, typed on its own, is that letter, and it leads.
+---
+--- The trust rules cannot promise that: they ask whether the best *guess* is
+--- good enough, and for one letter no guess is.  `b` completes to `by` at no
+--- cost, so `trustworthy` believed it and "let b be" came out
+--- "let by be" -- and the same for `do`, `he`, `my`, `of`, `re`, `so`, `us`,
+--- every letter with a common two-letter word behind it.  Worse, a letter you
+--- had committed even once counted as an exact hit, which is what lets
+--- `trustworthy` believe anything at all: commit `x` once and next time `xxx`
+--- led, the very case the short-input rule was written to stop.  One letter is
+--- a variable, an index, a label or an initial; where it is an abbreviation
+--- you use, `u` or `r`, the shortcut file is the place to say so.
+---
+--- So it is placed rather than trusted, like the guard it extends: you typed
+--- the input correctly, because one letter is always spelled right.
+---
+---   * `a` and `i` are words as well as letters, and lead as the words they
+---     are -- `A` at the start of a sentence, `I` always.  The dictionary
+---     decides that, not the personal store: a count is how `x` became `xxx`.
+---     Put the word aside with the forget key and it is only a letter again.
+---   * Every other letter leads exactly as typed, with no sentence capital:
+---     `f` and `F` are different functions, and a variable that opens a
+---     sentence is still that variable.
+---   * `qqc`, `qqf` and `qql` still decide the case, because a style asked
+---     for outright beats everything inferred -- the capital `I` included.
+---   * A shortcut you wrote for the letter still comes first.  That is you
+---     saying what the letter means, the one statement more specific than this.
+---
+--- Labelled `letter` rather than `raw`, so the space bar commits it at once.
+--- `confirm_literal` pauses over the literal because it is usually a
+--- misspelling, and a single letter is never a misspelling of anything.
+function Engine:lead_with_letter(out, raw, query, style, limit, above, opts)
+  local forced = opts and opts.force_style
+  local word = not forced and not (opts and opts.literal_first)
+      and self.corpus:lookup(query) ~= nil and not self.user:is_suppressed(query)
+  local text = raw
+  if forced then text = apply_case(query, forced)
+  elseif word then text = self:surface(query, style) end
+
+  local item
+  for j = #out, 1, -1 do
+    if out[j].text == text then item = table.remove(out, j) end
+  end
+  -- The word's own entry keeps its label and score; anything else was the
+  -- literal, or a personal entry spelled the same, and is the letter now.
+  if not (word and item) then
+    item = { text = text, source = "letter", score = 0, cost = 0,
+             raw = text == raw or nil }
+  end
+  table.insert(out, math.min(above + 1, #out + 1), item)
   while #out > limit do table.remove(out) end
 end
 

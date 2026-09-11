@@ -101,6 +101,66 @@ H.eq(texts("an")[1], "an")
 H.eq(texts("th")[1], "the")
 H.eq(texts("mathe")[1], "mathematics", "and ordinary input is unaffected")
 
+H.suite("engine: one letter is that letter")
+-- `b` completes to `by` at no cost, which the trust rule believed, so "let b
+-- be" came out "let by be"; `d`, `h`, `m`, `o`, `p`, `r`, `s` and `u` did the
+-- same.  And a letter committed once counted as an exact hit, after which
+-- `x` offered `xxx` first.  One letter is placed now, not trusted.
+do
+  for c = string.byte("a"), string.byte("z") do
+    local letter = string.char(c)
+    local want = letter == "i" and "I" or letter
+    H.eq(engine:suggest(letter, 8)[1].text, want, ("%q leads with itself"):format(letter))
+  end
+  H.eq(engine:suggest("b", 8)[2].text, "by", "and the completion is one keystroke away")
+  H.eq(engine:suggest("x", 8)[1].source, "letter",
+       "labelled so the space bar commits it without asking twice")
+
+  -- As typed, capitals included, and no sentence capital on a variable.
+  H.eq(engine:suggest("B", 8)[1].text, "B", "a capital you typed is kept")
+  H.eq(engine:suggest("f", 8, { sentence_start = true })[1].text, "f",
+       "f and F are different functions, wherever the sentence starts")
+  -- `a` and `i` are words, and lead as the words they are.
+  H.eq(engine:suggest("a", 8, { sentence_start = true })[1].text, "A",
+       "the article opens a sentence with its capital")
+  H.eq(engine:suggest("i", 8, { sentence_start = true })[1].text, "I")
+  -- Asking for a case beats all of it, the pronoun's capital too.
+  H.eq(engine:suggest("x", 8, { force_style = "upper" })[1].text, "X", "qqc")
+  H.eq(engine:suggest("i", 8, { force_style = "lower" })[1].text, "i", "qql")
+  H.eq(engine:suggest("a", 8, { literal_first = true })[1].text, "a",
+       "and after a backslash it is the literal, like everything else")
+  H.eq(texts("by")[1], "by", "two letters are not one: the rule stops here")
+
+  local path = os.tmpname()
+  require("spellless.userdb").forget(path)
+  local e = assert(Engine.new{ data_dir = DATA, personal_path = path })
+  local function first(q) return e:suggest(q, 8)[1].text end
+  local function second(q) return e:suggest(q, 8)[2].text end
+
+  e:learn("x")
+  H.eq(first("x"), "x", "a letter you have committed is still that letter")
+  e:learn_choice("t", "the"); e:learn_choice("t", "the")
+  H.eq(first("t"), "t", "a confirmed correction does not displace it")
+  H.eq(second("t"), "the", "and keeps the slot behind")
+  e:learn_choice("a", "and"); e:learn_choice("a", "and")
+  H.eq(first("a"), "a", "nor does one for a letter that is a word")
+
+  -- Put `i` aside and it is a letter again, not the pronoun.
+  e:forget("i")
+  H.eq(first("i"), "i", "a forgotten word is only a letter")
+  os.remove(path)
+
+  -- A shortcut for the letter is you saying what it means, and it leads.
+  local spath = os.tmpname()
+  local fh = assert(io.open(spath, "wb"))
+  fh:write("w\twith\n")
+  fh:close()
+  local s = assert(Engine.new{ data_dir = DATA, shortcuts_path = spath })
+  H.eq(s:suggest("w", 8)[1].text, "with", "a shortcut still comes first")
+  H.eq(s:suggest("w", 8)[2].text, "w", "with the letter right behind it")
+  os.remove(spath)
+end
+
 H.suite("engine: the possessive ending follows the candidate, not the input")
 -- The apostrophe you type says which ending you meant -- but it says it about
 -- the *stem you typed*, and the stem matches words of both numbers.  Sticking

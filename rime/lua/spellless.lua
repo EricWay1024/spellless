@@ -1119,7 +1119,8 @@ function M.processor.func(key, env)
   -- not have, which is usually a misspelling rather than a decision.  The
   -- first space is swallowed and the composition stays on screen; the second
   -- commits.  Anything else typed in between cancels it, because the reason to
-  -- pause was that the word was wrong.
+  -- pause was that the word was wrong.  One letter on its own arrives labelled
+  -- `letter`, not `raw`, and goes straight through: it cannot be wrong.
   if composing and engine and engine.cfg.confirm_literal and code == XK_space
      and not key:ctrl() and not key:alt() and not key:super() then
     local chosen = context:get_selected_candidate()

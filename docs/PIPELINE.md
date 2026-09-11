@@ -587,6 +587,10 @@ Engine:suggest(raw, limit, opts) → candidates, stats     // engine.lua
     split      ← find_split(self, search)                                → last
     Engine:insert_raw(out, raw, limit, trusted)                          → cfg.raw_candidate_index,
                                                                             or slot 1 if not trusted
+    if query is one letter:
+        Engine:lead_with_letter(out, raw, query, style, …)               → slot 1, or behind a shortcut
+                 (`a` and `i` as the words they are; any other letter
+                  exactly as typed, labelled "letter", not "raw")        §C.7
  7  return out, stats
 ```
 
@@ -1556,9 +1560,31 @@ that corrupts a document silently.
   *the absence of a space* and not a list of suffixes: `4days` is taken
   literally too, and a missing space is exactly what that was.
 * **`has_exact` overrides everything below it**, so `i`, `eg`, `is`, `an` mean
-  themselves.
+  themselves. It also counts any word in the personal store, which is how one
+  commit of `x` made `xxx` trusted again.
 * **The one-letter, zero-cost exception survives**: `th → the` is worth trusting
   where `cm → come` and `x → xxx` are not.
+
+**One letter on its own is placed, not trusted.** The zero-cost exception
+trusted `b → by`, `d → do`, `o → of`, `s → so` and the rest of the letters with
+a common two-letter word behind them, and the `has_exact` hole trusted anything
+after a single commit. `Engine:lead_with_letter` runs after `insert_raw` and
+puts the letter first — behind a shortcut written for it, if there is one:
+
+```
+Engine:lead_with_letter(out, raw, query, style, limit, above, opts):
+    word ← not forced, not literal_first, corpus has query, not suppressed
+    text ← forced     ? apply_case(query, forced)       // qqc, qqf, qql
+         : word       ? Engine:surface(query, style)    // a, A, I
+         : raw                                          // b, x, B, f at a sentence start
+    remove every entry spelled `text`; keep it if it was the word's own entry,
+    otherwise make it { text, source = "letter", raw = text = raw }
+    insert at min(above + 1, #out + 1), trimming to `limit`
+```
+
+`word` asks the dictionary, not the personal store — a count is the hole.
+The label `letter` is what keeps `confirm_literal` from pausing on it (§D.5): a
+single letter is never a misspelling.
 
 `insert_raw` **moves** an existing literal rather than returning early. Returning
 because it existed *somewhere* let a learned `get` outrank a literal-first `git`,
@@ -1569,7 +1595,7 @@ Confirmed today:
 ```
 spellless → spellless           kubectl → kubectl        x  → x, xxx, xii …
 cm → cm, come, com …            QF → QF, QFT             th → the, that, this …
-4D: "D" → D, Do, Day …          plain "D" → Do, Day, De …
+4D: "D" → D, Do, Day …          plain "D" → D, Do, Day …  b  → b, by, be …
 ```
 
 ### C.8 Surface, case, and the companion capital
@@ -1882,7 +1908,9 @@ word and separate it from the next, and the second is so automatic that the firs
 happens without being noticed. That is fine when the candidate is a real word and
 exactly wrong when it is a misspelling. Anything else typed in between cancels
 it, because the reason to pause was that the word was wrong. Return still commits
-immediately, and always did.
+immediately, and always did. One letter on its own is the literal too, but it
+arrives labelled `letter` (§C.7), so it commits on the first press: it cannot be
+a misspelling.
 
 **Word-backspace asks for one character short, and the key supplies the last.**
 Asking for the whole word and swallowing the keystroke was a trap: the request is

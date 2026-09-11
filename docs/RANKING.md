@@ -18,7 +18,7 @@ Five layers, each able to overrule the one below it:
 | | layer | decides |
 | --- | --- | --- |
 | 1 | **What you wrote down** | a shortcut you typed into `spellless_shortcuts.txt` |
-| 2 | **What you spelled right** | an exact dictionary hit — *the guard* |
+| 2 | **What you spelled right** | an exact dictionary hit — *the guard* — or one letter on its own |
 | 3 | **What you taught it** | a correction you confirmed twice |
 | 4 | **What English says** | one additive score over five generation channels |
 | 5 | **What you actually typed** | the literal, in a fixed slot, or first when nothing is trusted |
@@ -141,6 +141,36 @@ two cases:
 
 For the second row, the escape hatch is the forget key.
 
+### One letter is always spelled right
+
+> **You typed one letter. That letter leads.**
+
+The guard extended to the one input it could not see. Every other rule asks
+whether the best *guess* is good enough, and for one letter no guess is:
+
+- `b` completes to `by` at no cost, so the trust test (layer 5) believed it
+  and "let b be" came out "let by be" — likewise `do`, `he`, `my`, `of`, `pm`,
+  `re`, `so`, `us`.
+- A letter you had committed even once counted as an exact hit, which is what
+  lets the trust test believe *anything*. Commit `x` once and next time `xxx`
+  led — the very case that test was written to stop.
+
+So it is placed, not trusted (`Engine:lead_with_letter`):
+
+| you type | first | why |
+| --- | --- | --- |
+| `b`, `x`, `B`, `X` | exactly that | a variable, an index, a label, an initial |
+| `f` opening a sentence | `f` | `f` and `F` are different functions; no sentence capital |
+| `a`, `i` | `a` (`A` opening a sentence), `I` | words as well as letters, and the dictionary says so — not the personal store, whose counts are how `x` became `xxx` |
+| `i` after forgetting it | `i` | a word put aside is only a letter again |
+| `x` `qqc`, `i` `qql` | `X`, `i` | a case asked for outright beats everything inferred |
+| `w`, with `w → with` in the shortcut file | `with`, then `w` | layer 1: you said what the letter means |
+
+It is labelled `letter` rather than `raw`, so the space bar commits it on the
+first press — the literal only makes the space bar ask twice because it is
+usually a misspelling, and one letter never is. Two letters are untouched:
+`th` still gives `the`.
+
 ---
 
 ## Layer 3: the personal store
@@ -231,7 +261,8 @@ trustworthy*, in which case it leads. `Engine:trustworthy` is: cost ≤ 1.50, sc
 ≥ 62, and either an exact dictionary hit, or not all-capitals and at least three
 characters. Before those rules existed an audit found `x → xxx`, `cm → come` and
 `CW → COW` sitting under the space bar — the one failure mode that corrupts a
-document silently. When the literal leads, the space bar asks twice.
+document silently. When the literal leads, the space bar asks twice. One letter
+on its own is not left to this test at all — layer 2 places it.
 
 Two more placements sit between: a **coinage** (`resmplng` → resampling) at
 `min(#out+1, limit)`, and a **word split** (`exactlyright` → exactly right)
@@ -250,6 +281,7 @@ empty store, the right is one real store after a year of typing:
 | you type | empty store | a real store | what decided the second column |
 | --- | --- | --- | --- |
 | `start` | `start`[exact] | `start`[exact] | **2** — the guard. `started` is confirmed twice and sits behind it |
+| `x` | `x`[letter] | `x`[letter] | **2** — one letter. Before it, the real store's count on `x` put `xxx` first |
 | `its` | `its`[exact] | `its`[chosen] | **3** agreeing with **2** — the confirmed reading *is* the query's own, so it takes slot 1 as itself |
 | `ok` | `ok`[exact] | `OK`[chosen] | **3** — a taught capital is the same word, not a rival, so it keeps slot 1 |
 | `dont` | `don't`[exact] | `don't`[chosen] | **2** would have done it alone: the exact hit *is* the contraction |
