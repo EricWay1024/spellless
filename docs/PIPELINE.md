@@ -1978,36 +1978,42 @@ not take the word anywhere, just stop being an input method until it is
 finished.
 
 ```
-// in M.absorb.func, where the fragment has been found
+// in M.absorb.func, for every printable key with nothing composing
 if cfg.ascii_fragment or context:get_option("ascii_fragment"):
-    ascii_mode ← true;  ASCII_WORD ← "1";  SENTENCE ← ""
-    return kRejected            // ascii_composer already ran for this key, so
-                                // the mode we just set would not be seen; being
-                                // rejected sends the letter to the application
-
-// in M.handover.func, the gear ahead of ascii_composer
-if ASCII_WORD = "1":
-    inside ← (0x20 < code < 0x7f) or code = Backspace
-    if not inside:
-        ASCII_WORD ← "";  ascii_mode ← false     // and the key is not consumed
-    return kNoop
+    if document_tail(context) matches /[%w][%w'._\/-]*$/:
+        SENTENCE ← ""
+        return kRejected        // librime does the OS default, so the key
+                                // lands in the application as itself
 ```
 
-**A space ends the run, and nothing else printable does.** Ending it at the
-first non-letter is the obvious rule and it is wrong, because the tokens this
-exists for are full of punctuation: `p.m.`, `v1.2`, `a.out`, `foo_bar`, `and/or`.
-Under that rule the full stop of `p.m.` ended the run, reached the English
-punctuation path of §D.2 and collected the space every mark after a word gets —
-so `5p.m.` came out `5p. m. `, which is the one thing plain typing is supposed to
-guarantee against. Nothing here can see where the token ends; that is the whole
-reason the mode was borrowed. So the person typing says where, with the key they
-were going to press anyway, and the space that ends the run is a real space in
-the document, after which the next word composes and carries its own trailing
-space as usual.
+**It is not a mode, and that is the point.** There is no `ascii_mode` to set and
+nothing to remember: every keystroke asks the document the same question and
+answers it for that key alone.
 
-Backspace stays inside the run for the reason above. Everything that is not
-printable at all — Return, Tab, the arrow keys, Escape — ends it, because each of
-them means the caret is going somewhere else.
+An earlier version latched — set `ascii_mode`, record `ASCII_WORD = "1"`, and
+release both in `M.handover.func` at the first key that was not printable. A
+latch is the wrong shape for this question. Whether the caret is inside a word is
+a fact about where the caret is *now*, and a latch answers it once and then goes
+on asserting it: click out of the middle of a word and the mode stayed on, with
+no way back but a Shift tap. The code said so itself — *"Nothing here watches the
+caret."* Nothing has to watch it. `document_tail` reads the frontend's live
+surrounding text, so the caret can simply be asked, every time.
+
+**The tail has to end in a token, not merely in a character**, and the two halves
+of that pattern each do a job. It must *begin* with `[%w]`, because that is what
+separates a token from punctuation: type `(` and the tail ends `(`, no match, so
+`(hello` composes and offers candidates exactly as it always did. It may then
+*continue* through `'._/-`, because the tokens this exists for are full of
+punctuation — `p.m.`, `v1.2`, `a.out`, `foo_bar`, `and/or`. Ending at the first
+non-letter is the obvious rule and it is wrong: the full stop of `p.m.` reached
+the English punctuation path of §D.2 and collected the space every mark after a
+word gets, so `5p.m.` came out `5p. m. `, which is the one thing plain typing is
+supposed to guarantee against.
+
+So `5p` takes `.` because the tail is a token, and `5p.` takes `m` because it
+still is. A space breaks it and nothing else has to: after `Hello. ` the tail
+ends in a space, no match, and the next word composes. The person typing says
+where the token ends, with the key they were going to press anyway.
 
 The argument for absorbing is that the letters in front of the caret belong to
 the word being typed, so the composition should hold them. That is true, and it

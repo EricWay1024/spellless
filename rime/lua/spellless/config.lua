@@ -507,10 +507,19 @@ M.defaults = {
   -- On, and it is the answer to more than the case it was written for.  A
   -- digit counts as an unclear boundary too -- "4" is never composed, so "4D"
   -- would otherwise open a fresh composition for "D" and offer a page of
-  -- English words for a token that was never going to be English -- and the
-  -- run it opens then swallows `p.m.`, `v1.2` and `a.out` whole, which is what
-  -- you want from a mode that exists precisely because nothing can see where
-  -- the token ends.
+  -- English words for a token that was never going to be English -- and
+  -- `p.m.`, `v1.2` and `a.out` go in whole, which is what you want where
+  -- nothing can see the end of the token.
+  --
+  -- It is not a mode.  Every keystroke asks the document whether the text
+  -- behind the caret ends in a token that began with a letter or a digit, and
+  -- hands that one key over if it does.  An earlier version latched -- set
+  -- `ascii_mode`, remember it, release it at the first key that was not
+  -- printable -- and a latch is the wrong shape for the question: whether the
+  -- caret is inside a word is a fact about where the caret is *now*, so
+  -- clicking out of the middle of one left the mode on with no way back but a
+  -- Shift tap, which the code admitted in its own comment.  Nothing is
+  -- remembered now, so there is nothing to be wrong.
   --
   -- Safe to be on for the same reason the other three are: it needs to read
   -- the document, no stock frontend offers one, and until one has it does

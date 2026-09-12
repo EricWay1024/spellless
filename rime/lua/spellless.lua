@@ -75,7 +75,6 @@ local PICKED = "spellless_picked"
 local FORCED_CASE = "spellless_case"
 -- Set while the keyboard has been handed to ASCII mode for the rest of a word
 -- the caret was already sitting inside.  See `ascii_fragment`.
-local ASCII_WORD = "spellless_ascii_word"
 -- Set while the composition was started by taking a word back out of the
 -- middle of the document, where whatever followed that word -- a space, a
 -- comma -- is still sitting there.  The word then commits without the
@@ -796,7 +795,17 @@ function M.absorb.func(key, env)
     return kNoop
   end
   if key:ctrl() or key:alt() or key:super() then return kNoop end
-  if not is_word_char(key.keycode) then return kNoop end
+  -- Absorbing can only take letters -- a digit or a full stop cannot go into an
+  -- alphabetic composition -- but handing the keyboard over can take anything
+  -- printable, and has to: the tokens this exists for are `p.m.`, `v1.2`,
+  -- `a.out`, `foo_bar`, `and/or`.  What stops a full stop in ordinary prose
+  -- being caught by this is not the key, it is the document (below).
+  local printable = key.keycode > 0x20 and key.keycode < 0x7f
+  if handover_ascii then
+    if not printable then return kNoop end
+  elseif not is_word_char(key.keycode) then
+    return kNoop
+  end
   if context:is_composing() then return kNoop end
 
   -- Only from the document.  Absorbing means deleting, and Rime's own commit
@@ -836,9 +845,39 @@ function M.absorb.func(key, env)
   -- nobody wants.  Absorbing has nothing to say here, since a digit cannot go
   -- into an alphabetic composition, which is why this is the branch that can
   -- answer it at all.
-  if handover_ascii and document:match("[%w][%w']*$") then
-    context:set_option("ascii_mode", true)
-    context:set_property(ASCII_WORD, "1")
+  --
+  -- **Asked again for every keystroke, and no mode is set.**  An earlier
+  -- version latched: it turned `ascii_mode` on, remembered that it had, and
+  -- turned it off again at the first key that was not printable.  That is the
+  -- wrong shape for the question.  Whether the caret is inside a word is a
+  -- fact about *where the caret is now*, and a latch answers it once and then
+  -- asserts it -- so clicking out of the middle of a word left the mode on,
+  -- with no way back but a Shift tap, and the code said so in its own comment.
+  --
+  -- There is nothing to latch.  `document_tail` reads the frontend's live
+  -- surrounding text, so every keystroke can ask the document directly, and
+  -- the answer is right even when the caret moved by means this process never
+  -- saw -- a click, an arrow key, another window's edit.  Rejecting the key
+  -- puts the letter in the document; the next keystroke asks again, and by
+  -- then the tail ends in the letter just typed, so a word carries on being
+  -- typed plainly for exactly as long as the caret is still inside one.  Reach
+  -- a space and the tail stops matching, with nothing to switch off.
+  -- The question the document is asked, and it is the whole of the rule:
+  -- **does the text behind the caret end in a token that began with a letter
+  -- or a digit?**
+  --
+  -- `[%w]` to start, because that is what makes it a token rather than
+  -- punctuation: type `(` and then a letter and the tail ends `(`, which does
+  -- not match, so `(hello` composes and offers candidates as it always did.
+  -- Then anything a token is made of to the end, because `5p` followed by `.`
+  -- is still `5p.` and `m` after it is still the same token -- that is how
+  -- `p.m.`, `v1.2`, `a.out`, `foo_bar` and `and/or` stay in one piece without
+  -- anything having to remember that a run was opened.
+  --
+  -- A space breaks it, and nothing else has to: after `Hello. ` the tail ends
+  -- in a space, no match, and the next word composes.  The person typing says
+  -- where the token ends, with the key they were going to press anyway.
+  if handover_ascii and document:match("[%w][%w'._/%-]*$") then
     context:set_property(SENTENCE, "")
     return kRejected
   end
@@ -1383,9 +1422,6 @@ function M.handover.func(key, env)
     if context:get_property(DELIMITER) ~= "" then
       context:set_property(DELIMITER, "")
     end
-    if context:get_property(ASCII_WORD) ~= "" then
-      context:set_property(ASCII_WORD, "")
-    end
 
     -- What is highlighted, for a command that has not been typed yet.
     --
@@ -1494,19 +1530,6 @@ function M.handover.func(key, env)
   -- that is not printable at all -- Return, Tab, the arrow keys, Escape --
   -- ends it, because each of them means the caret is going somewhere else.
   --
-  -- Nothing here watches the caret, so clicking away in the middle of a run
-  -- leaves the mode on until one of those.  A tap on Shift is the way out of
-  -- that, as it is out of every other ASCII run.
-  if context:get_property(ASCII_WORD) == "1" then
-    local code = key.keycode
-    local inside = (code > 0x20 and code < 0x7f) or code == XK_BackSpace
-    if not inside then
-      context:set_property(ASCII_WORD, "")
-      context:set_option("ascii_mode", false)
-    end
-    return kNoop
-  end
-
   -- The two halves are configured apart: a list of snippet triggers is useful
   -- with no delimiters at all, in an application that has no snippet engine
   -- but plenty of maths.

@@ -535,39 +535,40 @@ do
   local cfg = env.spellless.cfg
   local was_absorb, was_ascii = cfg.absorb_fragment, cfg.ascii_fragment
   cfg.absorb_fragment, cfg.ascii_fragment = true, true    -- ascii wins over absorb
-  local function leave_no_run()
-    ctxA:set_property("spellless_ascii_word", "")
-    ctxA:set_option("ascii_mode", false)
-  end
-
-  local function land_on(document)
+  local function land_on(document, code)
     ctxA.input = ""
     ctxA:set_option("ascii_mode", false)
-    ctxA:set_property("spellless_ascii_word", "")
     ctxA:set_property("surrounding_text", document)
     local before = #mock.committed
-    local rc = spellless.absorb.func(mock.key(string.byte("o")), env)
+    local rc = spellless.absorb.func(mock.key(code or string.byte("o")), env)
     return rc, #mock.committed - before
+  end
+  -- kRejected is 0 in the mock: librime does the OS default, so the character
+  -- lands in the application as itself.
+  local function hands_over(document, code)
+    return (land_on(document, code)) == 0
   end
 
   local rc, wrote = land_on("I think so")
   H.eq(rc, 0, "the letter is rejected, so the application types it itself")
   H.eq(wrote, 0, "nothing is committed -- the document is not touched")
   H.eq(ctxA.input, "", "and nothing is pulled into the composition")
-  H.ok(ctxA:get_option("ascii_mode"), "the keyboard is in ASCII mode")
+  H.ok(not ctxA:get_option("ascii_mode"),
+       "and no mode is set: there is nothing to switch off afterwards")
 
-  -- A caret that is not flush against a word is an ordinary new word.
-  land_on("I think so ")
-  H.ok(not ctxA:get_option("ascii_mode"), "a space behind means nothing to hand over")
+  -- Every keystroke asks the document again, and that is the whole rule.  An
+  -- earlier version latched a mode on and released it at the first key that
+  -- was not printable, so a click out of the middle of a word left the mode
+  -- on with no way back but a Shift tap.  Whether the caret is inside a word
+  -- is a fact about where the caret is *now*.
+  H.ok(not hands_over("I think so "), "a space behind means nothing to hand over")
 
   -- A digit counts, and it is the case that shows why the *boundary* is the
   -- right thing to look at.  "4" is never composed -- digits go straight into
   -- the document -- so "4D" would otherwise start a fresh composition for "D"
   -- and offer a page of English words for a token that was never English.
-  land_on("about 4")
-  H.ok(ctxA:get_option("ascii_mode"), "a digit hard against the caret hands over too")
-  land_on("about 4 ")
-  H.ok(not ctxA:get_option("ascii_mode"), "and a space after it does not")
+  H.ok(hands_over("about 4"), "a digit hard against the caret hands over too")
+  H.ok(not hands_over("about 4 "), "and a space after it does not")
   -- Absorbing cannot answer this one: a digit is not part of a word the
   -- speller could be composing, so it stays letters-only.
   cfg.ascii_fragment = false
@@ -579,44 +580,40 @@ do
   -- Handing over deletes nothing, so it needs no permission to edit the
   -- document -- which is the one thing it can do that absorbing cannot.
   ctxA:set_option("commit_only", true)
-  land_on("I think so")
-  H.ok(ctxA:get_option("ascii_mode"), "and it acts even where the document is read-only")
+  H.ok(hands_over("I think so"), "and it acts even where the document is read-only")
   ctxA:set_option("commit_only", false)
 
-  -- Giving it back.  handover runs ahead of ascii_composer, which is the only
-  -- gear that sees a key at all once the mode is on.
-  local function still_ascii_after(code)
-    land_on("I think so")
-    spellless.handover.func(mock.key(code), env)
-    return ctxA:get_option("ascii_mode")
-  end
-  H.ok(still_ascii_after(string.byte("n")), "a letter is more of the same token")
-  H.ok(still_ascii_after(XK_BS),
-       "and so is a Backspace -- correcting it must not drop you back mid-word")
-  -- The tokens this exists for are full of punctuation.  Ending the run at the
-  -- first non-letter sent the full stop of "p.m." down the English path, which
-  -- gave it the space every mark after a word gets: "5p. m. ".
-  H.ok(still_ascii_after(string.byte(".")),
+  -- Carrying on.  There is no run to be inside of: the next key is handed over
+  -- because the document *still* ends in a token, and by then the token ends
+  -- with whatever the last key put there.  So the punctuation these tokens are
+  -- full of stays in one piece with nothing remembering anything -- ending the
+  -- run at the first non-letter sent the full stop of "p.m." down the English
+  -- path, which gave it the space every mark after a word gets: "5p. m. ".
+  H.ok(hands_over("I think son", string.byte("n")), "a letter is more of the same token")
+  H.ok(hands_over("about 5p", string.byte(".")),
        "and so is a full stop -- p.m., v1.2, a.out are all one token")
-  H.ok(still_ascii_after(string.byte("/")), "and a slash, and every other mark")
-  H.ok(not still_ascii_after(0x20), "a space is the boundary, and the only one")
-  H.ok(not still_ascii_after(XK_Ret), "along with anything that is not printable")
+  H.ok(hands_over("about 5p.", string.byte("m")),
+       "and the letter after it, because 5p. is still a token")
+  H.ok(hands_over("and", string.byte("/")), "and a slash, and every other mark")
+  H.ok(hands_over("foo_", string.byte("b")), "foo_bar is one token")
+  H.ok(not hands_over("Hello. ", string.byte("W")),
+       "a space is the boundary, and the only one")
+  H.ok(not hands_over("I think so", 0x20), "a space itself is never handed over")
+  H.ok(not hands_over("I think so", XK_Ret), "nor anything that is not printable")
 
-  -- Which is the property that matters: inside a run the mark is written by
+  -- What stops ordinary prose being caught by this is the document, not the
+  -- key: a token has to *start* with a letter or a digit, so an opening
+  -- bracket is not one and the word after it composes as it always did.
+  H.ok(not hands_over("see (", string.byte("h")),
+       "(hello still composes -- a bracket does not open a token")
+  H.ok(not hands_over("", string.byte("h")), "and neither does an empty document")
+
+  -- Which is the property that matters: inside a token the mark is written by
   -- the application, as itself, and this input method contributes nothing --
   -- no space, no capital, nothing to take back afterwards.
-  land_on("about 4")
   local before = #mock.committed
-  spellless.handover.func(mock.key(string.byte(".")), env)
-  H.eq(#mock.committed, before, "nothing at all is committed for a mark inside a run")
-
-  -- Left ASCII by some other route -- a tapped Shift, F4 -- and the run is
-  -- over however it ended.
-  land_on("I think so")
-  ctxA:set_option("ascii_mode", false)
-  spellless.handover.func(mock.key(string.byte("n")), env)
-  H.eq(ctxA:get_property("spellless_ascii_word"), "",
-       "and a mode turned off elsewhere takes the run with it")
+  land_on("about 4", string.byte("."))
+  H.eq(#mock.committed, before, "nothing at all is committed for a mark inside a token")
 
   -- And the F4 switch turns it on for a window without editing a file, which
   -- is how it gets tried at all.
@@ -627,19 +624,17 @@ do
        "with the setting off and the switch off, the word is picked up instead")
   H.eq(ctxA.input, "so", "which is what absorb_fragment does")
   ctxA:set_option("ascii_fragment", true)
-  land_on("I think so")
-  H.ok(ctxA:get_option("ascii_mode"), "and the switch alone is enough to try it")
+  H.ok(hands_over("I think so"), "and the switch alone is enough to try it")
+  H.eq(ctxA.input, "", "handing over, so nothing is picked up")
   ctxA:set_option("ascii_fragment", false)
 
   cfg.absorb_fragment, cfg.ascii_fragment = was_absorb, was_ascii
   ctxA.input = ""
-  leave_no_run()
 end
 
 env.spellless.cfg.absorb_fragment = false
 ctxA:set_property("surrounding_text", "")
 ctxA:set_property("spellless_resumed", "")
-ctxA:set_property("spellless_ascii_word", "")
 mock.history:clear()
 
 H.suite("adapter: the settings say what happens, the F4 switches say what is happening")
