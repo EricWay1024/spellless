@@ -1163,14 +1163,23 @@ function M.processor.func(key, env)
   if composing and engine and engine.cfg.confirm_literal and code == XK_space
      and not key:ctrl() and not key:alt() and not key:super() then
     local chosen = context:get_selected_candidate()
-    -- Two reasons to pause on the first space.  The candidate is the raw
-    -- input, which is the original case; or a variant switch is on and what
-    -- you typed is a spelling it refuses, so the leader is the other dialect's
-    -- and committing it silently would rewrite a word you chose.
+    -- One reason to pause, and it is a fact about the *candidate*: what the
+    -- space bar is about to commit is the raw input, a word the dictionary
+    -- does not have, which is usually a misspelling rather than a decision.
+    --
+    -- A variant refusal used to be a second reason, and it was the same rule
+    -- applied to the wrong thing.  It asked about the **input**: type `math`
+    -- under a British mode and `maths` leads, so the space bar paused -- even
+    -- though `maths` is an ordinary word of the dictionary and committing it
+    -- is not the step into the dark this pause exists for.  The argument for
+    -- it was that a silent dialect rewrite should not pass unnoticed, and that
+    -- argument is answered somewhere better: you turned the mode on.  Asking
+    -- again on every `math`, `color` and `analyse` is not a warning, it is a
+    -- toll.  The literal is still on the page in its usual slot for the time
+    -- you did mean the other spelling.
     local ask = chosen and chosen.type == "raw"
-    if not ask then
-      local input = context.input
-      ask = engine:variant_refuses(input,
+    if not ask and engine.cfg.confirm_variant then
+      ask = engine:variant_refuses(context.input,
                                    { variant_mode = spelling_mode(context, engine) })
     end
     if ask and context:get_property(LITERAL) ~= "1" then

@@ -550,6 +550,27 @@ M.defaults = {
   -- own is exempt: it leads labelled `letter` rather than `raw`, because a
   -- single letter is never a misspelling of anything.
   confirm_literal   = true,
+  -- Ask on the first space over a spelling the variant mode refuses, as well.
+  --
+  -- **Off**, and it was on.  It is `confirm_literal`'s rule applied to the
+  -- wrong thing: that rule is about the *candidate* -- what the space bar is
+  -- about to commit is a word the dictionary does not have, so pause before
+  -- stepping into the dark -- and this asked about the *input*.  Type `math`
+  -- under a British mode and the leader is `maths`, an ordinary word of the
+  -- dictionary, and there is no dark to step into; you are asked anyway, every
+  -- time, for every `math`, `color` and `analyse` you write.  That is a toll
+  -- rather than a warning, and the warning it was meant to be is already
+  -- answered by the fact that you turned the mode on.
+  --
+  -- What it was protecting is real and worth writing down: `color` is a CSS
+  -- property and `center` a LaTeX environment, and committing `colour` because
+  -- you reached for the space bar is the one failure here worth avoiding.  Two
+  -- things bound it.  The literal is on the page in its usual slot, and
+  -- committing it twice retires the substitution for that word for good -- so
+  -- the exposure is the first couple of times you type `color` in a
+  -- stylesheet, and one keystroke undoes it.  Turn this on to have the old
+  -- behaviour back.
+  confirm_variant   = false,
   -- Type one letter and that letter is always first, and the space bar
   -- commits it at once: `b` is `b`, not `by`, and a letter you have committed
   -- before is not completed to `xxx`.  `a` and `i` still lead as the words
