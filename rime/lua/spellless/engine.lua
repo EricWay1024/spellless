@@ -169,27 +169,6 @@ function Engine:variant_insisted(word)
   return false
 end
 
---- Is `raw` a spelling this mode refuses to offer?
----
---- The one case where hiding can corrupt a document rather than tidy it.
---- `color` is a CSS property, `center` a LaTeX environment, `analyze` and
---- `catalog` are function names, and a British writer types them deliberately
---- inside code.  With the switch on the leader is `colour`, and the space bar
---- -- which is doing double duty as "pick this" and "separate the words" --
---- would commit it without the writer noticing.  ALGORITHM.md §1.1 calls
---- silently converting a deliberate token the one failure that corrupts a
---- document unseen, and slot 7 does not help: what failed is the space bar,
---- not reachability.
----
---- So the adapter asks once, exactly as it does for a word the dictionary has
---- never seen.  Return still commits immediately.
-function Engine:variant_refuses(raw, opts)
-  local v = self:variants(opts)
-  if not v or not raw or raw == "" then return false end
-  local word = raw:lower()
-  return v:hidden(word) and not self:variant_insisted(word)
-end
-
 --- The text to actually show and commit for a matched word.
 ---
 --- A few words have no valid lowercase spelling -- you can never mean a

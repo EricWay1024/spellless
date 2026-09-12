@@ -51,8 +51,7 @@ switches:
   # `color` -- and where the surviving spelling is too far from what you typed
   # to be found on its own, it is substituted (`plgh` gives `plow` under
   # American).  What you typed is still in slot 7, and the first space over a
-  # refused spelling commits it -- see `confirm_variant` for the pause that
-  # used to be there and why it is not.
+  # refused spelling commits the surviving one, like any other word.
   #
   # "British -ize" is Oxford spelling: -ize, but also -yse, so `analyse` and
   # `paralyse` stay.  Ships off; `spellless/spelling_variant` is the setting.

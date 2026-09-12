@@ -141,15 +141,11 @@ H.eq(has(words("gb-ise", "plgh"), "plough"), true, "British keeps plough")
 H.suite("variants: what you typed is still yours")
 
 -- The literal is placed after this filter runs, so a refused spelling stays
--- reachable; and `variant_refuses` is what makes the space bar ask first.
+-- reachable.  That is the whole of the guarantee: reachable, in its usual
+-- slot, with one keystroke.  The space bar does not pause over it -- `colour`
+-- is a word the dictionary has, and the pause is for words it does not.
 H.eq(has(words("gb-ise", "color"), "color"), true,
      "typing color under British still offers color itself")
-H.eq(eng("gb-ise"):variant_refuses("color", {}), true,
-     "and the adapter is told to ask before committing colour")
-H.eq(eng("gb-ise"):variant_refuses("colour", {}), false,
-     "a spelling this mode writes needs no question")
-H.eq(eng("off"):variant_refuses("color", {}), false,
-     "and with no mode on, nothing is refused")
 
 H.suite("variants: the coverage the corpus lost")
 
@@ -187,7 +183,6 @@ local function offered(query)
 end
 
 H.eq(has(offered("clr"), "color"), false, "before: color is hidden")
-H.eq(mine:variant_refuses("color", {}), true, "and the space bar asks")
 
 -- Once: not yet.  This is the same "said it twice" rule the rest of the
 -- personal store uses, so a single accident does not change anything.
@@ -199,7 +194,6 @@ mine:learn_choice("color", "color")
 H.eq(mine:variant_insisted("color"), true, "twice is")
 H.eq(has(offered("clr"), "color"), true, "and clr offers it again")
 H.eq(has(offered("clr"), "colour"), true, "beside colour, which never left")
-H.eq(mine:variant_refuses("color", {}), false, "the space bar stops asking")
 
 -- One word only: insisting on `color` says nothing about `favorite`.
 H.eq(mine:variant_insisted("favorite"), false, "the escape hatch is per word")

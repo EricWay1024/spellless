@@ -1167,21 +1167,13 @@ function M.processor.func(key, env)
     -- space bar is about to commit is the raw input, a word the dictionary
     -- does not have, which is usually a misspelling rather than a decision.
     --
-    -- A variant refusal used to be a second reason, and it was the same rule
-    -- applied to the wrong thing.  It asked about the **input**: type `math`
-    -- under a British mode and `maths` leads, so the space bar paused -- even
-    -- though `maths` is an ordinary word of the dictionary and committing it
-    -- is not the step into the dark this pause exists for.  The argument for
-    -- it was that a silent dialect rewrite should not pass unnoticed, and that
-    -- argument is answered somewhere better: you turned the mode on.  Asking
-    -- again on every `math`, `color` and `analyse` is not a warning, it is a
-    -- toll.  The literal is still on the page in its usual slot for the time
-    -- you did mean the other spelling.
+    -- A variant refusal used to be a second reason, and it was this rule
+    -- applied to the wrong thing: it asked about the **input**.  Type `math`
+    -- under a British mode and `maths` leads -- an ordinary word of the
+    -- dictionary -- and the space bar paused anyway, on every `math`, `color`
+    -- and `analyse` written exactly as meant.  Nothing is being stepped into
+    -- blind there, which is the only thing this pause is for.
     local ask = chosen and chosen.type == "raw"
-    if not ask and engine.cfg.confirm_variant then
-      ask = engine:variant_refuses(context.input,
-                                   { variant_mode = spelling_mode(context, engine) })
-    end
     if ask and context:get_property(LITERAL) ~= "1" then
       context:set_property(LITERAL, "1")
       return kAccepted

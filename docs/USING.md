@@ -180,13 +180,10 @@ which is why there are two British modes rather than one.
 Nothing is lost by choosing wrongly.
 
 * **What you typed is still in slot 7**, as always.
-* **The space bar commits, once.** It used to ask first over a spelling the
-  mode refuses — `color` is a CSS property and `center` a LaTeX environment, so
-  committing `colour` because you reached for the space bar is the failure here
-  worth avoiding. But the pause is a toll on every `math`, `color` and
-  `analyse` you meant, to guard a case the next two lines already bound, and
-  the rule it borrowed is about a word the dictionary does *not* have — which
-  `maths` and `colour` are not. `spellless/confirm_variant` puts it back.
+* **The space bar commits, once.** A substituted spelling is an ordinary word
+  of the dictionary, so it goes in like any other — the first space commits it.
+  The pause the space bar makes elsewhere is for a word the dictionary does
+  *not* have, which is a different thing.
 * **Insist and it stops.** Commit `color` twice and the mode never hides it
   from you again — the same "you have said this twice" the rest of your
   personal vocabulary runs on, and per word, so it says nothing about
