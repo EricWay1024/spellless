@@ -639,6 +639,42 @@ M.defaults = {
   -- Flush the personal file after this many commits, or this many ms.
   flush_every       = 4,
   flush_interval_ms = 5000,
+
+  --------------------------------------------------------------------- record
+  -- Keep a local record of what was typed and what happened to it, as a
+  -- tab-separated file next to the personal store.  docs/proposals/recording.md
+  -- is the design and spellless/record.lua is the writer.
+  --
+  -- **Off, and it stays off.**  This writes down every word you type, in every
+  -- application it is allowed in, with timestamps.  That is not a side effect
+  -- of the feature, it is the feature: the reason to want it is that
+  -- ALGORITHM.md §2 lists "no training data" among the constraints this
+  -- matcher was built under, and the only way to stop that being true is to
+  -- keep the pairs.  Nobody gets that by default, and `zzver` says so on every
+  -- machine where it is on.
+  record            = false,
+  -- Where, under the user directory the schema was loaded from -- never an
+  -- absolute path, for the reason `personal_file` is a bare name too: two
+  -- frontends run side by side out of `%APPDATA%\Rime` and
+  -- `%APPDATA%\Spellless` and a configured path would be written by both.
+  record_file       = "spellless_log.tsv",
+  -- Which applications may be recorded.  Empty means every one of them, and
+  -- an allowlist is the shape to use: `record_apps: "code.exe"` records the
+  -- thesis and nothing else, where a blocklist is a promise you have to keep
+  -- updating.  Matched against `client_app` like `snippet_apps` beside it.
+  record_apps       = "",
+  -- Flush after this many records, or this many ms.  Its own numbers rather
+  -- than the personal store's above, because the log has tens of records where
+  -- that has one, and because losing the tail of a log to a crash costs a few
+  -- lines of measurement where losing the tail of the personal store costs
+  -- something the user taught it.
+  record_flush_every = 32,
+  record_flush_ms   = 10000,
+  -- Rotate at this size, keeping one older file.  About two months of heavy
+  -- writing each at the volumes the design estimates, which is long enough to
+  -- fit weights on and short enough to stay a diagnostic rather than an
+  -- archive.
+  record_max_bytes  = 33554432,
 }
 
 --- Merge `overrides` (may be nil) onto the defaults.

@@ -14,6 +14,7 @@ local Corpus = require("spellless.corpus")
 local Engine = require("spellless.engine")
 local config = require("spellless.config")
 local preceding = require("spellless.preceding")
+local version = require("spellless.version")
 local util = require("spellless.util")
 
 -- librime's ProcessResult, which a lua_processor returns as a number.
@@ -89,12 +90,52 @@ local ARMED = "spellless_armed"
 -- highlighted in.  See the memo in process_key.
 local HIGHLIGHT = "spellless_highlight"
 local SENTENCE_YES, SENTENCE_NO = "1", "0"
+-- The running counters for the composition being typed, for the log: when it
+-- started, how many keys have gone into it, how many of those were Backspace,
+-- how many moved the highlight, how long the input ever got, and the slowest
+-- query it has cost.  See docs/proposals/recording.md §3.1.
+--
+-- In the property map rather than in a table beside the engine, and that is
+-- not tidiness.  `absorb`, the processor and the translator all touch these
+-- and all three get separate `env` tables; the context is the only thing they
+-- share.  A module-level table keyed by nothing would interleave the counters
+-- of two windows typed in alternately into each other's episodes -- the same
+-- hazard `userdb.lua`'s cache comment is about, where "whichever flushed last
+-- would silently drop what the other had learned".
+local EPISODE = "spellless_episode"
+-- Which key ended the composition, where the gear that knows is not the gear
+-- that writes the record.  Read and cleared by the commit notifier.
+local HOW = "spellless_how"
+-- The last `ascii_mode` the first gear saw, so that the matcher being switched
+-- off can be noticed without knowing which of the five things that do it did.
+-- See `watch_ascii`.
+local ASCII = "spellless_ascii"
+
+-- Both declared here and defined far below, because the commit notifier is
+-- built in `M.init` and reads the translator's memo, which does not exist yet
+-- at that point in the file.  A local a closure cannot see yet compiles as a
+-- global lookup and is nil at the one moment it matters.
+local record_commit
+local learn_committed
 
 --- The note, if it still describes the text we are looking at.
 local function read_note(context)
   local value, stamp = context:get_property(SENTENCE):match("^([01]):(%d+)$")
   if value and tonumber(stamp) == context.commit_history.size then return value end
   return nil
+end
+
+local function episode_read(context)
+  local t0, keys, bs, nav, maxlen, qms = context:get_property(EPISODE)
+      :match("^(%d+):(%d+):(%d+):(%d+):(%d+):(%d+)$")
+  if not t0 then return nil end
+  return { t0 = tonumber(t0), keys = tonumber(keys), bs = tonumber(bs),
+           nav = tonumber(nav), maxlen = tonumber(maxlen), qms = tonumber(qms) }
+end
+
+local function episode_write(context, e)
+  context:set_property(EPISODE, ("%d:%d:%d:%d:%d:%d"):format(
+      e.t0, e.keys, e.bs, e.nav, e.maxlen, e.qms))
 end
 
 local M = {}
@@ -203,6 +244,22 @@ function M.init(env)
   end
   env.spellless = engine
 
+  -- One session header per process, at the top of whatever the log is.  It
+  -- names the build and hashes the settings, and without it six months of log
+  -- silently mixes three different tunings -- the discipline
+  -- `spellless.build.json` already applies to the dictionary, applied to the
+  -- measurements taken against it.
+  if engine.recorder and not engine.recorded_session then
+    engine.recorded_session = true
+    engine.recorder:session{
+      version = version.revision,
+      build = engine.data_dir and Corpus.fingerprint(engine.data_dir),
+      digest = engine:config_digest(),
+      schema = env.engine.schema.schema_id,
+      app = env.engine.context:get_property("client_app"),
+    }
+  end
+
   -- Rime's own user dictionary learns (code, text) pairs emitted by a
   -- dictionary-backed translator.  Our candidates are synthesised in Lua, so
   -- there is nothing for it to record; we watch commits ourselves instead.
@@ -221,6 +278,20 @@ function M.init(env)
     if ctx:get_selected_candidate() and ctx:get_property(PICKED) == "1" then
       engine:learn_choice(ctx.input, committed)
     end
+    -- Which key ended it.  The processor says so where only it can tell --
+    -- Return on a highlight you moved to sets PICKED exactly as a number key
+    -- does, and the two are different evidence -- and the three cases left
+    -- over are told apart here.  A candidate taken by clicking it reads as the
+    -- space bar, which is the closest true thing available: no key was
+    -- pressed, and the list was read.
+    local how = ctx:get_property(HOW)
+    if how == "" then
+      if ctx:get_property(PICKED) == "1" then how = "pick"
+      elseif ctx:get_selected_candidate() then how = "space"
+      else how = "return" end
+    end
+    ctx:set_property(HOW, "")
+    record_commit(engine, ctx, ctx.input, committed, how)
     -- Something was just committed, so whatever the last Return or Backspace
     -- implied is stale; the text behind the cursor is authoritative again.
     ctx:set_property(SENTENCE, "")
@@ -492,6 +563,23 @@ local function app_allows(context, list)
   return list == "" or app_listed(context, list)
 end
 
+--- The log, if there is one and this application may be written down.
+---
+--- Every call site is written for nil, which is what it returns on every
+--- machine that has not turned recording on -- which is every machine that has
+--- not read docs/proposals/recording.md and decided to.
+local function recorder(context, engine)
+  local rec = engine and engine.recorder
+  if not rec then return nil end
+  if not app_allows(context, engine.cfg.record_apps) then return nil end
+  return rec
+end
+
+--- The application the frontend says we are typing into, for a log record.
+local function app_of(context)
+  return context:get_property("client_app")
+end
+
 -- ---------------------------------------------------------------------------
 -- commands typed mid-word
 -- ---------------------------------------------------------------------------
@@ -600,7 +688,8 @@ end
 --- Keyed on the engine as well as the input, because librime creates one
 --- engine per input context but shares a single Lua state; and on the personal
 --- store's change counter, so a commit invalidates it.
-local cache = { engine = nil, input = nil, result = nil, stamp = -1, key = nil }
+local cache = { engine = nil, input = nil, result = nil, stats = nil,
+                stamp = -1, key = nil }
 
 local function suggest(engine, input, behind)
   -- Every input to the answer belongs in this key.  A field left out is a
@@ -622,10 +711,97 @@ local function suggest(engine, input, behind)
      and cache.stamp == engine.user.dirty_stamp then
     return cache.result
   end
-  local result = engine:suggest(input, nil, behind)
-  cache.engine, cache.input, cache.result, cache.stamp, cache.key =
-      engine, input, result, engine.user.dirty_stamp, key
-  return result
+  -- Timed only when there is a log to put the number in, so the ordinary path
+  -- gains nothing to run.  Two clock calls against a mean of 2.9 ms is
+  -- nothing; 1 ms of resolution against a median of 2.2 ms is coarse, which is
+  -- why this number is for catching the query that took 40 ms on a busy
+  -- machine and not for measuring the distribution -- bench/ does that
+  -- properly, with `os.clock` and repeated runs.
+  local started = engine.recorder and engine.now_ms() or nil
+  local result, stats = engine:suggest(input, nil, behind)
+  local elapsed = started and (engine.now_ms() - started) or nil
+  cache.engine, cache.input, cache.result, cache.stats, cache.stamp, cache.key =
+      engine, input, result, stats, engine.user.dirty_stamp, key
+  return result, elapsed
+end
+
+--- What the log wants about a composition that has just ended.
+---
+--- Called from both of the places a commit can come from, and that is the
+--- whole of the difficulty here.  `Context::Commit` fires the commit notifier
+--- the translator connected; `Engine::CommitText` does not fire it at all,
+--- which is why the learning below had to be written out by hand at four
+--- separate keys.  A log wired to only the notifier would silently lose about
+--- half of everything -- and lose it non-uniformly, because the half it would
+--- lose is every word ended with a full stop.
+---
+--- `input` and `text` are passed rather than read off the context, because two
+--- of the callers have already cleared it by the time anything could be read.
+function record_commit(engine, context, input, text, how)
+  local rec = recorder(context, engine)
+  if not rec then return end
+  input = input or ""
+  -- Punctuation committed as its own segment reaches the notifier too.  A
+  -- record with no letters in it is not a word and would only ever be noise in
+  -- the case files this log exists to produce.
+  if not input:find("%a") then
+    context:set_property(EPISODE, "")
+    return
+  end
+  local t = {
+    ms = rec:ms(),
+    app = app_of(context),
+    input = input,
+    -- The automatic space rides along with the candidate; it is this
+    -- software's, not the typist's, and it is not part of the word.
+    text = (text or ""):gsub("%s+$", ""),
+    how = how,
+    rank = 0,
+  }
+
+  -- Which line of the list was taken, out of the memo the translator filled in
+  -- for this very input a keystroke ago.  Nothing is searched again: at commit
+  -- time the input is unchanged, so the answer is a scan of a list that is
+  -- already in memory.
+  if cache.engine == engine and cache.input == input and cache.result then
+    local list = cache.result
+    t.cands = #list
+    for i = 1, #list do
+      if list[i].text == t.text then
+        t.rank, t.source = i, list[i].source
+        break
+      end
+    end
+    local stats = cache.stats
+    if stats then
+      t.scanned, t.checked, t.cues = stats.scanned, stats.checked, stats.cues
+    end
+  end
+
+  local e = episode_read(context)
+  if e then
+    t.keys, t.bs, t.nav, t.qms = e.keys, e.bs, e.nav, e.qms
+    -- The counters are bumped before the speller has applied the key, so the
+    -- longest input they saw is one short of the one being committed.
+    t.maxlen = e.maxlen > #input and e.maxlen or #input
+    t.dur = t.ms - e.t0
+  end
+  context:set_property(EPISODE, "")
+  rec:commit(t)
+end
+
+--- Learn a word this file committed itself, and write the log's record of it.
+---
+--- Four keys reach here -- punctuation ending a word, Return carrying the
+--- automatic space, keypad Enter and Shift+Return, and Control+Shift+A -- and
+--- every one of them commits through `Engine::CommitText`, which the notifier
+--- never sees.  They each used to call `engine:learn` on their own; folding
+--- them into one function is what stops the next thing that has to happen on a
+--- commit from being written out four times and forgotten in one of them.
+function learn_committed(engine, context, input, text, how)
+  if not engine then return end
+  engine:learn(text)
+  record_commit(engine, context, input, text, how)
 end
 
 function M.func(input, seg, env)
@@ -640,7 +816,14 @@ function M.func(input, seg, env)
 
   local context = env.engine.context
   local behind = read_behind(engine, context, input)
-  local candidates = suggest(engine, input, behind)
+  local candidates, elapsed = suggest(engine, input, behind)
+  if elapsed then
+    local e = episode_read(context)
+    if e and elapsed > e.qms then
+      e.qms = elapsed
+      episode_write(context, e)
+    end
+  end
   local debug_comments = engine.cfg.show_debug_comments
   local raw_comment = engine.cfg.raw_comment
   -- The space rides along with the word, so whichever key commits it -- space
@@ -730,10 +913,53 @@ local function is_word_char(code)
   return (code >= 0x41 and code <= 0x5a) or (code >= 0x61 and code <= 0x7a)
 end
 
+local XK_Left, XK_Page_Down = 0xff51, 0xff56
+
+--- One more key into the word being typed, for the log.
+---
+--- A composition that has not started yet is started by a letter and by
+--- nothing else, so any other key arriving with nothing composing is the end
+--- of the matter: whatever counters a finished word left behind are dropped
+--- rather than handed to the next one.
+---
+--- The input is measured before the speller has applied this key, so the
+--- longest it is seen to get here is one short of what is finally committed.
+--- `record_commit` knows that and takes the larger of the two; the number is
+--- worth having because `maxlen` above `#input` is the only evidence that the
+--- word was typed, backed over, and typed again.
+local function count_key(rec, context, code)
+  local e = context:is_composing() and episode_read(context) or nil
+  if not e then
+    if not is_word_char(code) then
+      if context:get_property(EPISODE) ~= "" then
+        context:set_property(EPISODE, "")
+      end
+      return
+    end
+    e = { t0 = rec:ms(), keys = 0, bs = 0, nav = 0, maxlen = 0, qms = 0 }
+  end
+  e.keys = e.keys + 1
+  if code == XK_BackSpace then
+    e.bs = e.bs + 1
+  elseif code >= XK_Left and code <= XK_Page_Down then
+    e.nav = e.nav + 1
+  end
+  local n = #context.input
+  if n > e.maxlen then e.maxlen = n end
+  episode_write(context, e)
+end
+
 function M.absorb.func(key, env)
   local engine = env.spellless
   if key:release() then return kNoop end
   local context = env.engine.context
+
+  -- The log's counters for the word being typed.  They can only be kept here:
+  -- this gear runs before the speller, which is what makes it the only one
+  -- that sees a letter at all -- the same fact the Backspace flag below
+  -- depends on.
+  local rec = recorder(context, engine)
+  if rec then count_key(rec, context, key.keycode) end
 
   -- This gear runs before the speller, so it is the only one that sees every
   -- key: a letter is consumed by the speller and never reaches the processor
@@ -993,6 +1219,14 @@ function M.processor.func(key, env)
     -- never arrived.
     log.info(("spellless: forget %q -> %s"):format(tostring(word),
              gone and "removed" or "was not in the personal store"))
+    -- The rarest line in the log and the cleanest label in it: a human saying
+    -- outright that the answer was wrong, rather than the analysis inferring
+    -- it from a deletion.
+    local rec = recorder(context, engine)
+    if rec then
+      rec:note("forget", { ms = rec:ms(), app = app_of(context),
+                           a = word, b = gone and "removed" or "absent" })
+    end
     if composing then
       -- Re-run the translation so the reordering is on screen at once.
       context:refresh_non_confirmed_composition()
@@ -1008,7 +1242,7 @@ function M.processor.func(key, env)
     if context:is_composing() then
       local text = context.input
       env.engine:commit_text(text)
-      if env.spellless then env.spellless:learn(text) end
+      learn_committed(env.spellless, context, text, text, "ascii")
       context:clear()
     end
     context:set_property(SENTENCE, "")
@@ -1072,7 +1306,8 @@ function M.processor.func(key, env)
                    and engine.cfg.enter_space
                    and not engine.cfg.leading_space) and " " or ""
     env.engine:commit_text(text .. trail)
-    if engine then engine:learn(text) end
+    learn_committed(engine, context, text, text,
+                    code == XK_KP_Enter and "kp" or "soft")
     context:set_property(SENTENCE, "")
     context:clear()
     -- Keypad Enter *is* Enter: commit and stop.  Shift+Return is the soft
@@ -1105,6 +1340,10 @@ function M.processor.func(key, env)
     local segment = context.composition and context.composition:back()
     if segment and (segment.selected_index or 0) > 0 then
       context:set_property(PICKED, "1")
+      -- Two keys aimed at one line, which is different evidence from a number
+      -- key and very different from the space bar.  The notifier cannot tell
+      -- on its own, so it is told.
+      context:set_property(HOW, "arrow")
       context:commit()
       return kAccepted
     end
@@ -1130,7 +1369,7 @@ function M.processor.func(key, env)
     local text = context.input
     env.engine:commit_text(
         text .. (context:get_property(RESUMED) == "1" and "" or " "))
-    engine:learn(text)
+    learn_committed(engine, context, text, text, "return")
     context:set_property(SENTENCE, "")
     context:clear()
     return kAccepted
@@ -1191,7 +1430,7 @@ function M.processor.func(key, env)
   if engine and engine.cfg.auto_space and is_punctuation(code) then
     local ascii_punct = context:get_option("ascii_punct")
     if composing then
-      local text
+      local input, text = context.input, nil
       if single_segment(context) then
         -- get_selected_candidate() returns the *last* segment's candidate, so
         -- it is only the whole answer when one segment covers the whole input.
@@ -1211,7 +1450,7 @@ function M.processor.func(key, env)
         text = context.input
       end
       env.engine:commit_text(text)
-      engine:learn(text)
+      learn_committed(engine, context, input, text, "punct")
       context:set_property(SENTENCE, "")
       context:clear()
     end
@@ -1275,6 +1514,14 @@ function M.processor.func(key, env)
       local repeated = context:get_property(BACKSPACE) == "1"
       context:set_property(SENTENCE, SENTENCE_NO .. ":0")
       context:set_property(BACKSPACE, "1")
+      -- The raw material of post-commit repair.  What this deletion undoes is
+      -- not worked out here: the analysis pairs it with the commits around it
+      -- afterwards, where the definition of a repair can be changed and the
+      -- six months already on disk re-read under the new one.
+      local rec = recorder(context, engine)
+      if rec then
+        rec:note("del", { ms = rec:ms(), app = app_of(context), a = "key" })
+      end
       -- Only with nothing composing: while a word is being typed, Backspace
       -- belongs to the composition.
       if repeated and engine and feature(context, engine, "word_backspace")
@@ -1298,6 +1545,13 @@ function M.processor.func(key, env)
             env.engine:commit_text(string.rep("\8", #word - 1))
           end
           context:set_property(BACKSPACE, "")
+          -- The word as well as the fact, because this is the one deletion
+          -- that knows what it removed -- which makes the pairing downstream a
+          -- comparison rather than a guess.
+          if rec then
+            rec:note("del", { ms = rec:ms(), app = app_of(context),
+                              a = "word", b = word })
+          end
         end
       end
     end
@@ -1403,6 +1657,36 @@ local function handle_magic(key, context, engine)
   return nil
 end
 
+--- Notice the matcher being switched off, and switched back on.
+---
+--- By **sampling the mode**, not by watching for the keys that change it.
+--- There are five ways into ASCII mode -- a tapped Shift, Control+Shift+A, an
+--- F4 switch, a `$`, and an application the frontend puts there on its own --
+--- and a detector written key by key gets the common one wrong: Shift held for
+--- a capital and Shift tapped to escape are the same two events in the same
+--- order, and the difference is a letter that this gear may never see.  One
+--- `get_option` and a string compare per key is right about all five and
+--- cannot be wrong about any of them, at the cost of noticing one keystroke
+--- late.
+---
+--- A run the `$` opened is not a bail-out -- it is maths, and it was asked for
+--- -- so the two are separated here, where `DELIMITER` still says which it
+--- was, rather than guessed apart afterwards.
+local function watch_ascii(context, engine)
+  local rec = recorder(context, engine)
+  if not rec then return end
+  local now = context:get_option("ascii_mode") and "1" or "0"
+  local was = context:get_property(ASCII)
+  if was == now then return end
+  context:set_property(ASCII, now)
+  -- "" is not a previous state, it is the first key this context has seen.  A
+  -- window that opens in ASCII mode has not bailed out of anything.
+  if was == "" then return end
+  local how = now == "1" and "on" or "off"
+  if context:get_property(DELIMITER) ~= "" then how = "delim-" .. how end
+  rec:note("bail", { ms = rec:ms(), app = app_of(context), a = how })
+end
+
 M.handover = {}
 
 function M.handover.init(env)
@@ -1412,8 +1696,12 @@ end
 function M.handover.func(key, env)
   local engine = env.spellless
   if not engine then return kNoop end
-  if key:release() or key:ctrl() or key:alt() or key:super() then return kNoop end
   local context = env.engine.context
+  -- Before the release check below, and before the `$` handling: this is the
+  -- first gear of all, and in ASCII mode it is the only one a printable key
+  -- reaches, so it is the only place the mode can be watched from at all.
+  watch_ascii(context, engine)
+  if key:release() or key:ctrl() or key:alt() or key:super() then return kNoop end
   if not context:get_option("ascii_mode") then
     -- Back in Spellless mode by some other route -- a tapped Shift, F4,
     -- Control+Shift+A -- so the run is over however it ended, and the next `$`

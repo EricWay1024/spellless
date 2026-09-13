@@ -11,6 +11,7 @@ local affix = require("spellless.affix")
 local version = require("spellless.version")
 local Shortcuts = require("spellless.shortcuts")
 local Snippets = require("spellless.snippets")
+local Record = require("spellless.record")
 local split = require("spellless.split")
 local config = require("spellless.config")
 local generate = require("spellless.generate")
@@ -38,6 +39,9 @@ function Engine.new(opts)
   local self = setmetatable({
     cfg = cfg,
     corpus = corpus,
+    -- Kept only so the log's session header can name the build it was
+    -- measuring; nothing in the matching reads it.
+    data_dir = opts.data_dir,
     now_ms = opts.now_ms or function() return 0 end,
   }, Engine)
 
@@ -59,7 +63,32 @@ function Engine.new(opts)
   self.snippets = Snippets.load(
       opts.snippets_path
       or (opts.user_dir and util.join(opts.user_dir, cfg.snippets_file)))
+
+  -- The log, if the schema asked for one.  Built here rather than in the
+  -- adapter so that it is one per engine -- which is one per (data directory,
+  -- settings) and therefore shared across input contexts, exactly as the
+  -- personal store is -- and so that tests can exercise it under a plain
+  -- `lua`.  `cfg.record` off means nil, and nil is what every call site is
+  -- written for.
+  if cfg.record then
+    local path = opts.record_path
+        or (opts.user_dir and util.join(opts.user_dir, cfg.record_file))
+    self.recorder = Record.open{
+      path = path,
+      now_ms = self.now_ms,
+      flush_every = cfg.record_flush_every,
+      flush_ms = cfg.record_flush_ms,
+      max_bytes = cfg.record_max_bytes,
+    }
+  end
   return self
+end
+
+--- The digest of the configuration this engine is running, for the session
+--- header.  Computed once: it walks every key in `cfg`.
+function Engine:config_digest()
+  if not self._digest then self._digest = Record.digest(self.cfg) end
+  return self._digest
 end
 
 -- Nothing in the personal store is repaired on load, and the reason is worth
@@ -467,6 +496,12 @@ function Engine:describe(opts)
         app, opts.readable and "readable" or "unreadable",
         opts.may_edit and "allowed" or "refused")
   end
+  -- A recorder that is running says so here, and this is the whole of why the
+  -- line exists: it writes down every word typed into it, and something that
+  -- does that must be visible from inside the thing it is recording.  Only
+  -- when it is on -- a line saying "recording off" on every machine that has
+  -- never turned it on is noise.
+  if self.recorder then out[#out + 1] = self.recorder:describe() end
   return out
 end
 
@@ -1284,6 +1319,7 @@ end
 
 function Engine:flush()
   self.last_flush = self.now_ms()
+  if self.recorder then self.recorder:flush() end
   return self.user:flush()
 end
 
