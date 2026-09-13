@@ -51,6 +51,11 @@ CONTENTS = [
     "rime/lua/spellless/",
     "generated/",
     "scripts/install.py",
+    # The reader for the input log, which is nothing on a machine that has not
+    # turned recording on and the only way to get anything back out of it on
+    # one that has.  It imports `install.py` for the user-directory lookup, and
+    # that is beside it here for the same reason it is beside it in the tree.
+    "scripts/analyse_log.py",
     "LICENSE",
 ]
 

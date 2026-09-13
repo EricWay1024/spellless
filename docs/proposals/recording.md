@@ -3,9 +3,14 @@
 A design, written 2026-09-13, for keeping a local record of what is typed into
 Spellless and what Spellless does about it.
 
-**Nothing here is built.** The point of the document is to settle what is worth
-recording before any of it is, because a log is the one feature you cannot fix
+**Phase 1 is built** (§11); phases 2 to 4 are not. The point of writing the
+whole thing down first was to settle what a record has to contain before
+anything wrote one, because a log is the one feature you cannot fix
 retrospectively: a field left out is a month of typing that does not have it.
+
+    spellless/record: true          in spellless.custom.yaml, and nowhere else
+
+Off by default, and §7 is what turning it on means.
 
 ---
 
@@ -160,7 +165,7 @@ the unit the product is measured in: a word.
 | `app` | `client_app` as the frontend reports it | everything differs between a thesis and a chat window, and the switchable features already key off it |
 | `input` | the composition input, exactly | the first column of a case file |
 | `text` | what was committed, trailing space stripped | the second column |
-| `rank` | 1-based position of the committed candidate, `0` for a literal Return | **the accuracy number** |
+| `rank` | 1-based position of the committed candidate, `0` when it was not in the list at all | **the accuracy number**. A Return commit gets the position of the *raw* candidate rather than a zero, which is the honest answer; `how` is what says it was a refusal to choose |
 | `source` | the candidate's `source` tag | §1.3 |
 | `how` | `space`, `pick`, `return`, `arrow`, `punct`, `kp`, `soft`, `ascii` | which key ended it, which is not the same question as which candidate won |
 | `keys` | key presses in this composition | the denominator of "keystrokes saved" |
@@ -247,8 +252,8 @@ has, and each of these is one unambiguous line:
 | `del` | Backspace with nothing composing, and the `word_backspace` double-tap firing | the raw material of post-commit repair |
 | `forget` | Control+Shift+D, Control+Delete, or `qqd` | **"you got this wrong"**, stated deliberately by a human. The cleanest label in the whole log, and the rarest |
 | `suppress` | a word pushed onto the never-offer list | the dictionary is wrong about you, specifically |
-| `bail` | Shift tap, Control+Shift+A, `ascii_mode` toggled | **"I give up, let me type it myself"** — the single best one-number summary of whether the thing is working |
-| `delim` | `$` handing the keyboard to ASCII mode, and the `$` that hands it back | how much of your typing happens with the matcher switched off entirely, which for a maths thesis is most of the interesting part |
+| `bail` | `ascii_mode` changed at all: a Shift tap, Control+Shift+A, an F4 switch, a `$`, an application the frontend puts there | **"I give up, let me type it myself"** — the single best one-number summary of whether the thing is working. Recorded by *sampling the mode* rather than by watching for the keys that change it, because Shift held for a capital and Shift tapped to escape are the same two events in the same order |
+| `bail delim-on` | the same transition, where `DELIMITER` says a `$` caused it | not a bail-out at all: it is maths, and it was asked for. Separated where the answer is still known rather than guessed apart afterwards, so the `bail` number above stays worth trusting — and it already measures how much of a thesis the matcher is switched off for |
 | `ask` | the `confirm_literal` pause fired, and whether the second space followed or you changed your mind | measures a feature that costs a keystroke every time it is right |
 | `abandon` | composition cleared without committing | the word you could not get at all |
 | `magic` | `qqc`/`qqf`/`qql` | the capital was inferred wrongly, and you said so |
@@ -289,9 +294,11 @@ traced to the weights that produced it. Without these the log is
 uninterpretable the first time you change a weight, which will be the week
 after it is switched on.
 
-Plus an `app` record whenever `client_app` changes, which is cheap — it is one
-string compare against the last one — and which is what makes the per-context
-half of §9 possible at all.
+Phase 2 adds an `app` record whenever `client_app` changes, which is cheap —
+one string compare against the last one — and which is what makes the
+per-context half of §9 cost nothing to answer. Until then every record carries
+its own `app`, so the question is answerable already; the record only saves
+repeating it.
 
 ---
 
@@ -340,24 +347,29 @@ appends lines.
 ## 6. Where it lives
 
 ```
-<rime user dir>/spellless_log/2026-09-13.tsv
+<rime user dir>/spellless_log.tsv      and  spellless_log.tsv.1
 ```
 
-Resolved against `rime_api.get_user_data_dir()`, which `acquire` already hands
-to the engine, and never against a path in the configuration. Two frontends run
-side by side out of `%APPDATA%\Rime` and `%APPDATA%\Spellless`
-(`docs/DEPLOYING.md`), and a configured path would sooner or later be written
-by both.
+Next to `spellless_user.txt`, and resolved against
+`rime_api.get_user_data_dir()` the same way, never against a path in the
+configuration. Two frontends run side by side out of `%APPDATA%\Rime` and
+`%APPDATA%\Spellless` (`docs/DEPLOYING.md`), and a configured path would
+sooner or later be written by both.
 
-One file per day, because "delete everything before August" and "what did
-Tuesday look like" are both then trivial, and because a day is small enough to
-open. `analyse_log.py` gzips files older than a day — Lua cannot compress
-without a dependency, Python can, and there is no hurry.
+One file, rotated by size, keeping one older file beside it. A file per day
+reads better and cannot be had: `io.open` will not create a directory, Lua has
+no mkdir, and `os.execute("mkdir")` flashes a console window out of the IME
+process on Windows. Nothing is lost — the day boundary is in the data, in the
+session headers and the `ms` offsets, and `analyse_log.py` splits on it.
+`--gzip` compresses the rotated file; Lua cannot compress without a dependency,
+Python can, and there is no hurry.
 
 Volume, on a heavy day of about 5,000 words and 30,000 keys: roughly 600 kB of
 episodes, 750 kB of candidate lists, 750 kB of keystrokes. Call it 1–2 MB a
-day, 50 MB a month, a few MB a month once gzipped. `record_retain_days = 90`
-deletes the rest.
+day, 50 MB a month, a few MB a month once gzipped. `record_max_bytes` defaults
+to 32 MB, which is about two months of heavy writing per file and four across
+the pair — long enough to fit weights on, short enough to stay a diagnostic
+rather than an archive.
 
 ---
 
@@ -382,13 +394,13 @@ the words. So:
    character classes. That kills §1.1 entirely and keeps §1.2 and §1.4 intact,
    which is a reasonable trade for someone who wants the report and not their
    prose on disk.
-5. **Visible.** `zzrec`, alongside `zzver`, says whether recording is on, which
-   file, how many events today, and the day's headline numbers. A recorder you
-   cannot see from inside the thing being recorded is a recorder you will
-   forget is on. (And like `zzver`, its own lines must be kept out of both the
-   personal store and the log — `version_query` is currently a single string
-   and wants to become a small set, which is a two-line change in
-   `Engine:learn_choice` and `read_behind`.)
+5. **Visible.** `zzver` gains a last line: whether a recorder is running, how
+   many records it has written, and where. A recorder you cannot see from
+   inside the thing being recorded is a recorder you will forget is on — and
+   one more line on a diagnostic that already exists is the right amount of
+   surface for that, where a second magic word would have been a second thing
+   to keep out of the personal store. The line appears only when recording is
+   on; "recording off" on every machine that never turned it on is noise.
 6. **Erasable.** It is a text file: open it and delete a line.
    `analyse_log.py --purge-before DATE` and `--forget WORD` for the rest.
 
@@ -455,16 +467,21 @@ Concretely:
 ## 10. The analysis side
 
 ```
-scripts/analyse_log.py                 # build the SQLite db, print the report
-scripts/analyse_log.py --report week
+scripts/analyse_log.py                        # the report
+scripts/analyse_log.py --days 7               # the last week of it
+scripts/analyse_log.py --repairs              # what was deleted and typed again
 scripts/analyse_log.py --to-cases tests/cases/personal.tsv
-scripts/analyse_log.py --repairs       # the derived repair table
+scripts/analyse_log.py --to-cases FILE --strong-only
+scripts/analyse_log.py --sqlite log.db        # the whole thing as a database
 scripts/analyse_log.py --purge-before 2026-07-01
 scripts/analyse_log.py --gzip
 ```
 
-Standard library only, like the rest of `scripts/`. The SQLite database is a
-build artefact — derived from the log, deletable, rebuilt in seconds.
+Standard library only, like the rest of `scripts/`; it finds the Rime user
+directory with `install.py`'s own `resolve_user_dir`, so it works from WSL
+against the Windows-side installation without being told where anything is. The
+SQLite database is a build artefact — derived from the log, deletable, rebuilt
+in seconds — which is why it is an option rather than the store.
 
 ---
 
@@ -472,17 +489,28 @@ build artefact — derived from the log, deletable, rebuilt in seconds.
 
 | | what | why in this order |
 | --- | --- | --- |
-| **1** | session header, episodes, `del`, `bail`, `forget`; the four `engine:learn` call sites folded into one helper; `analyse_log.py` with the report and `--to-cases` | this is already §1.1, §1.2 and most of §1.4. Perhaps 250 lines of Lua and 300 of Python |
-| **2** | candidate lists, `ask`, `abandon`, `magic`, `delim`, `app` | completes the tuning input and the feature-level questions |
-| **3** | the keystroke stream, and the derived repair detector on top of it | the timing questions, and the highest-resolution version of the thing you most want to see |
-| **4** | `record_words = false`, retention, gzip | the parts that only matter once there is a lot of data |
+| **1** ✅ | session header, episodes, `del`, `bail` (including `delim-*`), `forget`; the four `engine:learn` call sites folded into `learn_committed`; `analyse_log.py` with the report, `--repairs` and `--to-cases` | this is already §1.1, §1.2 and most of §1.4 |
+| **2** | candidate lists, `ask`, `abandon`, `magic`, the `app` record | completes the tuning input and the feature-level questions |
+| **3** | the keystroke stream, and the repair detector run over it rather than over `del` alone | the timing questions, and the highest-resolution version of the thing you most want to see |
+| **4** | `record_words = false`, gzip on a schedule | the parts that only matter once there is a lot of data |
 
-Tests, with the existing `tests/rime_mock.lua`, which already exercises
+What phase 1 came to:
+
+| | |
+| --- | --- |
+| `rime/lua/spellless/record.lua` | the writer: encoding, the buffer, rotation, the config digest |
+| `rime/lua/spellless/config.lua` | six settings, all off or unused until `record` is true |
+| `rime/lua/spellless.lua` | the counters in `absorb`, the mode watcher in `handover`, `record_commit` and `learn_committed`, and the session header in `M.init` |
+| `rime/lua/spellless/engine.lua` | the recorder's lifetime, and the `zzver` line |
+| `scripts/analyse_log.py` | the reader: the report, the repair detector, `--to-cases` |
+| `tests/test_record.lua` | eleven suites, 53 assertions |
+
+The tests use the existing `tests/rime_mock.lua`, which already exercises
 `rime/lua/spellless.lua` itself: every commit route produces exactly one
 episode and no route produces two; an unwritable path never raises and never
 swallows a key; `record = false` creates no file; and a fixed key sequence
-produces byte-identical commits with recording on and off, which is §8's
-invariant made executable.
+commits the same text with recording on and off, which is §8's invariant made
+executable.
 
 ---
 
@@ -503,9 +531,19 @@ about, arrived at from the other side. The honest treatment:
   disagreed;
 * derived repairs and `forget` records are **strongest** — you said so twice.
 
-`--to-cases` should weight or filter on this, and say which rule it used in a
-comment at the top of the file it writes. A case file that does not say how it
-was made is a case file that will be trusted for the wrong reason in March.
+`--to-cases` writes the evidence class into the `group` column the harness
+already breaks its results down by, so `make bench` scores the two separately
+without anything else having to change, and `--strong-only` keeps just the
+rows you read the list for. The file says how it was made in a comment at the
+top: a case file that does not is one that will be trusted for the wrong reason
+in March.
+
+It also drops a capital it did not have to earn. Sentence-initial
+capitalisation is applied by this software, so recording "But" as what a
+lowercase `but` meant and then fitting weights on it teaches the ranker its own
+output — the trap `Engine:learn_choice` already guards the personal store
+against, with the same rule, lowering only a plain Title Case word so that
+`CLI` and `TQFT` keep their capitals.
 
 ### 12.2 One user is one user
 

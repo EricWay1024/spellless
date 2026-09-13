@@ -323,7 +323,51 @@ patch:
   spellless/delimiter_apps: "code.exe,typora.exe"  # where `$` opens maths
   spellless/auto_capitalize: false     # and your own capitals
   menu/page_size: 9                    # a longer list (the literal slot follows it)
+  spellless/record: true               # keep a log of what you type -- read the next section first
 ```
+
+## Recording what you type
+
+Off, and it stays off unless you write that line yourself.
+
+With `spellless/record: true`, Spellless keeps a plain-text log next to your
+vocabulary — `spellless_log.tsv` in the same folder as `spellless_user.txt` —
+with one line per word committed: what you typed, what went into the document,
+which line of the list it was, which mechanism produced it, which key took it,
+and how long it took you. Plus the failures: what you deleted, what you asked
+it to forget, and every time you gave up and tapped Shift.
+
+**That is every word you type, in every application it is allowed in.** It is
+not a side effect of the feature, it is the feature: `docs/ALGORITHM.md` §2
+lists "no training data" among the constraints this matcher was built under,
+and keeping the pairs is the only thing that stops that being true. Nothing
+leaves your machine — this project makes no network calls of any kind — and
+nothing else reads the file.
+
+```yaml
+patch:
+  spellless/record: true
+  spellless/record_apps: "code.exe"    # only here.  Empty means everywhere
+  spellless/record_max_bytes: 33554432 # rotate at 32 MB, keeping one older file
+```
+
+`record_apps` is an allowlist, which is the safer shape: naming the one
+application you want recorded is a promise that keeps itself, where a list of
+applications to skip is one you have to remember to update.
+
+Type `zzver` and the last line says whether it is running and how much it has
+written. To read it:
+
+```bash
+python3 scripts/analyse_log.py                   # the report
+python3 scripts/analyse_log.py --repairs         # what you deleted and typed again
+python3 scripts/analyse_log.py --to-cases tests/cases/personal.tsv
+python3 scripts/analyse_log.py --purge-before 2026-07-01
+```
+
+It is a text file: open it and delete a line, or delete the whole thing, at any
+time. [docs/proposals/recording.md](proposals/recording.md) is the design, and
+§7 of it is this paragraph at length.
 
 ## Uninstalling
 
@@ -333,4 +377,6 @@ python3 scripts/install.py --uninstall
 
 It removes the files it wrote, and prints the two things it deliberately does
 not touch: the Spellless entry in `default.custom.yaml`, which you take out by
-hand, and `spellless_user.txt`, which is your vocabulary rather than its.
+hand, and `spellless_user.txt`, which is your vocabulary rather than its. If
+you turned recording on, `spellless_log.tsv` is yours too and stays where it
+is.
