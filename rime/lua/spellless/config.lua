@@ -395,7 +395,7 @@ M.defaults = {
   -- space to carry.
   enter_space       = true,
   -- Characters that turn ASCII mode on when you type one, and off when you
-  -- type it again: `$` opens maths, and inside maths every keystroke is
+  -- type it again: `$` opens maths and a backtick opens code. Every keystroke is
   -- yours -- no candidates, no automatic capital, no spacing.  Each character
   -- is closed by itself, and only a run this opened is closed that way: a `$`
   -- typed in ASCII mode you reached by tapping Shift is an ordinary dollar
@@ -404,7 +404,7 @@ M.defaults = {
   -- One character each.  `$$` therefore reads as open-then-close rather than
   -- as display maths; write `\[` for that, or tap Shift.  Set to "" to switch
   -- the whole idea off.
-  ascii_delimiters  = "$",
+  ascii_delimiters  = "$`",
   -- Applications that may not have text taken back out of them, by name, comma
   -- separated.  The three features below all work by removing characters the
   -- application has already been given, and that only works where the text is
@@ -552,13 +552,10 @@ M.defaults = {
   confirm_literal   = true,
   -- Type one letter and that letter is always first, and the space bar
   -- commits it at once: `b` is `b`, not `by`, and a letter you have committed
-  -- before is not completed to `xxx`.  `a` and `i` still lead as the words
-  -- they are, `A` and `I`; see Engine:lead_with_letter.
-  --
-  -- Off.  It was tried in real typing and did not feel right, so the trust
-  -- rules decide single letters as they always did; this is here for anyone
-  -- who writes more variables than two-letter words.
-  letter_first      = false,
+  -- before is not completed to `xxx`. Keep the case typed, even at a sentence
+  -- start, except that `i` always leads as `I`. Shortcuts follow the letter.
+  -- Set false to rank single letters like other input.
+  letter_first      = true,
   -- Which spellings to offer: "off", "us", "gb-ise", or "gb-ize" (Oxford,
   -- which keeps -ize but also keeps -yse: analyse, paralyse).  In a mode the
   -- spellings of the other variant are not offered at all -- typing `clr`

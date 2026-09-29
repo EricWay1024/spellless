@@ -141,13 +141,12 @@ two cases:
 
 For the second row, the escape hatch is the forget key.
 
-### One letter on its own, if you ask for it
+### One letter on its own
 
 > **With `letter_first` on: you typed one letter, and that letter leads.**
 
-Off by default. It was tried in real typing and did not feel right, so single
-letters are ranked like any other input unless you set
-`spellless/letter_first: true`. What it answers, when it is on:
+On by default. Set `spellless/letter_first: false` to rank single letters like
+other input. The rule addresses two problems:
 
 - `b` completes to `by` at no cost, so the trust test (layer 5) believes it
   and "let b be" comes out "let by be" — likewise `do`, `he`, `my`, `of`, `pm`,
@@ -163,10 +162,10 @@ extended to the one input it cannot see (`Engine:lead_with_letter`):
 | --- | --- | --- |
 | `b`, `x`, `B`, `X` | exactly that | a variable, an index, a label, an initial |
 | `f` opening a sentence | `f` | `f` and `F` are different functions; no sentence capital |
-| `a`, `i` | `a` (`A` opening a sentence), `I` | words as well as letters, and the dictionary says so — not the personal store, whose counts are how `x` became `xxx` |
-| `i` after forgetting it | `i` | a word put aside is only a letter again |
-| `x` `qqc`, `i` `qql` | `X`, `i` | a case asked for outright beats everything inferred |
-| `w`, with `w → with` in the shortcut file | `with`, then `w` | layer 1: you said what the letter means |
+| `a`, `i` | `a`, `I` | no sentence capital on `a`; `i` always leads as `I` |
+| `i` after forgetting it | `I` | the single-letter rule survives forgetting the word |
+| `x` `qqc`, `i` `qql` | `X`, `I` | explicit case changes work except for the always-uppercase `I` |
+| `w`, with `w → with` in the shortcut file | `w`, then `with` | the letter takes priority over shortcuts |
 
 It is labelled `letter` rather than `raw`, so the space bar commits it on the
 first press — the literal only makes the space bar ask twice because it is

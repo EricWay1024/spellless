@@ -587,10 +587,10 @@ Engine:suggest(raw, limit, opts) → candidates, stats     // engine.lua
     split      ← find_split(self, search)                                → last
     Engine:insert_raw(out, raw, limit, trusted)                          → cfg.raw_candidate_index,
                                                                             or slot 1 if not trusted
-    if cfg.letter_first (off) and query is one letter:
-        Engine:lead_with_letter(out, raw, query, style, …)               → slot 1, or behind a shortcut
-                 (`a` and `i` as the words they are; any other letter
-                  exactly as typed, labelled "letter", not "raw")        §C.7
+    if cfg.letter_first (on) and raw is one ASCII letter:
+        Engine:lead_with_letter(out, raw, query, …)                     → slot 1
+                 (`i` becomes `I`; other letters keep the typed case,
+                  labelled "letter", not "raw")                         §C.7
  7  return out, stats
 ```
 
@@ -1565,26 +1565,23 @@ that corrupts a document silently.
 * **The one-letter, zero-cost exception survives**: `th → the` is worth trusting
   where `cm → come` and `x → xxx` are not.
 
-**With `letter_first` on, one letter on its own is placed, not trusted.** Off
-by default: it was tried in real typing and did not feel right. What it
-answers is that the zero-cost exception trusts `b → by`, `d → do`, `o → of`,
+**With `letter_first` on (the default), one letter is placed, not trusted.**
+The zero-cost exception otherwise trusts `b → by`, `d → do`, `o → of`,
 `s → so` and the rest of the letters with a common two-letter word behind them,
 and the `has_exact` hole trusts anything after a single commit.
-`Engine:lead_with_letter` runs after `insert_raw` and puts the letter first —
-behind a shortcut written for it, if there is one:
+`Engine:lead_with_letter` runs after `insert_raw` and puts the letter first,
+ahead of shortcuts and learned corrections:
 
 ```
-Engine:lead_with_letter(out, raw, query, style, limit, above, opts):
-    word ← not forced, not literal_first, corpus has query, not suppressed
-    text ← forced     ? apply_case(query, forced)       // qqc, qqf, qql
-         : word       ? Engine:surface(query, style)    // a, A, I
-         : raw                                          // b, x, B, f at a sentence start
-    remove every entry spelled `text`; keep it if it was the word's own entry,
-    otherwise make it { text, source = "letter", raw = text = raw }
-    insert at min(above + 1, #out + 1), trimming to `limit`
+Engine:lead_with_letter(out, raw, query, limit, opts):
+    text ← query = "i" ? "I"
+         : forced      ? apply_case(query, forced)     // qqc, qqf, qql
+         : raw                                        // even at a sentence start
+    remove every entry spelled `text`
+    insert { text, source = "letter", raw = text = raw } at slot 1,
+    trimming to `limit`
 ```
 
-`word` asks the dictionary, not the personal store — a count is the hole.
 The label `letter` is what keeps `confirm_literal` from pausing on it (§D.5): a
 single letter is never a misspelling.
 

@@ -345,9 +345,8 @@ end
 
 H.suite("adapter: a letter hard against a digit is notation")
 -- Typing "4D": the 4 goes straight into the document, so the matcher only ever
--- sees "D" -- which reaches "Do" by adding one letter and is trusted for it,
--- putting "Do" in front of the D that was actually typed.  The digit behind
--- the caret is the only thing that says otherwise.
+-- sees "D". Single letters now lead with themselves everywhere; the digit
+-- behind the caret also protects longer notation such as the "th" in "4th".
 do
   local function lead_for(input)
     ctx:set_property("spellless_sentence", "")
@@ -357,7 +356,8 @@ do
   end
 
   mock.history:clear(); mock.history:push("exact", "hello")
-  H.eq(lead_for("D"), "Do", "an ordinary D still reads as a word")
+  H.eq(lead_for("D"), "D", "an ordinary D leads with itself")
+  H.eq(lead_for("th"), "the", "ordinary shorthand still completes")
 
   mock.history:clear(); mock.history:push("raw", "4")
   H.eq(lead_for("D"), "D", "but 4D commits the D")
@@ -365,7 +365,8 @@ do
 
   -- A space is the whole test: "in 4 days" is not notation.
   mock.history:clear(); mock.history:push("raw", "4 ")
-  H.eq(lead_for("D"), "Do", "a space puts it back to ordinary text")
+  H.eq(lead_for("D"), "D", "a single letter stays literal after a space")
+  H.eq(lead_for("th"), "the", "a space puts shorthand back to ordinary text")
 end
 
 H.suite("adapter: telling a new line from a correction")
@@ -753,15 +754,16 @@ mock.selected = { text = "mathematics ", type = "exact" }
 H.eq(spellless.processor.func(mock.key(0x20), env), 2,
      "a dictionary word commits on the first space")
 
--- Nor, with `letter_first` on, is one letter: it is never a misspelling.
-env.spellless.cfg.letter_first = true
-ctxS.input = "x"
-ctxS:set_property("spellless_literal", "")
-mock.selected = mock.translate(spellless, "x", mock.segment({ "abc" }, 0, 1), env)[1]
-H.eq(mock.selected.text, "x ", "the letter leads")
-H.eq(spellless.processor.func(mock.key(0x20), env), 2,
-     "and commits on the first space")
-env.spellless.cfg.letter_first = false
+-- Every single letter is valid by default and commits on the first space.
+for code = string.byte("a"), string.byte("z") do
+  local letter = string.char(code)
+  ctxS.input = letter
+  ctxS:set_property("spellless_literal", "")
+  mock.selected = mock.translate(spellless, letter, mock.segment({ "abc" }, 0, 1), env)[1]
+  H.eq(mock.selected.text, (letter == "i" and "I" or letter) .. " ", "the letter leads")
+  H.eq(spellless.processor.func(mock.key(0x20), env), 2,
+       "and commits on the first space")
+end
 ctxS.input = "qwertyx"
 
 -- Typing something else cancels it: the reason to pause was that it was wrong.

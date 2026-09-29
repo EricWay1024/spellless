@@ -648,7 +648,7 @@ and `ends_sentence` consults it first.
 ### `$` hands the keyboard over
 
 Maths is not English, and a candidate list in front of `\frac{a}{b}` is in the
-way. Typing a character in `ascii_delimiters` (just `$` for now) writes it and
+way. Typing a character in `ascii_delimiters` (`$` or a backtick) writes it and
 turns ASCII mode on; typing the same character again writes it and turns ASCII
 mode off. Between the two, every keystroke is the typist's.
 

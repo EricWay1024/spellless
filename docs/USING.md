@@ -151,15 +151,13 @@ capitals is deliberate. A letter hard against a digit is notation, so `4D`,
 A space turns it back off: `in 4 days` is ordinary text. snake_case identifiers
 (`foo_bar`, `max_iter2`) are taken literally as soon as the underscore appears.
 
-**One letter can always be that letter**, if you set
-`spellless/letter_first: true` in `spellless.custom.yaml`; it is off by default.
-With it on, the letter is first in the list and the space bar commits it on the
-first press: `b` is `b`, not `by`. It is exactly the case you typed, even at the
-start of a sentence, because `f` and `F` are different things. `a` and `i` are
-words as well, so they come out `A` at the start of a sentence and `I` always —
-unless you forget `i`, after which it is only a letter. `qqc` and `qql` still
-decide the case, and a one-letter entry in `spellless_shortcuts.txt` still comes
-first.
+**Every single letter leads with itself.** Type any letter from `a` to `z` and
+the letter is first in the list; the space bar commits it on the first press.
+It keeps the case you typed, even at the start of a sentence, except that `i`
+always leads as `I`. Learned corrections and one-letter shortcuts follow the
+letter. `qqc` and `qql` can change the case of letters other than `i`.
+Set `spellless/letter_first: false` in `spellless.custom.yaml` to restore the
+ordinary ranking for single letters.
 
 **The literal text you typed is always on the first page** — in slot 7 by
 default, or first when nothing plausible was found — so pressing space on
@@ -256,9 +254,12 @@ switches to plain typing; the closing `$` writes itself and switches back, so
 `$\frac{a}{b}$` goes in without a candidate list in front of it. Only the
 delimiter that opened a run closes it, so a `$` in plain typing you reached by
 tapping Shift is an ordinary dollar sign and `$PATH` in a terminal still works.
-`spellless/ascii_delimiters` is the list, and `$` is all that is in it; it
-works where maths gets written — VS Code and Typora — rather than in a chat
-window where `$5` is a price.
+**Backticks do the same for code.** Type <kbd>`</kbd> to write the opening
+backtick and enter ASCII mode; type it again to write the closing backtick and
+return to Spellless. A dollar inside the code does not end it.
+`spellless/ascii_delimiters` contains both `$` and the backtick by default.
+Both work in VS Code and Typora, controlled by `spellless/delimiter_apps`;
+set that setting to `""` to enable them in every application.
 
 **Editor snippets are handed back to the editor.** VS Code expands `xdm` into
 a display-maths block the moment those letters land in the document, and under

@@ -140,9 +140,9 @@ spellless:
   # Marker shown next to that candidate; "" for no marker.
   raw_comment: ""
   # Type one letter and that letter is always first, committed by the first
-  # space: `b` is `b`, not `by`.  `a` and `i` still come out `A` and `I` where
-  # English wants them.  Off: single letters are ranked like anything else.
-  letter_first: false
+  # space: `b` is `b`, not `by`. Keep the case typed, including at a sentence
+  # start, except `i` is always `I`. Off: rank single letters like other input.
+  letter_first: true
   # Space words apart automatically.  The space is committed with the word, so
   # the key that picks the word -- space bar, a number -- puts it in too.
   # Typing punctuation instead ends the word without its space and puts one
